@@ -6,3 +6,5 @@ Desc: Discovery module for SysAIFrame
 Date: 2025-10-22
 Author: Liu Mingran
 """
+
+from .discovery_manager import DiscoveryManager
