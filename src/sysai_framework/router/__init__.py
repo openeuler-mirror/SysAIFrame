@@ -5,3 +5,5 @@ Desc: Router module initialization for SysAIFrame
 Date: 2025-10-22
 Author: Liu Mingran
 """
+
+from sysai_framework.router.model_router import get_router, reload_router
