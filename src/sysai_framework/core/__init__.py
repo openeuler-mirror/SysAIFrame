@@ -7,3 +7,13 @@ Date: 2025-10-22
 Author: Liu Mingran
 """
 
+from sysai_framework.core.exceptions import (
+    CompatibleException,
+    ModelNotFoundError,
+    InvalidRequestError,
+    AuthenticationError,
+    RateLimitError,
+    ServiceUnavailableError,
+    TimeoutError,
+    handle_exception_with_logging
+)
