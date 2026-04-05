@@ -19,3 +19,7 @@ from sysai_framework.config.model_config import (
     SPECIAL_MODEL_DEFAULT,
     SPECIAL_MODEL_MOCK
 )
+from sysai_framework.config.cors_config import (
+    Config,
+    config
+)
