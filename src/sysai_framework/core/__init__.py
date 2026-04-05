@@ -47,3 +47,40 @@ from sysai_framework.core.chat_processor import (
     ImageGenerationProcessor,
     EmbeddingProcessor
 )
+
+__all__ = [
+    # Exceptions
+    "CompatibleException",
+    "ModelNotFoundError",
+    "InvalidRequestError",
+    "AuthenticationError",
+    "RateLimitError",
+    "ServiceUnavailableError",
+    "TimeoutError",
+    "handle_exception_with_logging",
+
+    # Response Headers
+    "ResponseHeaderManager",
+
+    # Streaming Utils
+    "create_streaming_response",
+    "wrap_generator_with_error_handling",
+    "format_sse_chunk",
+    "format_sse_done",
+
+    # Hooks
+    "BaseHook",
+    "PreCallHook",
+    "DuringCallHook",
+    "PostCallHook",
+    "FailureHook",
+    "HookManager",
+    "get_hook_manager",
+
+    # Request Processors
+    "RequestContext",
+    "RequestProcessor",
+    "ChatCompletionProcessor",
+    "ImageGenerationProcessor",
+    "EmbeddingProcessor",
+]
