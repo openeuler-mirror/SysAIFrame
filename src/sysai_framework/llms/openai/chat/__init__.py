@@ -7,3 +7,5 @@ Author: Liu Mingran
 """
 
 from .gpt_transformation import OpenAIGPTConfig
+
+__all__ = ['OpenAIGPTConfig']
