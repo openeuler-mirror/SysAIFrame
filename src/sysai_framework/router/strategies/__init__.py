@@ -7,3 +7,4 @@ Author: Liu Mingran
 """
 
 from .round_robin import RoundRobinStrategy
+from .weighted import WeightedStrategy
