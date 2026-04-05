@@ -7,3 +7,5 @@ Author: Liu Mingran
 """
 
 from .transformation import OpenAILikeChatConfig
+
+__all__ = ['OpenAILikeChatConfig']
