@@ -7,3 +7,5 @@ Author: Liu Mingran
 """
 
 from sysai_framework.router.model_router import get_router, reload_router
+
+__all__ = ['get_router', 'reload_router']
