@@ -80,3 +80,18 @@ class PreCallHook(BaseHook):
         logger.debug(f"[{context.get('request_id')}] Executing pre-call hook: {self.name}")
 
         return context
+
+
+class DuringCallHook(BaseHook):
+    """
+    During-call hook - executed in parallel with actual backend call
+
+    Use cases:
+    - Content moderation
+    - Real-time monitoring
+    - Cache warming
+    - Analytics logging
+    - Async notifications
+    """
+
+    pass
