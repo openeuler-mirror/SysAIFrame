@@ -336,3 +336,23 @@ async def handle_exception_with_logging(
         else:
             error_msg = str(e) if str(e) else "Connection error"
         return ServiceUnavailableError(error_msg)
+
+    service_unavailable_keywords = [
+        "service unavailable", "service temporarily", "backend service",
+        "service is not running", "service crashed", "service error",
+        "unavailable", "not available", "no healthy", "all models failed"
+    ]
+    if any(keyword in error_str for keyword in service_unavailable_keywords):
+        error_msg = str(e) if str(e) else "Service unavailable"
+        return ServiceUnavailableError(error_msg)
+
+    if any(keyword in error_str for keyword in ["backend", "upstream", "downstream", "external"]):
+        error_msg = str(e) if str(e) else "Service error"
+        return ServiceUnavailableError(error_msg)
+
+    error_msg = str(e) if str(e) else "Unknown error"
+    return CompatibleException(
+        status_obj=INTERNAL_ERROR,
+        message=f"Internal error: {error_msg}",
+        error_type="internal_error"
+    )
