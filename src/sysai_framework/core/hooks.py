@@ -218,3 +218,11 @@ class HookManager:
         """
         self.pre_call_hooks.append(hook)
         logger.debug(f"Registered pre-call hook: {hook.name}")
+
+    def register_during_call_hook(self, hook: DuringCallHook):
+        """
+        Register a during-call hook
+
+        Args:
+            hook: DuringCallHook instance
+        """
