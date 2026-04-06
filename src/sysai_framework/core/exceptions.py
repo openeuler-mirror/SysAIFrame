@@ -297,3 +297,15 @@ async def handle_exception_with_logging(
         else:
             error_msg = str(e) if str(e) else "Service error"
             return ServiceUnavailableError(error_msg)
+    elif isinstance(e, HTTPException):
+        return CompatibleException(
+            status_code=e.status_code,
+            message=str(e.detail),
+            error_type="http_error"
+        )
+    elif isinstance(e, ValueError):
+        error_msg = f"Validation failed: {str(e)}"
+        return InvalidRequestError(error_msg)
+    elif isinstance(e, KeyError):
+        error_msg = f"Missing required field: {str(e)}"
+        return InvalidRequestError(error_msg, param=str(e))
