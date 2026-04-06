@@ -37,3 +37,8 @@ try:
     METRICS_AVAILABLE = True
 except ImportError:
     METRICS_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
+
+# Lightweight check failure threshold (consecutive failures before marking unhealthy)
+LIGHTWEIGHT_FAILURE_THRESHOLD = 2
