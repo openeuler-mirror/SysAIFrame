@@ -625,6 +625,40 @@ class HealthChecker:
             logger.warning(f"Actual request check failed for {model_config.name}: {e}")
             return False
 
+    # === Background thread management ===
+
+    def start_background_checks(self):
+        """Start background health check threads"""
+        with self._thread_management_lock:
+            # Start lightweight check thread if enabled
+            if self._is_lightweight_enabled() and not self._lightweight_running:
+                self._lightweight_running = True
+                self._lightweight_thread = threading.Thread(target=self._lightweight_check_loop, daemon=True)
+                self._lightweight_thread.start()
+                logger.debug("Health checker lightweight background thread started")
+
+            # Start actual request check thread if enabled
+            if self._is_actual_request_enabled_globally() and not self._actual_request_running:
+                self._actual_request_running = True
+                self._actual_request_thread = threading.Thread(target=self._actual_request_check_loop, daemon=True)
+                self._actual_request_thread.start()
+                logger.debug("Health checker actual request background thread started")
+
+    def stop_background_checks(self):
+        """Stop background threads"""
+        with self._thread_management_lock:
+            # Stop lightweight thread
+            if self._lightweight_running:
+                self._lightweight_running = False
+                self._lightweight_config_event.set()  # Wake up thread if sleeping
+                logger.debug("Health checker lightweight background thread stopping")
+
+            # Stop actual request thread
+            if self._actual_request_running:
+                self._actual_request_running = False
+                self._actual_request_config_event.set()  # Wake up thread if sleeping
+                logger.debug("Health checker actual request background thread stopping")
+
 
 
 
