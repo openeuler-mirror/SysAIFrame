@@ -297,3 +297,8 @@ class OperationResult:
     def success(self) -> bool:
         """Whether the operation succeeded"""
         return self.status.is_success
+
+    @property
+    def failed(self) -> bool:
+        """Whether the operation failed (error or critical error)"""
+        return self.status.is_error
