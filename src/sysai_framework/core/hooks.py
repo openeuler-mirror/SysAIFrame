@@ -228,3 +228,11 @@ class HookManager:
         """
         self.during_call_hooks.append(hook)
         logger.debug(f"Registered during-call hook: {hook.name}")
+
+    def register_post_call_hook(self, hook: PostCallHook):
+        """
+        Register a post-call hook
+
+        Args:
+            hook: PostCallHook instance
+        """
