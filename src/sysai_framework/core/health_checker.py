@@ -103,4 +103,64 @@ class HealthChecker:
             model_config: Model configuration
             check_type: Check type ("lightweight" or "actual_request")
         """
-        pass
+        # Update metrics
+        if METRICS_AVAILABLE:
+            health_check_success.labels(model=model_config.name, check_type=check_type).inc()
+
+        should_recover = False
+        was_unhealthy_reason: Optional[str] = None
+        model_name = model_config.name
+        instance_id = str(model_config.instance_id)
+
+        with model_config._health_lock:
+            model_config.consecutive_successes += 1
+            model_config.consecutive_failures = 0  # Reset failure count
+            model_config.last_health_check = datetime.now()
+
+            # Update Prometheus gauges
+            if METRICS_AVAILABLE:
+                model_consecutive_successes.labels(
+                    model=model_config.name,
+                    instance_id=model_config.instance_id
+                ).set(model_config.consecutive_successes)
+                model_consecutive_failures.labels(
+                    model=model_config.name,
+                    instance_id=model_config.instance_id
+                ).set(model_config.consecutive_failures)
+
+            # Update connection_health for lightweight checks
+            if check_type == "lightweight":
+                previous_connection_health = model_config.connection_health
+                model_config.connection_health = True
+            else:
+                previous_connection_health = model_config.connection_health
+
+            # Recovery logic: simplified based on connection_health and is_healthy
+            if not model_config.is_healthy:
+                can_recover = False
+
+                # If connection_health is False, only lightweight success can recover connection_health
+                if not previous_connection_health:
+                    if check_type == "lightweight":
+                        can_recover = True
+                elif model_config.connection_health and check_type == "actual_request":
+                    can_recover = True
+
+                if can_recover:
+                    was_unhealthy_reason = model_config.unhealthy_reason.value
+                    should_recover = True
+                else:
+                    logger.debug(
+                        f"Model {model_config.name} check succeeded ({check_type}), "
+                        f"but cannot recover (connection_health={model_config.connection_health}, "
+                        f"unhealthy_reason={model_config.unhealthy_reason.value})"
+                    )
+
+        # Recover and emit outside lock to avoid deadlocks/blocking
+        if should_recover:
+            self.mark_healthy(model_config)
+            logger.info(
+                f"Model {model_name} recovered to healthy "
+                f"(check_type={check_type}, was {was_unhealthy_reason})"
+            )
+            self._enqueue_health_changed_signal(model_name, instance_id, True, "")
