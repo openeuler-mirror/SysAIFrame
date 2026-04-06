@@ -324,3 +324,24 @@ class HookManager:
                         exc_info=True
                     )
         return context
+
+    async def execute_failure_hooks(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute all failure hooks sequentially
+
+        Args:
+            context: Request context with error information
+
+        Returns:
+            Modified context after all hooks
+        """
+        for hook in self.failure_hooks:
+            if hook.enabled:
+                try:
+                    context = await hook.execute(context)
+                except Exception as e:
+                    logger.error(
+                        f"[{context.get('request_id')}] Failure hook {hook.name} failed: {e}",
+                        exc_info=True
+                    )
+        return context
