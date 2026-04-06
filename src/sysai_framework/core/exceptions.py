@@ -316,3 +316,23 @@ async def handle_exception_with_logging(
     if isinstance(e, (asyncio.TimeoutError, TimeoutError)) or "timeout" in error_str:
         error_msg = str(e) if str(e) else "Connection timeout"
         return TimeoutError(error_msg)
+
+    connection_keywords = [
+        "connection", "refused", "unreachable", "network",
+        "disconnected", "connect", "failed to connect",
+        "service unavailable", "backend service", "service is not running",
+        "crashed", "closed the connection", "does not support"
+    ]
+
+    if isinstance(e, (ConnectionError, OSError, ConnectionRefusedError, ConnectionResetError)) or \
+       any(keyword in error_str for keyword in connection_keywords) or \
+       "connection" in error_type_str or "network" in error_type_str:
+        if "network" in error_str:
+            error_msg = str(e) if str(e) else "Network error"
+        elif "refused" in error_str:
+            error_msg = str(e) if str(e) else "Connection refused"
+        elif "disconnected" in error_str or "disconnect" in error_str:
+            error_msg = str(e) if str(e) else "Connection disconnected"
+        else:
+            error_msg = str(e) if str(e) else "Connection error"
+        return ServiceUnavailableError(error_msg)
