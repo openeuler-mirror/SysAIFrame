@@ -303,3 +303,14 @@ class HookManager:
                 f"[{context.get('request_id')}] During-call hook {hook.name} failed: {e}",
                 exc_info=True
             )
+
+    async def execute_post_call_hooks(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute all post-call hooks sequentially
+
+        Args:
+            context: Request context with response
+
+        Returns:
+            Modified context after all hooks
+        """
