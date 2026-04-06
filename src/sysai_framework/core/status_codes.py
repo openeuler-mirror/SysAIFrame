@@ -241,3 +241,8 @@ DUPLICATE_ID = StatusCode(
     7002, "DUPLICATE_ID", "Duplicate ID: {id}",
     StatusLevel.ERROR, 409, 4
 )
+
+INVALID_PARAMETER = StatusCode(
+    7003, "INVALID_PARAMETER", "Invalid parameter: {param}",
+    StatusLevel.ERROR, 400, 3
+)
