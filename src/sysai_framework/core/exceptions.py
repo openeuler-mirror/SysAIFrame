@@ -17,4 +17,7 @@ from .status_codes import StatusCode, INTERNAL_ERROR, INVALID_PARAMETER, MODEL_N
 
 logger = logging.getLogger(__name__)
 
-pass
+
+class ModelError(Exception):
+    """Base class for model errors"""
+    pass
