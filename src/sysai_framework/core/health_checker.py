@@ -381,6 +381,16 @@ class HealthChecker:
                 except Exception:
                     pass
 
+    def _mark_unhealthy_internal(self, model_config: 'ModelConfig', reason: UnhealthyReason):
+        """
+        Internal method: mark unhealthy
+
+        Args:
+            model_config: Model configuration
+            reason: Unhealthy reason
+        """
+        pass
+
 
 
 
