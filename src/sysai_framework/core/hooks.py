@@ -206,3 +206,5 @@ class HookManager:
         self.during_call_hooks: List[DuringCallHook] = []
         self.post_call_hooks: List[PostCallHook] = []
         self.failure_hooks: List[FailureHook] = []
+
+        logger.debug("HookManager initialized")
