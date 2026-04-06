@@ -22,4 +22,18 @@ from sysai_framework.llms.http_handler import get_http_handler
 from sysai_framework.utils.provider_utils import get_llm_provider
 from sysai_framework.llms.base.transformation import BaseConfig
 
-pass
+# Import metrics
+try:
+    from sysai_framework.core.metrics import (
+        health_check_total,
+        health_check_success,
+        health_check_failure,
+        health_check_duration_seconds,
+        model_healthy_status,
+        model_consecutive_failures,
+        model_consecutive_successes,
+        model_unhealthy_reason
+    )
+    METRICS_AVAILABLE = True
+except ImportError:
+    METRICS_AVAILABLE = False
