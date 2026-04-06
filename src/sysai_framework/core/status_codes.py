@@ -104,3 +104,8 @@ OPERATION_PENDING = StatusCode(
     1001, "OPERATION_PENDING", "Operation pending",
     StatusLevel.INFO, 202, 0
 )
+
+PARTIAL_SUCCESS = StatusCode(
+    1002, "PARTIAL_SUCCESS", "Partial success: {details}",
+    StatusLevel.INFO, 207, 0
+)
