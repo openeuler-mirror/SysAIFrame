@@ -481,6 +481,33 @@ class HealthChecker:
             logger.error(f"Unexpected error in lightweight check for {model_config.name}: {e}")
             return False
 
+    def _get_provider_config(self, provider: str) -> Optional[BaseConfig]:
+        """
+        Get provider configuration class for health check
+
+        Args:
+            provider: Provider name (e.g., 'openai_like', 'dashscope', 'moonshot', 'deepseek')
+
+        Returns:
+            BaseConfig instance or None if not found
+        """
+        try:
+            if provider == "dashscope":
+                from sysai_framework.llms.dashscope.chat.transformation import DashScopeChatConfig
+                return DashScopeChatConfig()
+            elif provider == "moonshot":
+                from sysai_framework.llms.moonshot.chat.transformation import MoonshotChatConfig
+                return MoonshotChatConfig()
+            elif provider == "deepseek":
+                from sysai_framework.llms.deepseek.chat.transformation import DeepSeekChatConfig
+                return DeepSeekChatConfig()
+            else:  # openai_like or other Chat Completion API compatible providers
+                from sysai_framework.llms.openai_like.chat.transformation import OpenAILikeChatConfig
+                return OpenAILikeChatConfig()
+        except ImportError as e:
+            logger.warning(f"Failed to import provider config for {provider}: {e}")
+            return None
+
 
 
 
