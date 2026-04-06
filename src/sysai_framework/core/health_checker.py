@@ -520,7 +520,111 @@ class HealthChecker:
         Returns:
             True if healthy, False otherwise
         """
-        pass
+        # Skip if API base is not configured (e.g., mock models)
+        if not model_config.api_base:
+            return True
+
+        # Update metrics
+        if METRICS_AVAILABLE:
+            health_check_total.labels(model=model_config.name, check_type="actual_request").inc()
+
+        start_time = time.time()
+        try:
+            # Get provider information
+            actual_model, provider, api_key, api_base = get_llm_provider(
+                model=model_config.name,
+                custom_llm_provider=model_config.provider,
+                api_base=model_config.api_base,
+                api_key=model_config.api_key
+            )
+
+            # Get provider config
+            provider_config = self._get_provider_config(provider)
+            if not provider_config:
+                logger.warning(f"Provider config not found for {provider}, skipping actual request check")
+                if METRICS_AVAILABLE:
+                    duration = time.time() - start_time
+                    health_check_duration_seconds.labels(
+                        model=model_config.name,
+                        check_type="actual_request"
+                    ).observe(duration)
+                    health_check_failure.labels(
+                        model=model_config.name,
+                        check_type="actual_request"
+                    ).inc()
+                self.record_failure(
+                    model_config,
+                    f"Provider config not found for {provider}",
+                    check_type="actual_request"
+                )
+                return False
+
+            # Get HTTP handler
+            http_handler = get_http_handler()
+
+            # Prepare test request
+            test_messages = [{"role": "user", "content": "hi"}]
+            timeout = self._get_timeout()
+
+            # Call model with minimal message using http_handler
+            response = http_handler.completion(
+                provider_config=provider_config,
+                model=actual_model,
+                messages=test_messages,
+                api_base=api_base or model_config.api_base,
+                api_key=api_key or model_config.api_key,
+                optional_params={"max_tokens": 5},  # Minimize cost
+                stream=False,
+                timeout=timeout
+            )
+
+            duration = time.time() - start_time
+            if METRICS_AVAILABLE:
+                health_check_duration_seconds.labels(
+                    model=model_config.name,
+                    check_type="actual_request"
+                ).observe(duration)
+
+            # Check if response is valid
+            success = (
+                response and
+                isinstance(response, dict) and
+                'choices' in response and
+                len(response.get('choices', [])) > 0
+            )
+
+            if success:
+                self.record_success(model_config, check_type="actual_request")
+                logger.debug(f"Actual request check passed for {model_config.name}")
+            else:
+                self.record_failure(
+                    model_config,
+                    "Invalid response format",
+                    check_type="actual_request"
+                )
+
+            return success
+
+        except Exception as e:
+            duration = time.time() - start_time
+            if METRICS_AVAILABLE:
+                health_check_duration_seconds.labels(
+                    model=model_config.name,
+                    check_type="actual_request"
+                ).observe(duration)
+                health_check_failure.labels(
+                    model=model_config.name,
+                    check_type="actual_request"
+                ).inc()
+
+            self.record_failure(
+                model_config,
+                str(e),
+                check_type="actual_request"
+            )
+            logger.warning(f"Actual request check failed for {model_config.name}: {e}")
+            return False
+
 
 
 
