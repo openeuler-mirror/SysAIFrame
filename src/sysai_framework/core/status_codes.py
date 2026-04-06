@@ -258,3 +258,10 @@ STREAM_INTERRUPTED = StatusCode(
     8002, "STREAM_INTERRUPTED", "Stream interrupted",
     StatusLevel.ERROR, 499, 5
 )
+
+
+# ========== System Errors (9000-9999) ==========
+INTERNAL_ERROR = StatusCode(
+    9001, "INTERNAL_ERROR", "Internal error: {details}",
+    StatusLevel.CRITICAL, 500, 1
+)
