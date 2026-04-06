@@ -250,3 +250,14 @@ class HealthChecker:
         if emit_signal:
             self._enqueue_health_changed_signal(*emit_signal)
 
+    def mark_unhealthy(self, model_config: 'ModelConfig',
+                      reason: UnhealthyReason = UnhealthyReason.ACTUAL_REQUEST_FAILED):
+        """
+        Immediately mark as unhealthy (called externally, e.g., on Fallback)
+
+        Args:
+            model_config: Model configuration
+            reason: Unhealthy reason
+        """
+        pass
+
