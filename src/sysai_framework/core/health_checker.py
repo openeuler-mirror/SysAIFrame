@@ -882,7 +882,60 @@ class HealthChecker:
         Returns:
             Dictionary with health statistics
         """
-        pass
+        stats = {
+            "total_models": len(self.config_manager.models),
+            "healthy_models": 0,
+            "unhealthy_models": 0,
+            "models": []
+        }
+
+        for model_config in self.config_manager.models.values():
+            acquired = model_config._health_lock.acquire(timeout=HEALTH_STATS_LOCK_TIMEOUT_SECONDS)
+            try:
+                if not acquired:
+                    # Best-effort read without lock to avoid blocking the API
+                    model_stats = {
+                        "name": model_config.name,
+                        "instance_id": model_config.instance_id,
+                        "is_healthy": getattr(model_config, "is_healthy", None),
+                        "connection_health": getattr(model_config, "connection_health", None),
+                        "unhealthy_reason": getattr(getattr(model_config, "unhealthy_reason", None), "value", None),
+                        "consecutive_failures": getattr(model_config, "consecutive_failures", None),
+                        "consecutive_successes": getattr(model_config, "consecutive_successes", None),
+                        "last_health_check": (
+                            model_config.last_health_check.isoformat()
+                            if getattr(model_config, "last_health_check", None)
+                            else None
+                        ),
+                        "lock_timeout": True
+                    }
+                else:
+                    model_stats = {
+                        "name": model_config.name,
+                        "instance_id": model_config.instance_id,
+                        "is_healthy": model_config.is_healthy,
+                        "connection_health": model_config.connection_health,
+                        "unhealthy_reason": model_config.unhealthy_reason.value,
+                        "consecutive_failures": model_config.consecutive_failures,
+                        "consecutive_successes": model_config.consecutive_successes,
+                        "last_health_check": model_config.last_health_check.isoformat() if model_config.last_health_check else None
+                    }
+            finally:
+                if acquired:
+                    try:
+                        model_config._health_lock.release()
+                    except Exception:
+                        pass
+
+            stats["models"].append(model_stats)
+
+            if model_stats.get("is_healthy") is True:
+                stats["healthy_models"] += 1
+            else:
+                stats["unhealthy_models"] += 1
+
+        return stats
+
 
 
 
