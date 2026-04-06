@@ -62,3 +62,11 @@ class StatusCode:
     def is_info(self) -> bool:
         """Whether this is an info status"""
         return self.level == StatusLevel.INFO
+
+    def __str__(self) -> str:
+        """String representation"""
+        return f"[{self.code}:{self.name}]"
+
+    def __repr__(self) -> str:
+        """Detailed representation"""
+        return f"StatusCode(code={self.code}, name={self.name}, level={self.level.value})"
