@@ -97,3 +97,10 @@ CONFIG_RELOADED = StatusCode(
     4, "CONFIG_RELOADED", "Configuration reloaded successfully",
     StatusLevel.SUCCESS, 200, 0
 )
+
+
+# ========== Info Status (1000-1999) ==========
+OPERATION_PENDING = StatusCode(
+    1001, "OPERATION_PENDING", "Operation pending",
+    StatusLevel.INFO, 202, 0
+)
