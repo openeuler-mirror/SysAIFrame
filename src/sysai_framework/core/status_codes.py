@@ -265,3 +265,8 @@ INTERNAL_ERROR = StatusCode(
     9001, "INTERNAL_ERROR", "Internal error: {details}",
     StatusLevel.CRITICAL, 500, 1
 )
+
+NOT_IMPLEMENTED = StatusCode(
+    9002, "NOT_IMPLEMENTED", "Feature not implemented",
+    StatusLevel.ERROR, 501, 1
+)
