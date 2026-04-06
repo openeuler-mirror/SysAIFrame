@@ -57,3 +57,8 @@ class StatusCode:
     def is_warning(self) -> bool:
         """Whether this is a warning status"""
         return self.level == StatusLevel.WARNING
+
+    @property
+    def is_info(self) -> bool:
+        """Whether this is an info status"""
+        return self.level == StatusLevel.INFO
