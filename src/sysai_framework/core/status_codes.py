@@ -180,3 +180,8 @@ MODEL_ALREADY_EXISTS = StatusCode(
     4002, "MODEL_ALREADY_EXISTS", "Model already exists: {instance_id}",
     StatusLevel.ERROR, 409, 4
 )
+
+MODEL_INVALID = StatusCode(
+    4003, "MODEL_INVALID", "Invalid model configuration: {details}",
+    StatusLevel.ERROR, 400, 3
+)
