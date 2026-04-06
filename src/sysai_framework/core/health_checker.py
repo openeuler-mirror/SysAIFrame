@@ -719,6 +719,30 @@ class HealthChecker:
 
         logger.debug("Background actual request health check loop stopped")
 
+    def _check_all_models_lightweight(self):
+        """Execute lightweight checks for all models"""
+        for model_config in self.config_manager.models.values():
+            if model_config.health_check_enabled:
+                try:
+                    self.check_endpoint_lightweight(model_config)
+                except Exception as e:
+                    logger.error(
+                        f"Error checking model {model_config.name} (lightweight): {e}",
+                        exc_info=True
+                    )
+
+    def _check_all_models_actual_request(self):
+        """Execute actual request validation for all models with connection_health=True"""
+        for model_config in self.config_manager.models.values():
+            if model_config.health_check_enabled and model_config.connection_health:
+                try:
+                    self.check_model_actual_request(model_config)
+                except Exception as e:
+                    logger.error(
+                        f"Error checking model {model_config.name} (actual request): {e}",
+                        exc_info=True
+                    )
+
 
 
 
