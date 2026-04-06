@@ -47,4 +47,44 @@ class CompatibleException(HTTPException):
 
     Supports both traditional parameters and StatusCode objects for better type safety.
     """
-    pass
+
+    @staticmethod
+    def _get_error_type_from_status_code(status_obj: StatusCode) -> str:
+        """
+        Map StatusCode to appropriate error_type string
+
+        Args:
+            status_obj: StatusCode object
+
+        Returns:
+            Error type string compatible with Chat Completion API
+        """
+        name_to_error_type = {
+            "MODEL_NOT_FOUND": "model_not_found_error",
+            "VALIDATION_ERROR": "invalid_request_error",
+            "INVALID_PARAMETER": "invalid_request_error",
+            "TIMEOUT_ERROR": "timeout_error",
+            "CONNECTION_ERROR": "service_unavailable_error",
+            "NETWORK_ERROR": "service_unavailable_error",
+            "INTERNAL_ERROR": "internal_error",
+        }
+
+        if status_obj.name in name_to_error_type:
+            return name_to_error_type[status_obj.name]
+
+        http_status_to_error_type = {
+            400: "invalid_request_error",
+            401: "authentication_error",
+            403: "permission_error",
+            404: "not_found_error",
+            429: "rate_limit_error",
+            500: "internal_error",
+            502: "bad_gateway_error",
+            503: "service_unavailable_error",
+            504: "timeout_error",
+        }
+
+        return http_status_to_error_type.get(
+            status_obj.http_status,
+            "internal_error"
+        )
