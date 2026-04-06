@@ -293,4 +293,7 @@ class OperationResult:
     data: Optional[Any] = None
     details: Optional[Dict[str, Any]] = None
 
-    pass
+    @property
+    def success(self) -> bool:
+        """Whether the operation succeeded"""
+        return self.status.is_success
