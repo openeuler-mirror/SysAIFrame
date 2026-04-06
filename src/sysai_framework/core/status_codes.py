@@ -131,3 +131,8 @@ MODEL_UNHEALTHY = StatusCode(
     2003, "MODEL_UNHEALTHY", "Model unhealthy: {model}",
     StatusLevel.WARNING, 200, 0
 )
+
+SERVICE_DEGRADED = StatusCode(
+    2004, "SERVICE_DEGRADED", "Service running in degraded mode: {reason}",
+    StatusLevel.WARNING, 503, 0
+)
