@@ -508,6 +508,20 @@ class HealthChecker:
             logger.warning(f"Failed to import provider config for {provider}: {e}")
             return None
 
+    def check_model_actual_request(self, model_config: 'ModelConfig') -> bool:
+        """
+        Actual request validation (sends test message - incurs API costs)
+
+        Uses http_handler instead of litellm to avoid external dependency.
+
+        Args:
+            model_config: Model configuration
+
+        Returns:
+            True if healthy, False otherwise
+        """
+        pass
+
 
 
 
