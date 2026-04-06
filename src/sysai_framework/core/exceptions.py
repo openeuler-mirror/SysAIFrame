@@ -239,3 +239,15 @@ class ServiceUnavailableError(CompatibleException, RetriableError):
             message=message,
             error_type="service_unavailable_error"
         )
+
+
+class TimeoutError(CompatibleException, RetriableError):
+    """Request timeout error - retriable"""
+
+    def __init__(self, message: str = "Request timeout"):
+        CompatibleException.__init__(
+            self,
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            message=message,
+            error_type="timeout_error"
+        )
