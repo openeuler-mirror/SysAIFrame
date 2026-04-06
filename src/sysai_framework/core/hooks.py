@@ -353,3 +353,17 @@ class HookManager:
         self.post_call_hooks.clear()
         self.failure_hooks.clear()
         logger.debug("All hooks cleared")
+
+    def get_hook_summary(self) -> Dict[str, int]:
+        """
+        Get summary of registered hooks
+
+        Returns:
+            Dictionary with hook counts
+        """
+        return {
+            "pre_call": len([h for h in self.pre_call_hooks if h.enabled]),
+            "during_call": len([h for h in self.during_call_hooks if h.enabled]),
+            "post_call": len([h for h in self.post_call_hooks if h.enabled]),
+            "failure": len([h for h in self.failure_hooks if h.enabled]),
+        }
