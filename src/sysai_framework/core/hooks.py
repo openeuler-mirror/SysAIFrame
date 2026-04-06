@@ -27,3 +27,21 @@ class BaseHook(ABC):
         """
         self.name = name or self.__class__.__name__
         self.enabled = True
+
+    @abstractmethod
+    async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute hook logic
+
+        Args:
+            context: Request context dictionary containing:
+                - data: Request data
+                - request_id: Unique request ID
+                - fastapi_request: Original FastAPI request object
+                - response: Response data (for post-call hooks)
+                - etc.
+
+        Returns:
+            Modified context dictionary
+        """
+        pass
