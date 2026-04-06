@@ -229,3 +229,10 @@ DBUS_CALL_FAILED = StatusCode(
     6003, "DBUS_CALL_FAILED", "D-Bus call failed: {details}",
     StatusLevel.ERROR, 500, 5
 )
+
+
+# ========== Validation Errors (7000-7999) ==========
+VALIDATION_ERROR = StatusCode(
+    7001, "VALIDATION_ERROR", "Validation failed: {details}",
+    StatusLevel.ERROR, 400, 3
+)
