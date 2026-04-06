@@ -270,3 +270,8 @@ NOT_IMPLEMENTED = StatusCode(
     9002, "NOT_IMPLEMENTED", "Feature not implemented",
     StatusLevel.ERROR, 501, 1
 )
+
+UNKNOWN_ERROR = StatusCode(
+    9999, "UNKNOWN_ERROR", "Unknown error: {details}",
+    StatusLevel.CRITICAL, 500, 1
+)
