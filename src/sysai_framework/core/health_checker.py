@@ -695,7 +695,30 @@ class HealthChecker:
 
         This method runs in a separate thread and performs periodic actual request health checks.
         """
-        pass
+        logger.debug("Background actual request health check loop started")
+
+        while self._actual_request_running:
+            try:
+                # Get current configuration interval
+                actual_request_interval = self._get_actual_request_interval()
+
+                # Execute actual request validation (only if globally enabled)
+                if self._is_actual_request_enabled_globally():
+                    self._check_all_models_actual_request()
+
+                # Interruptible sleep (supports config hot updates)
+                if self._actual_request_config_event.wait(timeout=actual_request_interval):
+                    # Config has been updated, immediately use new config
+                    self._actual_request_config_event.clear()
+                    logger.debug("Actual request health check config updated, applying new settings")
+
+            except Exception as e:
+                logger.error(f"Error in actual request background health check loop: {e}", exc_info=True)
+                # Sleep briefly before retrying
+                time.sleep(5)
+
+        logger.debug("Background actual request health check loop stopped")
+
 
 
 
