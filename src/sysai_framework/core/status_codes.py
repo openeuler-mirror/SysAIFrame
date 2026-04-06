@@ -185,3 +185,8 @@ MODEL_INVALID = StatusCode(
     4003, "MODEL_INVALID", "Invalid model configuration: {details}",
     StatusLevel.ERROR, 400, 3
 )
+
+MODEL_UNAVAILABLE = StatusCode(
+    4004, "MODEL_UNAVAILABLE", "Model unavailable: {model}",
+    StatusLevel.ERROR, 503, 5
+)
