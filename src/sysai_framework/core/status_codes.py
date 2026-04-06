@@ -207,3 +207,8 @@ NETWORK_ERROR = StatusCode(
     5003, "NETWORK_ERROR", "Network error: {details}",
     StatusLevel.ERROR, 503, 5
 )
+
+DISCONNECTED = StatusCode(
+    5004, "DISCONNECTED", "Connection disconnected",
+    StatusLevel.ERROR, 503, 5
+)
