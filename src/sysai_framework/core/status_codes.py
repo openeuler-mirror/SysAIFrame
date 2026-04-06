@@ -402,3 +402,18 @@ class OperationResult:
             OperationResult instance
         """
         return cls(status=status, details=details, data=data)
+
+    @classmethod
+    def info_result(cls, status: StatusCode, details: Dict[str, Any] = None, data: Any = None) -> "OperationResult":
+        """
+        Convenience method to create an info result
+
+        Args:
+            status: Info status code
+            details: Additional details
+            data: Return data
+
+        Returns:
+            OperationResult instance
+        """
+        return cls(status=status, details=details, data=data)
