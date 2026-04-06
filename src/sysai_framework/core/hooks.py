@@ -200,4 +200,9 @@ class HookManager:
     registration and execution of hooks at different lifecycle stages.
     """
 
-    pass
+    def __init__(self):
+        """Initialize hook manager with empty hook lists"""
+        self.pre_call_hooks: List[PreCallHook] = []
+        self.during_call_hooks: List[DuringCallHook] = []
+        self.post_call_hooks: List[PostCallHook] = []
+        self.failure_hooks: List[FailureHook] = []
