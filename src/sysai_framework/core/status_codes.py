@@ -141,3 +141,10 @@ FORCE_OVERWRITE = StatusCode(
     2005, "FORCE_OVERWRITE", "Force overwriting existing resource",
     StatusLevel.WARNING, 200, 0
 )
+
+
+# ========== Configuration Errors (3000-3999) ==========
+CONFIG_NOT_FOUND = StatusCode(
+    3001, "CONFIG_NOT_FOUND", "Configuration file not found: {path}",
+    StatusLevel.ERROR, 404, 1
+)
