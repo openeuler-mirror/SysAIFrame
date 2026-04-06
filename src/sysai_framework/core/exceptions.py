@@ -227,3 +227,15 @@ class RateLimitError(CompatibleException, RetriableError):
             message=message,
             error_type="rate_limit_error"
         )
+
+
+class ServiceUnavailableError(CompatibleException, RetriableError):
+    """Service unavailable error - retriable"""
+
+    def __init__(self, message: str = "Service temporarily unavailable"):
+        CompatibleException.__init__(
+            self,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            message=message,
+            error_type="service_unavailable_error"
+        )
