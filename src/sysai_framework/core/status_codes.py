@@ -387,3 +387,18 @@ class OperationResult:
             OperationResult instance
         """
         return cls(status=status, details=details, data=data)
+
+    @classmethod
+    def warning_result(cls, status: StatusCode, details: Dict[str, Any] = None, data: Any = None) -> "OperationResult":
+        """
+        Convenience method to create a warning result
+
+        Args:
+            status: Warning status code
+            details: Additional details
+            data: Return data
+
+        Returns:
+            OperationResult instance
+        """
+        return cls(status=status, details=details, data=data)
