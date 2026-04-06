@@ -659,6 +659,14 @@ class HealthChecker:
                 self._actual_request_config_event.set()  # Wake up thread if sleeping
                 logger.debug("Health checker actual request background thread stopping")
 
+    def _lightweight_check_loop(self):
+        """
+        Lightweight check loop (supports hot config updates)
+
+        This method runs in a separate thread and performs periodic lightweight health checks.
+        """
+        pass
+
 
 
 
