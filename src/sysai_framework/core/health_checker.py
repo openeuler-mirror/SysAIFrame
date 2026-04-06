@@ -48,3 +48,19 @@ HEALTH_STATS_LOCK_TIMEOUT_SECONDS = 0.2
 
 # Max queued health-changed signals (drop on overflow)
 HEALTH_SIGNAL_QUEUE_MAXSIZE = 1024
+
+
+class HealthChecker:
+    """
+    Health checker for model instances
+
+    Provides:
+    - Lightweight health checks (HTTP HEAD requests) - checks connection_health
+    - Actual request validation (test messages) - checks overall is_healthy
+    - Separate background threads for lightweight and actual request checks
+    - Synchronous health status updates on model calls
+    - Differentiated recovery based on connection_health and is_healthy
+    - Dual health flags: connection_health (connection layer) and is_healthy (overall)
+    """
+
+    pass
