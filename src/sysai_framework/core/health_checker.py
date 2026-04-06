@@ -359,6 +359,28 @@ class HealthChecker:
         except Exception as e:
             logger.debug(f"Failed to enqueue health changed signal: {e}")
 
+    def _signal_dispatch_loop(self) -> None:
+        """Dispatch queued health-changed signals in a dedicated thread."""
+        while self._signal_dispatch_running:
+            try:
+                item = self._signal_queue.get(timeout=1.0)
+            except queue.Empty:
+                continue
+            except Exception as e:
+                logger.debug(f"Health signal dispatcher queue error: {e}")
+                continue
+
+            try:
+                model_name, instance_id, is_healthy, reason = item
+                self._emit_health_changed_signal_by_fields(model_name, instance_id, is_healthy, reason)
+            except Exception as e:
+                logger.debug(f"Health signal dispatch failed: {e}")
+            finally:
+                try:
+                    self._signal_queue.task_done()
+                except Exception:
+                    pass
+
 
 
 
