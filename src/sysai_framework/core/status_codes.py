@@ -212,3 +212,15 @@ DISCONNECTED = StatusCode(
     5004, "DISCONNECTED", "Connection disconnected",
     StatusLevel.ERROR, 503, 5
 )
+
+
+# ========== D-Bus Errors (6000-6999) ==========
+DBUS_NOT_AVAILABLE = StatusCode(
+    6001, "DBUS_NOT_AVAILABLE", "D-Bus service not available",
+    StatusLevel.ERROR, 503, 5
+)
+
+SERVICE_NOT_RUNNING = StatusCode(
+    6002, "SERVICE_NOT_RUNNING", "Service not running",
+    StatusLevel.ERROR, 503, 1
+)
