@@ -417,3 +417,26 @@ class OperationResult:
             OperationResult instance
         """
         return cls(status=status, details=details, data=data)
+
+
+# ========== Helper Functions ==========
+
+def get_status_by_code(code: int) -> Optional[StatusCode]:
+    """
+    Find StatusCode object by numeric code
+
+    Args:
+        code: Numeric status code
+
+    Returns:
+        Corresponding StatusCode object, or None if not found
+    """
+    import sys
+    current_module = sys.modules[__name__]
+
+    for name in dir(current_module):
+        obj = getattr(current_module, name)
+        if isinstance(obj, StatusCode) and obj.code == code:
+            return obj
+
+    return None
