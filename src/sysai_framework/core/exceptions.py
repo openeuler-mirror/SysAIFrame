@@ -251,3 +251,21 @@ class TimeoutError(CompatibleException, RetriableError):
             message=message,
             error_type="timeout_error"
         )
+
+
+async def handle_exception_with_logging(
+    e: Exception,
+    request_id: Optional[str] = None,
+    model: Optional[str] = None,
+    user_id: Optional[str] = None
+) -> CompatibleException:
+    """
+    Unified exception handling with logging
+
+    Converts various exception types to Chat Completion API compatible format
+    and logs them with context information.
+    """
+    from .status_codes import (
+        TIMEOUT_ERROR, CONNECTION_ERROR, NETWORK_ERROR,
+        VALIDATION_ERROR, INTERNAL_ERROR
+    )
