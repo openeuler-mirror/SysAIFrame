@@ -415,6 +415,20 @@ class HealthChecker:
                 instance_id=model_config.instance_id
             ).set(reason_code)
 
+    # === Health check methods ===
+
+    def check_endpoint_lightweight(self, model_config: 'ModelConfig') -> bool:
+        """
+        Lightweight health check (HTTP HEAD request)
+
+        Args:
+            model_config: Model configuration
+
+        Returns:
+            True if healthy, False otherwise
+        """
+        pass
+
 
 
 
