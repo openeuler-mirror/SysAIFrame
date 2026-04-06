@@ -21,3 +21,8 @@ logger = logging.getLogger(__name__)
 class ModelError(Exception):
     """Base class for model errors"""
     pass
+
+
+class RetriableError(ModelError):
+    """Retriable error - can retry the operation"""
+    pass
