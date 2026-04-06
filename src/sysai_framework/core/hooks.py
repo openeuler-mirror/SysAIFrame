@@ -269,3 +269,37 @@ class HookManager:
                         exc_info=True
                     )
         return context
+
+    async def execute_during_call_hooks(self, context: Dict[str, Any]):
+        """
+        Execute all during-call hooks in parallel
+
+        These hooks run alongside the main request and should not
+        block the main request flow.
+
+        Args:
+            context: Request context (copied to avoid modifications)
+        """
+        tasks = []
+        for hook in self.during_call_hooks:
+            if hook.enabled:
+                tasks.append(self._execute_during_hook_safe(hook, context.copy()))
+
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _execute_during_hook_safe(self, hook: DuringCallHook, context: Dict[str, Any]):
+        """
+        Safely execute a during-call hook with error handling
+
+        Args:
+            hook: Hook to execute
+            context: Request context
+        """
+        try:
+            await hook.execute(context)
+        except Exception as e:
+            logger.error(
+                f"[{context.get('request_id')}] During-call hook {hook.name} failed: {e}",
+                exc_info=True
+            )
