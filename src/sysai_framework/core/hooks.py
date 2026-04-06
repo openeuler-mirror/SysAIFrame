@@ -238,3 +238,11 @@ class HookManager:
         """
         self.post_call_hooks.append(hook)
         logger.debug(f"Registered post-call hook: {hook.name}")
+
+    def register_failure_hook(self, hook: FailureHook):
+        """
+        Register a failure hook
+
+        Args:
+            hook: FailureHook instance
+        """
