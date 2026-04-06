@@ -873,6 +873,17 @@ class HealthChecker:
         """
         return self._is_actual_request_enabled_globally()
 
+    # === Monitoring metrics ===
+
+    def get_health_statistics(self) -> Dict[str, Any]:
+        """
+        Get health statistics for all models
+
+        Returns:
+            Dictionary with health statistics
+        """
+        pass
+
 
 
 
