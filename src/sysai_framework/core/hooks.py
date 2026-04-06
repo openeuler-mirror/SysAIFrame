@@ -45,3 +45,7 @@ class BaseHook(ABC):
             Modified context dictionary
         """
         pass
+
+    def disable(self):
+        """Disable this hook"""
+        self.enabled = False
