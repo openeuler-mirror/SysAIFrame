@@ -18,4 +18,12 @@ logger = logging.getLogger(__name__)
 class BaseHook(ABC):
     """Base hook class - all hooks must inherit from this"""
 
-    pass
+    def __init__(self, name: Optional[str] = None):
+        """
+        Initialize hook
+
+        Args:
+            name: Optional name for the hook (for logging)
+        """
+        self.name = name or self.__class__.__name__
+        self.enabled = True
