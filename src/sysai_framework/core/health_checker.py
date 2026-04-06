@@ -282,6 +282,23 @@ class HealthChecker:
         Args:
             model_config: Model configuration
         """
-        pass
+        with model_config._health_lock:
+            model_config.is_healthy = True
+            # Ensure connection_health is True when marking healthy
+            model_config.connection_health = True
+            model_config.unhealthy_reason = UnhealthyReason.NONE  # Clear unhealthy reason
+            model_config.consecutive_failures = 0
+
+            # Update Prometheus metrics
+            if METRICS_AVAILABLE:
+                model_healthy_status.labels(
+                    model=model_config.name,
+                    instance_id=model_config.instance_id
+                ).set(1)
+                model_unhealthy_reason.labels(
+                    model=model_config.name,
+                    instance_id=model_config.instance_id
+                ).set(0)
+
 
 
