@@ -481,3 +481,27 @@ def list_all_status_codes() -> Dict[int, StatusCode]:
             result[obj.code] = obj
 
     return result
+
+
+def parse_status_from_message(message: str) -> tuple[Optional[StatusCode], str]:
+    """
+    Parse status code from encoded message string
+
+    Supports format: "[STATUS:4002] Model already exists: instance123"
+
+    Args:
+        message: Message string that may contain status code
+
+    Returns:
+        Tuple of (status_code_object, pure_message). Returns (None, original_message) if no status code found
+    """
+    import re
+
+    match = re.match(r'^\[STATUS:(\d+)\]\s*(.*)', message)
+    if match:
+        code = int(match.group(1))
+        pure_message = match.group(2)
+        status = get_status_by_code(code)
+        return (status, pure_message)
+
+    return (None, message)
