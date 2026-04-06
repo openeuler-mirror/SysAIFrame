@@ -345,3 +345,11 @@ class HookManager:
                         exc_info=True
                     )
         return context
+
+    def clear_hooks(self):
+        """Clear all registered hooks"""
+        self.pre_call_hooks.clear()
+        self.during_call_hooks.clear()
+        self.post_call_hooks.clear()
+        self.failure_hooks.clear()
+        logger.debug("All hooks cleared")
