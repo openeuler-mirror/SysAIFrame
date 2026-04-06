@@ -427,7 +427,60 @@ class HealthChecker:
         Returns:
             True if healthy, False otherwise
         """
-        pass
+        if not model_config.api_base:
+            # No API base, cannot check (e.g., mock models)
+            return True
+
+        # Update metrics
+        if METRICS_AVAILABLE:
+            health_check_total.labels(model=model_config.name, check_type="lightweight").inc()
+
+        start_time = time.time()
+        try:
+            timeout = self._get_timeout()
+            response = requests.head(model_config.api_base, timeout=timeout)
+            success = response.status_code < 500
+
+            duration = time.time() - start_time
+            if METRICS_AVAILABLE:
+                health_check_duration_seconds.labels(
+                    model=model_config.name,
+                    check_type="lightweight"
+                ).observe(duration)
+
+            if success:
+                self.record_success(model_config, check_type="lightweight")
+                logger.debug(f"Lightweight check passed for {model_config.name}")
+            else:
+                self.record_failure(
+                    model_config,
+                    f"HTTP {response.status_code}",
+                    check_type="lightweight"
+                )
+
+            return success
+
+        except requests.RequestException as e:
+            if METRICS_AVAILABLE:
+                duration = time.time() - start_time
+                health_check_duration_seconds.labels(
+                    model=model_config.name,
+                    check_type="lightweight"
+                ).observe(duration)
+            self.record_failure(model_config, str(e), check_type="lightweight")
+            logger.warning(f"Lightweight check failed for {model_config.name}: {e}")
+            return False
+        except Exception as e:
+            if METRICS_AVAILABLE:
+                duration = time.time() - start_time
+                health_check_duration_seconds.labels(
+                    model=model_config.name,
+                    check_type="lightweight"
+                ).observe(duration)
+            self.record_failure(model_config, str(e), check_type="lightweight")
+            logger.error(f"Unexpected error in lightweight check for {model_config.name}: {e}")
+            return False
+
 
 
 
