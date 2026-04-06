@@ -36,4 +36,6 @@ class NonRetriableError(ModelError):
 class AllModelsFailed(ModelError):
     """All models failed after trying all fallback options"""
 
-    pass
+    def __init__(self, attempted_models: list):
+        self.attempted_models = attempted_models
+        super().__init__(f"All models failed after trying: {', '.join(attempted_models)}")
