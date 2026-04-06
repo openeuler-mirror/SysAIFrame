@@ -45,3 +45,6 @@ LIGHTWEIGHT_FAILURE_THRESHOLD = 2
 
 # Health stats lock acquisition timeout (avoid API blocking on stuck locks)
 HEALTH_STATS_LOCK_TIMEOUT_SECONDS = 0.2
+
+# Max queued health-changed signals (drop on overflow)
+HEALTH_SIGNAL_QUEUE_MAXSIZE = 1024
