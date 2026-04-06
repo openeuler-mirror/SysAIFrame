@@ -180,3 +180,14 @@ class CompatibleException(HTTPException):
             message = status_obj.message_template
 
         return cls(status_obj=status_obj, message=message, param=param)
+
+
+class ModelNotFoundError(CompatibleException):
+    """Model not found error"""
+
+    def __init__(self, model_name: str):
+        super().__init__(
+            status_obj=MODEL_NOT_FOUND,
+            message=MODEL_NOT_FOUND.message_template.format(model=model_name),
+            param="model"
+        )
