@@ -215,3 +215,15 @@ class AuthenticationError(CompatibleException, NonRetriableError):
             message=message,
             error_type="authentication_error"
         )
+
+
+class RateLimitError(CompatibleException, RetriableError):
+    """Rate limit exceeded error - retriable"""
+
+    def __init__(self, message: str = "Rate limit exceeded"):
+        CompatibleException.__init__(
+            self,
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            message=message,
+            error_type="rate_limit_error"
+        )
