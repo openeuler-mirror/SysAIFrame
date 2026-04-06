@@ -796,7 +796,49 @@ class HealthChecker:
         Args:
             new_config: New health check configuration dict
         """
-        pass
+        # Update configuration in config manager
+        logger.debug(f"Health check config update requested: {new_config}")
+
+        # If lightweight_enabled is being set to False, reset connection_health for all models
+        if 'lightweight_enabled' in new_config and not new_config['lightweight_enabled']:
+            self._reset_connection_health_for_all_models()
+
+        # Notify background threads
+        self._lightweight_config_event.set()
+        self._actual_request_config_event.set()
+
+        # Manage threads based on configuration changes (with lock protection)
+        with self._thread_management_lock:
+            # Manage lightweight check thread
+            lightweight_enabled = self._is_lightweight_enabled()
+            if lightweight_enabled and not self._lightweight_running:
+                # Configuration enabled but thread not running - start it
+                self._lightweight_running = True
+                self._lightweight_thread = threading.Thread(target=self._lightweight_check_loop, daemon=True)
+                self._lightweight_thread.start()
+                logger.info("Lightweight health check thread started")
+            elif not lightweight_enabled and self._lightweight_running:
+                # Configuration disabled but thread still running - stop it
+                self._lightweight_running = False
+                self._lightweight_config_event.set()  # Wake up thread
+                logger.info("Lightweight health check thread will stop")
+
+            # Manage actual request check thread
+            actual_request_enabled = self._is_actual_request_enabled_globally()
+            if actual_request_enabled and not self._actual_request_running:
+                # Configuration enabled but thread not running - start it
+                self._actual_request_running = True
+                self._actual_request_thread = threading.Thread(target=self._actual_request_check_loop, daemon=True)
+                self._actual_request_thread.start()
+                logger.info("Actual request health check thread started")
+            elif not actual_request_enabled and self._actual_request_running:
+                # Configuration disabled but thread still running - stop it
+                self._actual_request_running = False
+                self._actual_request_config_event.set()  # Wake up thread
+                logger.info("Actual request health check thread will stop")
+
+        logger.debug("Health check config updated and applied")
+
 
 
 
