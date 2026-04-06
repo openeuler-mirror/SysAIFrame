@@ -236,3 +236,8 @@ VALIDATION_ERROR = StatusCode(
     7001, "VALIDATION_ERROR", "Validation failed: {details}",
     StatusLevel.ERROR, 400, 3
 )
+
+DUPLICATE_ID = StatusCode(
+    7002, "DUPLICATE_ID", "Duplicate ID: {id}",
+    StatusLevel.ERROR, 409, 4
+)
