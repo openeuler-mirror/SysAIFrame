@@ -77,3 +77,8 @@ SUCCESS = StatusCode(
     0, "SUCCESS", "Operation completed successfully",
     StatusLevel.SUCCESS, 200, 0
 )
+
+CREATED = StatusCode(
+    1, "CREATED", "Resource created successfully",
+    StatusLevel.SUCCESS, 201, 0
+)
