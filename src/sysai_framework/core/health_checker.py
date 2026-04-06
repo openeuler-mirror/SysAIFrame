@@ -42,3 +42,6 @@ logger = logging.getLogger(__name__)
 
 # Lightweight check failure threshold (consecutive failures before marking unhealthy)
 LIGHTWEIGHT_FAILURE_THRESHOLD = 2
+
+# Health stats lock acquisition timeout (avoid API blocking on stuck locks)
+HEALTH_STATS_LOCK_TIMEOUT_SECONDS = 0.2
