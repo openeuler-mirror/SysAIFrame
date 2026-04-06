@@ -39,3 +39,12 @@ class AllModelsFailed(ModelError):
     def __init__(self, attempted_models: list):
         self.attempted_models = attempted_models
         super().__init__(f"All models failed after trying: {', '.join(attempted_models)}")
+
+
+class CompatibleException(HTTPException):
+    """
+    Chat Completion API compatible exception class
+
+    Supports both traditional parameters and StatusCode objects for better type safety.
+    """
+    pass
