@@ -440,3 +440,26 @@ def get_status_by_code(code: int) -> Optional[StatusCode]:
             return obj
 
     return None
+
+
+def get_status_by_name(name: str) -> Optional[StatusCode]:
+    """
+    Find StatusCode object by name
+
+    Args:
+        name: Status code name (e.g., "MODEL_NOT_FOUND")
+
+    Returns:
+        Corresponding StatusCode object, or None if not found
+    """
+    import sys
+    current_module = sys.modules[__name__]
+
+    try:
+        obj = getattr(current_module, name)
+        if isinstance(obj, StatusCode):
+            return obj
+    except AttributeError:
+        pass
+
+    return None
