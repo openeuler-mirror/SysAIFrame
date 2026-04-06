@@ -312,3 +312,22 @@ class OperationResult:
     def has_info(self) -> bool:
         """Whether this is an info status"""
         return self.status.is_info
+
+    def get_message(self, **kwargs) -> str:
+        """
+        Get formatted status message
+
+        Args:
+            **kwargs: Additional format parameters (will override same-named parameters in details)
+
+        Returns:
+            Formatted message string
+        """
+        if self.details and "_formatted_message" in self.details:
+            return self.details["_formatted_message"]
+
+        try:
+            format_args = {**(self.details or {}), **kwargs}
+            return self.status.message_template.format(**format_args)
+        except KeyError:
+            return self.status.message_template
