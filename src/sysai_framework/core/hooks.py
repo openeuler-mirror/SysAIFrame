@@ -49,3 +49,7 @@ class BaseHook(ABC):
     def disable(self):
         """Disable this hook"""
         self.enabled = False
+
+    def enable(self):
+        """Enable this hook"""
+        self.enabled = True
