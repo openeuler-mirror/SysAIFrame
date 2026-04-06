@@ -331,3 +331,20 @@ class OperationResult:
             return self.status.message_template.format(**format_args)
         except KeyError:
             return self.status.message_template
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert to dictionary format (for API responses, logging, etc.)
+
+        Returns:
+            Dictionary containing status code, message, and data
+        """
+        result = {
+            "code": self.status.code,
+            "name": self.status.name,
+            "level": self.status.level.value,
+            "message": self.get_message(),
+        }
+        if self.data is not None:
+            result["data"] = self.data
+        return result
