@@ -78,3 +78,5 @@ class HealthChecker:
         self._actual_request_thread: Optional[threading.Thread] = None
         self._actual_request_config_event = threading.Event()  # Signal for config updates
         self._thread_management_lock = threading.Lock()  # Protect thread start/stop operations
+        self._health_stats: Dict[str, Dict[str, Any]] = {}  # Store health stats per model
+        self._stats_lock = threading.Lock()  # Protect health stats access
