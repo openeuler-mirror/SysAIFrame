@@ -70,3 +70,10 @@ class StatusCode:
     def __repr__(self) -> str:
         """Detailed representation"""
         return f"StatusCode(code={self.code}, name={self.name}, level={self.level.value})"
+
+
+# ========== Success Status (0-999) ==========
+SUCCESS = StatusCode(
+    0, "SUCCESS", "Operation completed successfully",
+    StatusLevel.SUCCESS, 200, 0
+)
