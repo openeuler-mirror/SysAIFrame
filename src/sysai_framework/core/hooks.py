@@ -248,3 +248,14 @@ class HookManager:
         """
         self.failure_hooks.append(hook)
         logger.debug(f"Registered failure hook: {hook.name}")
+
+    async def execute_pre_call_hooks(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute all pre-call hooks sequentially
+
+        Args:
+            context: Request context
+
+        Returns:
+            Modified context after all hooks
+        """
