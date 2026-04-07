@@ -180,7 +180,17 @@ class ResponseHeaderManager:
         Returns:
             Headers with CORS added
         """
-        pass
+        cors_headers = {
+            "Access-Control-Allow-Origin": allow_origin,
+            "Access-Control-Allow-Methods": allow_methods,
+            "Access-Control-Allow-Headers": allow_headers,
+            "Access-Control-Expose-Headers": ", ".join([
+                k for k in headers.keys() if k.startswith("X-")
+            ])
+        }
+
+        headers.update(cors_headers)
+        return headers
 
     @staticmethod
     def get_error_headers(
