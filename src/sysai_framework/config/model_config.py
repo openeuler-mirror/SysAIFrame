@@ -144,4 +144,5 @@ class ModelConfig:
     _health_lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
 
     def __post_init__(self):
-        pass
+        if self.capabilities is None:
+            self.capabilities = [CAPABILITY_GENERAL]  # Default to general capability
