@@ -174,4 +174,6 @@ class ModelConfig:
 
 class ModelConfigManager:
     """Model configuration manager - handles loading, validation and management"""
-    pass
+
+    def __init__(self, config_path: str = "config/models.yaml", allow_create_default: bool = True):
+        pass
