@@ -35,3 +35,6 @@ CAPABILITY_GENERAL = "general"      # General chat capability
 CAPABILITY_CODE = "code"           # Code-related capability
 CAPABILITY_ANALYSIS = "analysis"   # Analysis task capability
 CAPABILITY_CREATIVE = "creative"   # Creative writing capability
+
+# Capability prefix for requests (e.g., "capability-code")
+CAPABILITY_PREFIX = "capability-"
