@@ -178,3 +178,4 @@ class ModelConfigManager:
     def __init__(self, config_path: str = "config/models.yaml", allow_create_default: bool = True):
         self.config_path = config_path
         self.allow_create_default = allow_create_default
+        self.models: Dict[str, ModelConfig] = {}
