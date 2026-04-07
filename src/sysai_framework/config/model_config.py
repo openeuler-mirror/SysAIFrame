@@ -65,3 +65,4 @@ class ValidationMessage:
 class HealthCheckConfig:
     """Health check configuration"""
     lightweight_enabled: bool = True
+    lightweight_interval: int = 300  # seconds
