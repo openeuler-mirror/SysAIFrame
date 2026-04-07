@@ -58,3 +58,12 @@ class BaseRoutingStrategy(ABC):
             Selected ModelConfig or None if no models available
         """
         pass
+
+    def log_pre_call(self, model_config: ModelConfig) -> None:
+        """
+        Log before making a request (for least-busy strategy)
+
+        Args:
+            model_config: Model configuration being called
+        """
+        pass
