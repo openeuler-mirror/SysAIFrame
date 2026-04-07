@@ -52,7 +52,7 @@ class MoonshotChatConfig(OpenAIGPTConfig):
             api_base
             or get_secret_str("MOONSHOT_API_BASE")
             or "https://api.moonshot.ai/v1"
-        )
+        )  # type: ignore
         dynamic_api_key = api_key or get_secret_str("MOONSHOT_API_KEY")
         return api_base, dynamic_api_key
 
@@ -87,6 +87,7 @@ class MoonshotChatConfig(OpenAIGPTConfig):
         """
         excluded_params: List[str] = ["functions"]
 
+        # kimi-thinking-preview has additional limitations
         if "kimi-thinking-preview" in model:
             excluded_params.extend(["tools", "tool_choice"])
 
@@ -107,6 +108,10 @@ class MoonshotChatConfig(OpenAIGPTConfig):
     ) -> dict:
         """
         Map Chat Completion API params to Moonshot AI parameters
+
+        Handles Moonshot AI specific limitations:
+        - tool_choice doesn't support "required" value
+        - Temperature <0.3 limitation for n>1
         """
         supported_openai_params = self.get_supported_openai_params(model)
         for param, value in non_default_params.items():
@@ -115,6 +120,12 @@ class MoonshotChatConfig(OpenAIGPTConfig):
             elif param in supported_openai_params:
                 optional_params[param] = value
 
+        ##########################################
+        # temperature limitations
+        # 1. `temperature` on KIMI API is [0, 1] but standard Chat Completion API is [0, 2]
+        # 2. If temperature < 0.3 and n > 1, KIMI will raise an exception.
+        #       If we enter this condition, we set the temperature to 0.3 as suggested by Moonshot AI
+        ##########################################
         if "temperature" in optional_params:
             if optional_params["temperature"] > 1:
                 optional_params["temperature"] = 1
@@ -132,13 +143,17 @@ class MoonshotChatConfig(OpenAIGPTConfig):
     ) -> dict:
         """
         Transform the overall request to be sent to the API.
+        Returns:
+            dict: The transformed request. Sent as the body of the API call.
         """
+        # Add tool_choice="required" message if needed
         if optional_params.get("tool_choice", None) == "required":
             messages = self._add_tool_choice_required_message(
                 messages=messages,
                 optional_params=optional_params,
             )
 
+        # Call parent transform_request which handles _transform_messages
         return super().transform_request(
             model=model,
             messages=messages,
@@ -150,10 +165,12 @@ class MoonshotChatConfig(OpenAIGPTConfig):
     def _add_tool_choice_required_message(self, messages: List[AllMessageValues], optional_params: dict) -> List[AllMessageValues]:
         """
         Add a message to the messages list to indicate that the tool choice is required.
+
+        https://platform.moonshot.ai/docs/guide/migrating-from-openai-to-kimi#about-tool_choice
         """
         messages.append({
             "role": "user",
-            "content": "Please select a tool to handle the current issue.",
+            "content": "Please select a tool to handle the current issue.",  # Usually, the Kimi large language model understands the intention to invoke a tool and selects one for invocation
         })
         optional_params.pop("tool_choice")
         return messages
