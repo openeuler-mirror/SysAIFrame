@@ -14,3 +14,9 @@ import logging
 from sysai_framework.config.model_config import ModelConfig
 
 logger = logging.getLogger(__name__)
+
+
+class RuntimeMode(Enum):
+    """Runtime mode enumeration"""
+    DEFAULT = "default"
+    LOAD_BALANCE = "load-balance"
