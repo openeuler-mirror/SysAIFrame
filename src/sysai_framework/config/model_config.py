@@ -83,4 +83,5 @@ class RetryPolicyConfig:
 @dataclass
 class LoadBalanceOptionsConfig:
     """Load balance strategy options configuration"""
-    latency_buffer: float = 0.1
+    latency_buffer: float = 0.1  # lowest-latency: latency buffer ratio (0.0-1.0)
+    latency_window: int = 10  # lowest-latency: latency sampling window size
