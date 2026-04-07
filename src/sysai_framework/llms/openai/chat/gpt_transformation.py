@@ -714,3 +714,29 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
     @staticmethod
     def get_base_model(model: Optional[str] = None) -> Optional[str]:
         return model
+
+    def get_model_response_iterator(
+        self,
+        streaming_response: Union[Iterator[str], AsyncIterator[str], ModelResponse],
+        sync_stream: bool,
+        json_mode: Optional[bool] = False,
+    ) -> Any:
+        return OpenAIChatCompletionStreamingHandler(
+            streaming_response=streaming_response,
+            sync_stream=sync_stream,
+            json_mode=json_mode,
+        )
+
+
+class OpenAIChatCompletionStreamingHandler(BaseModelResponseIterator):
+    def chunk_parser(self, chunk: dict) -> ModelResponseStream:
+        try:
+            return ModelResponseStream(
+                id=chunk["id"],
+                object="chat.completion.chunk",
+                created=chunk["created"],
+                model=chunk["model"],
+                choices=chunk["choices"],
+            )
+        except Exception as e:
+            raise e
