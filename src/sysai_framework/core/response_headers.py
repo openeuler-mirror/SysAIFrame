@@ -209,4 +209,12 @@ class ResponseHeaderManager:
         Returns:
             Error-specific headers
         """
-        pass
+        headers = {
+            "X-Request-ID": request_id,
+            "X-Error-Code": error_code,
+        }
+
+        if retry_after is not None:
+            headers["Retry-After"] = str(retry_after)
+
+        return {k: v for k, v in headers.items() if v is not None}
