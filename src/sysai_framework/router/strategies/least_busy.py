@@ -71,3 +71,10 @@ class LeastBusyStrategy(BaseRoutingStrategy):
             current = self._request_counts.get(model_config.instance_id, 0)
             if current > 0:
                 self._request_counts[model_config.instance_id] = current - 1
+
+    def log_failure(self, model_config: ModelConfig) -> None:
+        """Decrement request count on failure"""
+        with self._lock:
+            current = self._request_counts.get(model_config.instance_id, 0)
+            if current > 0:
+                self._request_counts[model_config.instance_id] = current - 1
