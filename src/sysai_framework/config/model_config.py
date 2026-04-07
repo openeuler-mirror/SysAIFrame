@@ -69,3 +69,9 @@ class HealthCheckConfig:
     actual_request_enabled: bool = False  # Default disabled to avoid API costs
     actual_request_interval: int = 1200  # seconds
     timeout: int = 10  # seconds
+
+
+@dataclass
+class RetryPolicyConfig:
+    """Retry policy configuration"""
+    pass
