@@ -91,4 +91,18 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
 
     The class `OpenAIConfig` provides configuration for the Chat Completion API interface.
     """
-    pass
+
+    # Add a class variable to track if this is the base class
+    _is_base_class = True
+
+    frequency_penalty: Optional[int] = None
+    function_call: Optional[Union[str, dict]] = None
+    functions: Optional[list] = None
+    logit_bias: Optional[dict] = None
+    max_tokens: Optional[int] = None
+    n: Optional[int] = None
+    presence_penalty: Optional[int] = None
+    stop: Optional[Union[str, list]] = None
+    temperature: Optional[int] = None
+    top_p: Optional[int] = None
+    response_format: Optional[dict] = None
