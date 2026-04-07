@@ -219,7 +219,18 @@ def _map_error_type_to_status(error_type: str) -> int:
     Returns:
         HTTP status code
     """
-    pass
+    error_map = {
+        "invalid_request_error": 400,
+        "authentication_error": 401,
+        "permission_error": 403,
+        "not_found_error": 404,
+        "rate_limit_error": 429,
+        "internal_error": 500,
+        "service_unavailable": 503,
+        "timeout_error": 504,
+    }
+
+    return error_map.get(error_type, 500)
 
 
 async def wrap_generator_with_error_handling(
