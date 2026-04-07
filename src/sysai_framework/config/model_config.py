@@ -306,6 +306,11 @@ class ModelConfigManager:
         self.models[model_config.instance_id] = model_config
         return True
 
+    def reload_config(self) -> None:
+        """Reload configuration from file"""
+        self._loaded = False
+        self.load_config()
+
     @property
     def runtime_config(self) -> RuntimeConfig:
         """Get runtime configuration"""
