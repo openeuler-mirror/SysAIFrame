@@ -38,3 +38,6 @@ CAPABILITY_CREATIVE = "creative"   # Creative writing capability
 
 # Capability prefix for requests (e.g., "capability-code")
 CAPABILITY_PREFIX = "capability-"
+
+# Special model names
+SPECIAL_MODEL_DEFAULT = "default"  # Use default model
