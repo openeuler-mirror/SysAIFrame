@@ -37,6 +37,7 @@ class RequestContext:
         self.user_id: Optional[str] = None
         self.provider: Optional[str] = None
         self.metadata: Dict[str, Any] = {}
+        self.metrics: Dict[str, Any] = {}
 
 
 class RequestProcessor:
