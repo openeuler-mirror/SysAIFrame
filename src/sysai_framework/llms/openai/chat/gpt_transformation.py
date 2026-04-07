@@ -374,3 +374,26 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
                             cast(OpenAIMessageContentListBlock, content_item)
                         )
             return messages
+
+    def remove_cache_control_flag_from_messages_and_tools(
+        self,
+        model: str,
+        messages: List[AllMessageValues],
+        tools: Optional[List["ChatCompletionToolParam"]] = None,
+    ) -> Tuple[List[AllMessageValues], Optional[List["ChatCompletionToolParam"]]]:
+        from sysai_framework.llms.base.utils import (
+            filter_value_from_dict,
+        )
+        from sysai_framework.llms.base.types import ChatCompletionToolParam
+
+        for i, message in enumerate(messages):
+            messages[i] = cast(
+                AllMessageValues, filter_value_from_dict(message, "cache_control")
+            )
+        if tools is not None:
+            for i, tool in enumerate(tools):
+                tools[i] = cast(
+                    ChatCompletionToolParam,
+                    filter_value_from_dict(tool, "cache_control"),
+                )
+        return messages, tools
