@@ -167,7 +167,27 @@ class RequestProcessor:
         logger.debug(f"[{self.context.request_id}] Pre-call processing completed")
 
     async def _execute_with_hooks(self, router_instance):
-        """Execute request with parallel during-call hooks"""
+        """
+        Execute request with parallel during-call hooks
+
+        This method must be implemented by subclasses to define
+        how to execute the actual request along with during-call hooks.
+
+        Subclasses should:
+        1. Build hook context
+        2. Create parallel tasks for hooks and actual request
+        3. Execute with asyncio.gather()
+        4. Return the response
+
+        Args:
+            router_instance: Router instance
+
+        Returns:
+            Response from backend (format depends on subclass)
+
+        Raises:
+            NotImplementedError: If subclass doesn't implement this method
+        """
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement _execute_with_hooks() method"
         )
