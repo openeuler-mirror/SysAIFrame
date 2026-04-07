@@ -217,7 +217,10 @@ class ModelConfigManager:
 
     def _get_default_config(self) -> Dict[str, Any]:
         """Get default configuration dictionary"""
-        pass
+        return {
+            "models": [],
+            "routing": {}
+        }
 
     def _process_models_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, ModelConfig], Dict[str, List[str]], List[Dict[str, Any]]]:
         """Process models configuration"""
