@@ -14,4 +14,33 @@ from ...openai.chat.gpt_transformation import OpenAIGPTConfig
 
 
 class DeepSeekChatConfig(OpenAIGPTConfig):
-    pass
+    @overload
+    def _transform_messages(
+        self, messages: List[AllMessageValues], model: str, is_async: Literal[True]
+    ) -> Coroutine[Any, Any, List[AllMessageValues]]:
+        ...
+
+    @overload
+    def _transform_messages(
+        self,
+        messages: List[AllMessageValues],
+        model: str,
+        is_async: Literal[False] = False,
+    ) -> List[AllMessageValues]:
+        ...
+
+    def _transform_messages(
+        self, messages: List[AllMessageValues], model: str, is_async: bool = False
+    ) -> Union[List[AllMessageValues], Coroutine[Any, Any, List[AllMessageValues]]]:
+        """
+        DeepSeek does not support content in list format.
+        """
+        messages = handle_messages_with_content_list_to_str_conversion(messages)
+        if is_async:
+            return super()._transform_messages(
+                messages=messages, model=model, is_async=True
+            )
+        else:
+            return super()._transform_messages(
+                messages=messages, model=model, is_async=False
+            )
