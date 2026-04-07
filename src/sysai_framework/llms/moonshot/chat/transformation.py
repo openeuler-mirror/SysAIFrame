@@ -11,3 +11,7 @@ from sysai_framework.llms.base.utils import get_secret_str
 from sysai_framework.llms.base.types import AllMessageValues
 
 from ...openai.chat.gpt_transformation import OpenAIGPTConfig
+
+
+class MoonshotChatConfig(OpenAIGPTConfig):
+    pass
