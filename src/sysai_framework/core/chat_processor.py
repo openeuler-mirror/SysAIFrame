@@ -110,8 +110,27 @@ class ChatCompletionProcessor(RequestProcessor):
             raise
 
     async def _wrap_response(self, response):
-        """Wrap response based on streaming flag"""
-        pass
+        """
+        Wrap response based on streaming flag
+
+        Args:
+            response: Response data (dict or async generator)
+
+        Returns:
+            StreamingResponse for streaming, dict for non-streaming
+        """
+        if self.is_streaming:
+            headers = ResponseHeaderManager.get_streaming_headers(
+                request_id=self.context.request_id,
+                model_name=self.context.model,
+            )
+            return StreamingResponse(
+                response,
+                media_type="text/event-stream",
+                headers=headers,
+                status_code=200
+            )
+        return response
 
     def _extract_route_params(self) -> dict:
         """Extract chat completion specific parameters"""
