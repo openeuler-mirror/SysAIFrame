@@ -56,3 +56,12 @@ class LLMHTTPHandler:
     def __init__(self):
         self.sync_client: Optional[httpx.Client] = None
         self.async_client: Optional[httpx.AsyncClient] = None
+
+    def _get_sync_client(self) -> httpx.Client:
+        """Get or create synchronous HTTP client"""
+        if self.sync_client is None:
+            self.sync_client = httpx.Client(
+                timeout=httpx.Timeout(180.0, connect=10.0),
+                follow_redirects=True
+            )
+        return self.sync_client
