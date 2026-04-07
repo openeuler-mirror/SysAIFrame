@@ -118,4 +118,4 @@ class ModelConfig:
     """
     Model configuration data structure for SysAIFrame
     """
-    pass
+    name: str
