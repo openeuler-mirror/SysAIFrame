@@ -159,5 +159,6 @@ class ModelConfig:
     def _generate_instance_id(self) -> str:
         """
         Generate instance_id based on name + api_base + api_key (similar to litellm)
+        This ensures the same configuration always generates the same instance_id
         """
-        pass
+        parts = [self.name]
