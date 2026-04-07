@@ -52,7 +52,7 @@ class DeepSeekChatConfig(OpenAIGPTConfig):
             api_base
             or get_secret_str("DEEPSEEK_API_BASE")
             or "https://api.deepseek.com/beta"
-        )
+        )  # type: ignore
         dynamic_api_key = api_key or get_secret_str("DEEPSEEK_API_KEY")
         return api_base, dynamic_api_key
 
@@ -75,3 +75,4 @@ class DeepSeekChatConfig(OpenAIGPTConfig):
             api_base = f"{api_base}/chat/completions"
 
         return api_base
+

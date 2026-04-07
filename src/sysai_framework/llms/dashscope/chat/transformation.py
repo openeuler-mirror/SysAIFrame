@@ -52,7 +52,7 @@ class DashScopeChatConfig(OpenAIGPTConfig):
             api_base
             or get_secret_str("DASHSCOPE_API_BASE")
             or "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-        )
+        )  # type: ignore
         dynamic_api_key = api_key or get_secret_str("DASHSCOPE_API_KEY")
         return api_base, dynamic_api_key
 
@@ -75,3 +75,4 @@ class DashScopeChatConfig(OpenAIGPTConfig):
             api_base = f"{api_base}/chat/completions"
 
         return api_base
+
