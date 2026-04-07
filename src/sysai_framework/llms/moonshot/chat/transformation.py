@@ -146,3 +146,14 @@ class MoonshotChatConfig(OpenAIGPTConfig):
             litellm_params=litellm_params,
             headers=headers,
         )
+
+    def _add_tool_choice_required_message(self, messages: List[AllMessageValues], optional_params: dict) -> List[AllMessageValues]:
+        """
+        Add a message to the messages list to indicate that the tool choice is required.
+        """
+        messages.append({
+            "role": "user",
+            "content": "Please select a tool to handle the current issue.",
+        })
+        optional_params.pop("tool_choice")
+        return messages
