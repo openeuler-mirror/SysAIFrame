@@ -138,3 +138,4 @@ class ModelConfig:
     consecutive_failures: int = 0
     consecutive_successes: int = 0
     health_check_enabled: bool = True
+    unhealthy_reason: UnhealthyReason = field(default=UnhealthyReason.NONE)
