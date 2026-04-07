@@ -217,7 +217,21 @@ class ImageGenerationProcessor(RequestProcessor):
 
 
 class EmbeddingProcessor(RequestProcessor):
-    """Embedding processor (example for future extension)"""
+    """
+    Embedding processor (example for future extension)
+
+    This processor handles embedding requests for vector search.
+    """
+
+    def __init__(self, request_data: Dict[str, Any], hook_manager=None):
+        """
+        Initialize embedding processor
+
+        Args:
+            request_data: Embedding request data
+            hook_manager: Optional hook manager
+        """
+        super().__init__(request_data, hook_manager)
 
     def _extract_route_params(self) -> dict:
         """Extract embedding parameters"""
