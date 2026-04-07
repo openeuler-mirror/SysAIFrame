@@ -311,6 +311,10 @@ class ModelConfigManager:
         self._loaded = False
         self.load_config()
 
+    def persist_config(self) -> bool:
+        """Persist configuration to file"""
+        pass
+
     @property
     def runtime_config(self) -> RuntimeConfig:
         """Get runtime configuration"""
