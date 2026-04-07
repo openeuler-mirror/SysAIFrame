@@ -293,3 +293,19 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             content_item_typed["file"] = file_obj
             content_item = content_item_typed
         return content_item
+
+    async def _async_transform_content_item(
+        self, content_item: OpenAIMessageContentListBlock, is_async: bool = False
+    ) -> OpenAIMessageContentListBlock:
+        content_item = self._apply_common_transform_content_item(content_item)
+        content_item_type = content_item.get("type")
+        potential_file_obj = content_item.get("file")
+        if content_item_type == "file" and potential_file_obj:
+            file_obj = cast(ChatCompletionFileObjectFile, potential_file_obj)
+            content_item_typed = cast(ChatCompletionFileObject, content_item)
+            if self.contains_pdf_url(file_obj):
+                file_obj = await self._async_handle_pdf_url(file_obj)
+            file_obj = self._common_file_data_check(file_obj)
+            content_item_typed["file"] = file_obj
+            content_item = content_item_typed
+        return content_item
