@@ -111,3 +111,11 @@ class RoutingConfig:
     retry_policy: RetryPolicyConfig = field(default_factory=RetryPolicyConfig)
     timeout: int = 180  # Default timeout for LLM requests (3 minutes, suitable for complex text generation)
     runtime: RuntimeConfig = field(default_factory=RuntimeConfig)  # Runtime mode configuration
+
+
+@dataclass
+class ModelConfig:
+    """
+    Model configuration data structure for SysAIFrame
+    """
+    pass
