@@ -134,3 +134,4 @@ class ModelConfig:
 
     # Health status fields (managed by HealthChecker)
     connection_health: bool = True  # Lightweight check (HTTP HEAD) health status
+    last_health_check: Optional[datetime] = None
