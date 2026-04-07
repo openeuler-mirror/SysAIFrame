@@ -694,3 +694,10 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
 
         models = response.json()["data"]
         return [model["id"] for model in models]
+
+    @staticmethod
+    def get_api_key(api_key: Optional[str] = None) -> Optional[str]:
+        return (
+            api_key
+            or get_secret_str("OPENAI_API_KEY")
+        )
