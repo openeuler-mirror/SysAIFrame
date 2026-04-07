@@ -40,6 +40,10 @@ class RequestContext:
         self.metrics: Dict[str, Any] = {}
         self.custom_headers: Dict[str, str] = {}
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert context to dictionary"""
+        pass
+
 
 class RequestProcessor:
     """Unified request processor - manages complete request lifecycle"""
