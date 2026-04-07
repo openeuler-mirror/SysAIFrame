@@ -193,8 +193,88 @@ class RequestProcessor:
         )
 
     async def _post_call_processing(self, response):
-        """Post-call processing stage"""
-        pass
+        """
+        Post-call processing stage
+
+        Performs:
+        - Response validation
+        - Metrics collection
+        - Custom headers generation
+        - Post-call hooks execution
+
+        Args:
+            response: Response from backend
+
+        Returns:
+            Final processed response
+        """
+        logger.debug(f"[{self.context.request_id}] Starting post-call processing")
+
+        # 1. Calculate metrics
+        duration_ms = (datetime.now() - self.context.start_time).total_seconds() * 1000
+        self.context.metrics = {
+            'duration_ms': duration_ms,
+            'model': self.context.model,
+        }
+
+        # 2. Extract token usage from response
+        token_usage = None
+        if isinstance(response, dict) and 'usage' in response:
+            token_usage = response['usage']
+            self.context.metrics['token_usage'] = token_usage
+
+            # Record token usage Prometheus metrics
+            try:
+                from sysai_framework.core.metrics import token_usage_total
+                model_name = self.context.model or "unknown"
+                prompt_tokens = token_usage.get('prompt_tokens', 0)
+                completion_tokens = token_usage.get('completion_tokens', 0)
+                if prompt_tokens:
+                    token_usage_total.labels(
+                        model=model_name, token_type="prompt"
+                    ).inc(prompt_tokens)
+                if completion_tokens:
+                    token_usage_total.labels(
+                        model=model_name, token_type="completion"
+                    ).inc(completion_tokens)
+            except ImportError:
+                pass
+
+        # 3. Generate custom headers
+        self.context.custom_headers = ResponseHeaderManager.get_custom_headers(
+            request_id=self.context.request_id,
+            model_name=self.context.model,
+            provider=self.context.provider,
+            duration_ms=duration_ms,
+            token_usage=token_usage,
+        )
+
+        # 4. Build hook context
+        hook_context = {
+            'data': self.data,
+            'response': response,
+            'request_id': self.context.request_id,
+            'model': self.context.model,
+            'user_id': self.context.user_id,
+            'duration_ms': duration_ms,
+            'token_usage': token_usage,
+        }
+
+        # 5. Execute post-call hooks
+        hook_context = await self.hook_manager.execute_post_call_hooks(hook_context)
+
+        # 6. Update response from hooks (hooks may have modified it)
+        response = hook_context['response']
+
+        # 7. Log completion
+        logger.debug(
+            f"[{self.context.request_id}] Request completed: "
+            f"duration={duration_ms:.2f}ms, "
+            f"tokens={token_usage.get('total_tokens', 0) if token_usage else 0}"
+        )
+
+        logger.debug(f"[{self.context.request_id}] Post-call processing completed")
+        return response
 
     async def _handle_failure(self, error: Exception):
         """Handle request failure"""
