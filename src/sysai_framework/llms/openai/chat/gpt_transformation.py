@@ -491,3 +491,83 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             return "tool_calls"
         else:
             return received_finish_reason
+
+    def _transform_choices(
+        self,
+        choices: List[OpenAIChatCompletionChoices],
+        json_mode: Optional[bool] = None,
+        optional_params: Optional[dict] = None,
+    ) -> List[Choices]:
+        transformed_choices = []
+
+        for choice in choices:
+            tool_calls = choice["message"].get("tool_calls", None)
+            new_tool_calls: Optional[List[ChatCompletionMessageToolCall]] = None
+            message_content = choice["message"].get("content", None)
+            if tool_calls is not None:
+                _openai_tool_calls = []
+                for _tc in tool_calls:
+                    _openai_tc = ChatCompletionMessageToolCall(**_tc)
+                    _openai_tool_calls.append(_openai_tc)
+                fixed_tool_calls = _handle_invalid_parallel_tool_calls(
+                    _openai_tool_calls
+                )
+
+                if fixed_tool_calls is not None:
+                    new_tool_calls = fixed_tool_calls
+            elif (
+                optional_params is not None
+                and message_content
+                and isinstance(message_content, str)
+            ):
+                new_tool_call = self._check_and_fix_if_content_is_tool_call(
+                    message_content, optional_params
+                )
+                if new_tool_call is not None:
+                    choice["message"]["content"] = None
+                    new_tool_calls = [new_tool_call]
+
+            translated_message: Optional[Message] = None
+            finish_reason: Optional[str] = None
+            if new_tool_calls and _should_convert_tool_call_to_json_mode(
+                tool_calls=new_tool_calls,
+                convert_tool_call_to_json_mode=json_mode,
+            ):
+                json_mode_content_str: Optional[str] = (
+                    str(new_tool_calls[0]["function"].get("arguments", "")) or None
+                )
+                if json_mode_content_str is not None:
+                    translated_message = Message(content=json_mode_content_str)
+                    finish_reason = "stop"
+
+            if translated_message is None:
+                (
+                    reasoning_content,
+                    content_str,
+                ) = _extract_reasoning_content(cast(dict, choice["message"]))
+
+                translated_message = Message(
+                    role="assistant",
+                    content=content_str,
+                    reasoning_content=reasoning_content,
+                    thinking_blocks=None,
+                    tool_calls=new_tool_calls,
+                )
+
+            if finish_reason is None:
+                finish_reason = choice["finish_reason"]
+
+            translated_choice = Choices(
+                finish_reason=finish_reason,
+                index=choice["index"],
+                message=translated_message,
+                logprobs=None,
+                enhancements=None,
+            )
+
+            translated_choice.finish_reason = self._get_finish_reason(
+                translated_message, choice["finish_reason"]
+            )
+            transformed_choices.append(translated_choice)
+
+        return transformed_choices
