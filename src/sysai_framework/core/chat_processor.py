@@ -133,8 +133,26 @@ class ChatCompletionProcessor(RequestProcessor):
         return response
 
     def _extract_route_params(self) -> dict:
-        """Extract chat completion specific parameters"""
-        pass
+        """
+        Extract chat completion specific parameters
+
+        Returns:
+            Dictionary of parameters for router call
+        """
+        params = {
+            'model': self.data.get('model'),
+            'stream': self.is_streaming,
+        }
+        if 'messages' in self.data:
+            params['messages'] = self.data['messages']
+        optional_params = [
+            'temperature', 'top_p', 'max_tokens', 'stop',
+            'frequency_penalty', 'presence_penalty', 'user'
+        ]
+        for param in optional_params:
+            if param in self.data:
+                params[param] = self.data[param]
+        return params
 
 
 class ImageGenerationProcessor(RequestProcessor):
