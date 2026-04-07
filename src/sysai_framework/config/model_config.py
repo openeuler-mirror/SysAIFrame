@@ -32,3 +32,4 @@ logger = logging.getLogger(__name__)
 # Predefined capability constants (recommended for common use cases)
 # Note: Users can define custom capabilities in YAML - these are just standard suggestions
 CAPABILITY_GENERAL = "general"      # General chat capability
+CAPABILITY_CODE = "code"           # Code-related capability
