@@ -76,3 +76,4 @@ class RetryPolicyConfig:
     """Retry policy configuration"""
     max_attempts: int = 3
     backoff_factor: int = 2
+    base_delay: int = 1  # seconds
