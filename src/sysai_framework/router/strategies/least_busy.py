@@ -53,3 +53,9 @@ class LeastBusyStrategy(BaseRoutingStrategy):
                 f"(instance_id={selected.instance_id}, active_requests={counts[0][1]})"
             )
             return selected
+
+    def log_pre_call(self, model_config: ModelConfig) -> None:
+        """Increment request count before call"""
+        with self._lock:
+            current = self._request_counts.get(model_config.instance_id, 0)
+            self._request_counts[model_config.instance_id] = current + 1
