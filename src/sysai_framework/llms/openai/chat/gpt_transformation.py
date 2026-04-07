@@ -106,3 +106,24 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
     temperature: Optional[int] = None
     top_p: Optional[int] = None
     response_format: Optional[dict] = None
+
+    def __init__(
+        self,
+        frequency_penalty: Optional[int] = None,
+        function_call: Optional[Union[str, dict]] = None,
+        functions: Optional[list] = None,
+        logit_bias: Optional[dict] = None,
+        max_tokens: Optional[int] = None,
+        n: Optional[int] = None,
+        presence_penalty: Optional[int] = None,
+        stop: Optional[Union[str, list]] = None,
+        temperature: Optional[int] = None,
+        top_p: Optional[int] = None,
+        response_format: Optional[dict] = None,
+    ) -> None:
+        locals_ = locals().copy()
+        for key, value in locals_.items():
+            if key != "self" and value is not None:
+                setattr(self.__class__, key, value)
+
+        self.__class__._is_base_class = False
