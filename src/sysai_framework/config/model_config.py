@@ -201,6 +201,20 @@ class ModelConfigManager:
         if current_mtime == self._last_modified and self._loaded:
             return
 
+        with self._lock:
+            yaml_content = ""
+            with open(self.config_path, 'r') as f:
+                yaml_content = f.read()
+
+            if not yaml_content.strip():
+                yaml_content = self._get_default_config()
+
+            config = self._yaml.loads(yaml_content)
+            self.models, _, _ = self._process_models_config(config)
+            self._routing_config = self._parse_routing_config(config.get('routing', {}))
+            self._last_modified = current_mtime
+            self._loaded = True
+
     @property
     def runtime_config(self) -> RuntimeConfig:
         """Get runtime configuration"""
