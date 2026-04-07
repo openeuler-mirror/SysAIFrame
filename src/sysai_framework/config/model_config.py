@@ -109,3 +109,4 @@ class RoutingConfig:
     default_model_instance_id: Optional[str] = None
     health_check: HealthCheckConfig = field(default_factory=HealthCheckConfig)
     retry_policy: RetryPolicyConfig = field(default_factory=RetryPolicyConfig)
+    timeout: int = 180  # Default timeout for LLM requests (3 minutes, suitable for complex text generation)
