@@ -35,6 +35,7 @@ class RequestContext:
         self.start_time: Optional[datetime] = None
         self.model: Optional[str] = None
         self.user_id: Optional[str] = None
+        self.provider: Optional[str] = None
 
 
 class RequestProcessor:
