@@ -123,3 +123,4 @@ class ModelConfig:
     provider: Optional[str] = None  # Provider type (dashscope, moonshot, etc.)
     api_base: Optional[str] = None  # API base URL
     api_key: Optional[str] = None   # API key
+    endpoint: Optional[str] = None  # Legacy field, use api_base instead
