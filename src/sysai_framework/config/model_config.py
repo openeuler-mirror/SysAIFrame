@@ -46,4 +46,4 @@ SPECIAL_MODEL_MOCK = "mock"        # Use built-in Mock model
 
 class UnhealthyReason(Enum):
     """Model unhealthy reason enumeration"""
-    pass
+    NONE = "none"                          # Healthy status
