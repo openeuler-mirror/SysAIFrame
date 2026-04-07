@@ -164,7 +164,49 @@ def _check_chunk_for_error(chunk: Union[str, dict]) -> Optional[int]:
     Returns:
         HTTP status code if error found, None otherwise
     """
-    pass
+    try:
+        data = None
+
+        # Parse chunk if it's a string
+        if isinstance(chunk, str):
+            # Handle SSE format
+            if chunk.startswith("data: "):
+                json_str = chunk[6:].strip()
+                if json_str and json_str != "[DONE]":
+                    data = json.loads(json_str)
+                else:
+                    return None
+            else:
+                # Try to parse as plain JSON
+                try:
+                    data = json.loads(chunk)
+                except json.JSONDecodeError:
+                    return None
+        else:
+            data = chunk
+
+        # Check for error field
+        if isinstance(data, dict) and "error" in data:
+            error = data["error"]
+
+            # Try to extract status code from error
+            if isinstance(error, dict):
+                # Check code field
+                code = error.get("code")
+                if isinstance(code, int) and 100 <= code <= 599:
+                    return code
+
+                # Map error type to status code
+                error_type = error.get("type", "")
+                return _map_error_type_to_status(error_type)
+
+            # Default error status
+            return 500
+
+    except Exception as e:
+        logger.debug(f"Failed to parse chunk for error: {e}")
+
+    return None
 
 
 def _map_error_type_to_status(error_type: str) -> int:
