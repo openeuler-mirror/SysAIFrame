@@ -183,10 +183,12 @@ class ModelConfigManager:
         self._yaml = YAML()
         self._last_modified = 0.0
         self._loaded = False
+        self._routing_config: RoutingConfig = RoutingConfig()
+
         if allow_create_default or os.path.exists(config_path):
             self.load_config()
 
     @property
     def runtime_config(self) -> RuntimeConfig:
         """Get runtime configuration"""
-        pass
+        return self._routing_config.runtime
