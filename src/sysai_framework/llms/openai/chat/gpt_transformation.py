@@ -201,3 +201,12 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             model=model,
             drop_params=drop_params,
         )
+
+    def contains_pdf_url(self, content_item: ChatCompletionFileObjectFile) -> bool:
+        potential_pdf_url_starts = ["https://", "http://", "www."]
+        file_id = content_item.get("file_id")
+        if file_id and any(
+            file_id.startswith(start) for start in potential_pdf_url_starts
+        ):
+            return True
+        return False
