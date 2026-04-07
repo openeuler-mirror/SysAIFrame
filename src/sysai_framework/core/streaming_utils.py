@@ -210,7 +210,15 @@ def _check_chunk_for_error(chunk: Union[str, dict]) -> Optional[int]:
 
 
 def _map_error_type_to_status(error_type: str) -> int:
-    """Map error type to HTTP status code"""
+    """
+    Map error type to HTTP status code
+
+    Args:
+        error_type: Error type string
+
+    Returns:
+        HTTP status code
+    """
     pass
 
 
