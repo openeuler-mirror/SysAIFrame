@@ -222,3 +222,14 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             content_copy["filename"] = "my_file.pdf"
             content_copy.pop("file_id")
         return content_copy
+
+    async def _async_handle_pdf_url(
+        self, content_item: ChatCompletionFileObjectFile
+    ) -> ChatCompletionFileObjectFile:
+        file_id = content_item.get("file_id")
+        if file_id is not None:
+            base64_data = await async_convert_url_to_base64(file_id)
+            content_item["file_data"] = base64_data
+            content_item["filename"] = "my_file.pdf"
+            content_item.pop("file_id")
+        return content_item
