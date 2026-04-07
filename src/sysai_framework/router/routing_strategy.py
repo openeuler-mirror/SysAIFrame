@@ -33,4 +33,12 @@ class LoadBalanceStrategy(Enum):
 
 class BaseRoutingStrategy(ABC):
     """Base class for load balance routing strategies"""
-    pass
+
+    def __init__(self, config_manager=None):
+        """
+        Initialize routing strategy
+
+        Args:
+            config_manager: ModelConfigManager instance for accessing configuration
+        """
+        self.config_manager = config_manager
