@@ -155,7 +155,15 @@ async def create_streaming_response(
 
 
 def _check_chunk_for_error(chunk: Union[str, dict]) -> Optional[int]:
-    """Check if a chunk contains an error and extract status code"""
+    """
+    Check if a chunk contains an error and extract status code
+
+    Args:
+        chunk: The chunk to check (string or dict)
+
+    Returns:
+        HTTP status code if error found, None otherwise
+    """
     pass
 
 
