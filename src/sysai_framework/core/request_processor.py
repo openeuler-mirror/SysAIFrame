@@ -277,8 +277,36 @@ class RequestProcessor:
         return response
 
     async def _handle_failure(self, error: Exception):
-        """Handle request failure"""
-        pass
+        """
+        Handle request failure
+
+        Executes failure hooks and logs error
+
+        Args:
+            error: Exception that occurred
+        """
+        logger.error(
+            f"[{self.context.request_id}] Request failed: {error}",
+            exc_info=True
+        )
+
+        # Build failure context
+        hook_context = {
+            'data': self.data,
+            'error': error,
+            'request_id': self.context.request_id,
+            'model': self.context.model,
+            'user_id': self.context.user_id,
+        }
+
+        # Execute failure hooks
+        try:
+            await self.hook_manager.execute_failure_hooks(hook_context)
+        except Exception as hook_error:
+            logger.error(
+                f"[{self.context.request_id}] Failure hook execution failed: {hook_error}",
+                exc_info=True
+            )
 
     async def _extract_user_id(self, authorization: str) -> Optional[str]:
         """Extract user ID from authorization header"""
