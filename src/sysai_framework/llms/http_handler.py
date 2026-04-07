@@ -24,4 +24,5 @@ def _convert_http_status_to_exception(status_code: int, error_msg: str) -> Excep
     """
     Convert HTTP status code to appropriate exception type.
     """
-    pass
+    if status_code == 400:
+        return InvalidRequestError(f"Invalid request: {error_msg}")
