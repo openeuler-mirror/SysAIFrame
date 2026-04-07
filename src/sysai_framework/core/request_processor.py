@@ -117,3 +117,37 @@ class RequestProcessor:
         except Exception as e:
             await self._handle_failure(e)
             raise
+
+    async def _pre_call_processing(
+        self,
+        fastapi_request: Request,
+        authorization: Optional[str] = None
+    ):
+        """Pre-call processing stage"""
+        pass
+
+    async def _execute_with_hooks(self, router_instance):
+        """Execute request with parallel during-call hooks"""
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement _execute_with_hooks() method"
+        )
+
+    async def _post_call_processing(self, response):
+        """Post-call processing stage"""
+        pass
+
+    async def _handle_failure(self, error: Exception):
+        """Handle request failure"""
+        pass
+
+    async def _extract_user_id(self, authorization: str) -> Optional[str]:
+        """Extract user ID from authorization header"""
+        pass
+
+    def get_context(self) -> RequestContext:
+        """Get the request context"""
+        return self.context
+
+    def get_custom_headers(self) -> Dict[str, str]:
+        """Get custom headers for response"""
+        return self.context.custom_headers
