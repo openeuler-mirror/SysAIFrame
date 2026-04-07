@@ -250,8 +250,17 @@ class EmbeddingProcessor(RequestProcessor):
         return params
 
     async def _route_streaming(self, router_instance, params: dict):
-        """Embeddings don't support streaming"""
-        pass
+        """
+        Embeddings don't support streaming
+
+        Args:
+            router_instance: Router instance
+            params: Request parameters
+
+        Returns:
+            Non-streaming response
+        """
+        return await self._route_non_streaming(router_instance, params)
 
     async def _route_non_streaming(self, router_instance, params: dict):
         """Route embedding request"""
