@@ -91,4 +91,4 @@ class LoadBalanceOptionsConfig:
 @dataclass
 class LoadBalanceConfig:
     """Load balance configuration"""
-    pass
+    strategy: str = "weighted"  # round-robin | weighted | least-busy | lowest-latency | usage-based
