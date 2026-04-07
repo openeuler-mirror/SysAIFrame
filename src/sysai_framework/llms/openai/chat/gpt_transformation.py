@@ -454,3 +454,6 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             return self.transform_request(
                 model, messages, optional_params, litellm_params, headers
             )
+
+    def _passed_in_tools(self, optional_params: dict) -> bool:
+        return optional_params.get("tools", None) is not None
