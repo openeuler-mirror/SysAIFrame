@@ -181,3 +181,5 @@ class ModelConfigManager:
         self.models: Dict[str, ModelConfig] = {}
         self._lock = threading.RLock()
         self._yaml = YAML()
+        self._last_modified = 0.0
+        self._loaded = False
