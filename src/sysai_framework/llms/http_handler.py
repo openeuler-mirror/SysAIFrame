@@ -143,6 +143,78 @@ class LLMHTTPHandler:
             logger.error(f"Error in completion: {e}", exc_info=True)
             raise
 
+    async def _stream_call(
+        self,
+        provider_config: BaseConfig,
+        url: str,
+        headers: Dict[str, str],
+        data: Dict[str, Any],
+        timeout: float,
+        model: str,
+        messages: List[Dict[str, Any]],
+        optional_params: Dict[str, Any]
+    ) -> AsyncGenerator[str, None]:
+        """Asynchronous streaming call"""
+        client = self._get_async_client()
+        try:
+            if isinstance(timeout, (int, float)):
+                total_timeout = float(timeout)
+                connect_timeout = min(10.0, total_timeout * 0.2)
+                read_timeout = max(1.0, total_timeout - connect_timeout)
+                timeout_obj = httpx.Timeout(
+                    timeout=total_timeout,
+                    connect=connect_timeout,
+                    read=read_timeout,
+                    write=total_timeout,
+                    pool=5.0
+                )
+            else:
+                timeout_obj = timeout
+            async with client.stream(
+                method="POST",
+                url=url,
+                headers=headers,
+                json=data,
+                timeout=timeout_obj
+            ) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line or line.strip() == "":
+                        continue
+                    if line.startswith("data: "):
+                        data_str = line[6:]
+                        if data_str == "[DONE]":
+                            yield "data: [DONE]\n\n"
+                            break
+                        try:
+                            json.loads(data_str)
+                            yield f"data: {data_str}\n\n"
+                        except json.JSONDecodeError:
+                            continue
+        except httpx.RemoteProtocolError as e:
+            error_msg = f"Backend service at {url} disconnected unexpectedly during streaming. Error: {str(e)}"
+            logger.error(error_msg)
+            raise ServiceUnavailableError(error_msg)
+        except httpx.ConnectError as e:
+            error_msg = f"Failed to connect to backend service at {url}. Error: {str(e)}"
+            logger.error(error_msg)
+            raise ServiceUnavailableError(error_msg)
+        except httpx.TimeoutException as e:
+            error_msg = f"Streaming request to {url} timed out after {timeout} seconds. Error: {str(e)}"
+            logger.error(error_msg)
+            raise TimeoutError(error_msg)
+        except httpx.HTTPStatusError as e:
+            status_code = e.response.status_code
+            try:
+                error_data = e.response.json()
+                error_msg = error_data.get('error', {}).get('message', str(e))
+            except:
+                error_msg = str(e)
+            raise _convert_http_status_to_exception(status_code, error_msg)
+        except Exception as e:
+            logger.error(f"Streaming request to {url} failed: {e}")
+            raise
+
     def _sync_call(
         self,
         provider_config: BaseConfig,
