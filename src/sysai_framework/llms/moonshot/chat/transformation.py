@@ -75,3 +75,25 @@ class MoonshotChatConfig(OpenAIGPTConfig):
             api_base = f"{api_base}/chat/completions"
 
         return api_base
+
+    def get_supported_openai_params(self, model: str) -> list:
+        """
+        Get the supported Chat Completion API params for Moonshot AI models
+
+        Moonshot AI limitations:
+        - functions parameter is not supported (use tools instead)
+        - tool_choice doesn't support "required" value
+        - kimi-thinking-preview doesn't support tool calls at all
+        """
+        excluded_params: List[str] = ["functions"]
+
+        if "kimi-thinking-preview" in model:
+            excluded_params.extend(["tools", "tool_choice"])
+
+        base_openai_params = super().get_supported_openai_params(model=model)
+        final_params: List[str] = []
+        for param in base_openai_params:
+            if param not in excluded_params:
+                final_params.append(param)
+
+        return final_params
