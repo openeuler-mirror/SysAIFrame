@@ -485,3 +485,9 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             return None
 
         return None
+
+    def _get_finish_reason(self, message: Message, received_finish_reason: str) -> str:
+        if message.tool_calls is not None:
+            return "tool_calls"
+        else:
+            return received_finish_reason
