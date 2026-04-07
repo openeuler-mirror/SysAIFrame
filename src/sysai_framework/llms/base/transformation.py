@@ -90,3 +90,24 @@ class BaseConfig(ABC):
             )
             and v is not None
         }
+
+    def get_supported_openai_params(self, model: str) -> list:
+        """
+        Get list of supported Chat Completion API params for this provider.
+        """
+        return [
+            "temperature",
+            "max_tokens",
+            "top_p",
+            "n",
+            "stop",
+            "presence_penalty",
+            "frequency_penalty",
+            "stream",
+            "functions",
+            "function_call",
+            "tools",
+            "tool_choice",
+            "response_format",
+            "seed",
+        ]
