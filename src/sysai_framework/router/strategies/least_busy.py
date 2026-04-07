@@ -19,4 +19,8 @@ logger = logging.getLogger(__name__)
 
 class LeastBusyStrategy(BaseRoutingStrategy):
     """Least-busy load balance strategy - selects model with fewest active requests"""
-    pass
+
+    def __init__(self, config_manager=None):
+        super().__init__(config_manager)
+        self._request_counts: Dict[str, int] = {}
+        self._lock = threading.Lock()
