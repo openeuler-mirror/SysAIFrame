@@ -198,5 +198,15 @@ class ResponseHeaderManager:
         error_code: Optional[str] = None,
         retry_after: Optional[int] = None
     ) -> Dict[str, str]:
-        """Get headers for error responses"""
+        """
+        Get headers for error responses
+
+        Args:
+            request_id: Request identifier
+            error_code: Error code
+            retry_after: Seconds to wait before retry (for rate limiting)
+
+        Returns:
+            Error-specific headers
+        """
         pass
