@@ -263,5 +263,14 @@ class EmbeddingProcessor(RequestProcessor):
         return await self._route_non_streaming(router_instance, params)
 
     async def _route_non_streaming(self, router_instance, params: dict):
-        """Route embedding request"""
-        pass
+        """
+        Route embedding request
+
+        Args:
+            router_instance: Router instance
+            params: Request parameters
+
+        Returns:
+            Embedding response
+        """
+        return await router_instance.route_embedding(**params)
