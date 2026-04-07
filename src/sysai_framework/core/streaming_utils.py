@@ -292,5 +292,10 @@ def format_sse_chunk(data: Dict[str, Any]) -> str:
 
 
 def format_sse_done() -> str:
-    """Format SSE done message"""
+    """
+    Format SSE done message
+
+    Returns:
+        Formatted SSE done string
+    """
     pass
