@@ -27,3 +27,8 @@ if TYPE_CHECKING:
     from sysai_framework.core.status_codes import OperationResult
 
 logger = logging.getLogger(__name__)
+
+
+# Predefined capability constants (recommended for common use cases)
+# Note: Users can define custom capabilities in YAML - these are just standard suggestions
+CAPABILITY_GENERAL = "general"      # General chat capability
