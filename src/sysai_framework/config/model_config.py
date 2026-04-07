@@ -54,4 +54,5 @@ class UnhealthyReason(Enum):
 @dataclass
 class ValidationMessage:
     """Validation message with level (error or warning)"""
-    pass
+    level: str  # "error" or "warning"
+    message: str
