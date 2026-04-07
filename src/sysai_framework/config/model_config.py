@@ -136,3 +136,4 @@ class ModelConfig:
     connection_health: bool = True  # Lightweight check (HTTP HEAD) health status
     last_health_check: Optional[datetime] = None
     consecutive_failures: int = 0
+    consecutive_successes: int = 0
