@@ -183,3 +183,5 @@ class ModelConfigManager:
         self._yaml = YAML()
         self._last_modified = 0.0
         self._loaded = False
+        if allow_create_default or os.path.exists(config_path):
+            self.load_config()
