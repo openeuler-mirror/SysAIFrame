@@ -20,4 +20,17 @@ logger = logging.getLogger(__name__)
 
 class UsageBasedStrategy(BaseRoutingStrategy):
     """Usage-based load balance strategy - selects model with lowest TPM/RPM usage"""
-    pass
+
+    def __init__(self, config_manager=None):
+        super().__init__(config_manager)
+        # Track usage per model instance_id
+        # Format: instance_id -> list of (timestamp, tokens, is_request)
+        self._usage_history: Dict[str, List[Tuple[float, int, bool]]] = {}
+        self._lock = threading.Lock()
+
+        # Get usage window from config
+        if config_manager:
+            runtime_config = config_manager.routing_config.runtime
+            self._usage_window = runtime_config.load_balance.options.usage_window
+        else:
+            self._usage_window = 60  # Default: 60 seconds
