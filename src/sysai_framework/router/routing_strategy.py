@@ -29,3 +29,8 @@ class LoadBalanceStrategy(Enum):
     LEAST_BUSY = "least-busy"
     LOWEST_LATENCY = "lowest-latency"
     USAGE_BASED = "usage-based"
+
+
+class BaseRoutingStrategy(ABC):
+    """Base class for load balance routing strategies"""
+    pass
