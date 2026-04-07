@@ -86,3 +86,9 @@ class LoadBalanceOptionsConfig:
     latency_buffer: float = 0.1  # lowest-latency: latency buffer ratio (0.0-1.0)
     latency_window: int = 10  # lowest-latency: latency sampling window size
     usage_window: int = 60  # usage-based: usage statistics window in seconds
+
+
+@dataclass
+class LoadBalanceConfig:
+    """Load balance configuration"""
+    pass
