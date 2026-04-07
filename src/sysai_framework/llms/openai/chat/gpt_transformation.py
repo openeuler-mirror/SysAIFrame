@@ -457,3 +457,31 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
 
     def _passed_in_tools(self, optional_params: dict) -> bool:
         return optional_params.get("tools", None) is not None
+
+    def _check_and_fix_if_content_is_tool_call(
+        self, content: str, optional_params: dict
+    ) -> Optional[ChatCompletionMessageToolCall]:
+        """
+        Check if the content is a tool call
+        """
+        import json
+
+        if not self._passed_in_tools(optional_params):
+            return None
+        tool_call_names = get_tool_call_names(optional_params.get("tools", []))
+        try:
+            json_content = json.loads(content)
+            if (
+                json_content.get("type") == "function"
+                and json_content.get("name") in tool_call_names
+            ):
+                return ChatCompletionMessageToolCall(
+                    function=Function(
+                        name=json_content.get("name"),
+                        arguments=json_content.get("arguments"),
+                    )
+                )
+        except Exception:
+            return None
+
+        return None
