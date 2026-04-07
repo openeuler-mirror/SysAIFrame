@@ -33,3 +33,4 @@ logger = logging.getLogger(__name__)
 # Note: Users can define custom capabilities in YAML - these are just standard suggestions
 CAPABILITY_GENERAL = "general"      # General chat capability
 CAPABILITY_CODE = "code"           # Code-related capability
+CAPABILITY_ANALYSIS = "analysis"   # Analysis task capability
