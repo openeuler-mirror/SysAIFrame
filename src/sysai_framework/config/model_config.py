@@ -83,4 +83,4 @@ class RetryPolicyConfig:
 @dataclass
 class LoadBalanceOptionsConfig:
     """Load balance strategy options configuration"""
-    pass
+    latency_buffer: float = 0.1
