@@ -97,3 +97,27 @@ class MoonshotChatConfig(OpenAIGPTConfig):
                 final_params.append(param)
 
         return final_params
+
+    def map_openai_params(
+        self,
+        non_default_params: dict,
+        optional_params: dict,
+        model: str,
+        drop_params: bool,
+    ) -> dict:
+        """
+        Map Chat Completion API params to Moonshot AI parameters
+        """
+        supported_openai_params = self.get_supported_openai_params(model)
+        for param, value in non_default_params.items():
+            if param == "max_completion_tokens":
+                optional_params["max_tokens"] = value
+            elif param in supported_openai_params:
+                optional_params[param] = value
+
+        if "temperature" in optional_params:
+            if optional_params["temperature"] > 1:
+                optional_params["temperature"] = 1
+            if optional_params["temperature"] < 0.3 and optional_params.get("n", 1) > 1:
+                optional_params["temperature"] = 0.3
+        return optional_params
