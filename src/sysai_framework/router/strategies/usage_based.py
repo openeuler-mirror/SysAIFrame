@@ -34,3 +34,14 @@ class UsageBasedStrategy(BaseRoutingStrategy):
             self._usage_window = runtime_config.load_balance.options.usage_window
         else:
             self._usage_window = 60  # Default: 60 seconds
+
+    def _cleanup_old_records(self, instance_id: str, current_time: float) -> None:
+        """Remove usage records older than usage_window"""
+        if instance_id not in self._usage_history:
+            return
+
+        cutoff_time = current_time - self._usage_window
+        self._usage_history[instance_id] = [
+            (ts, tokens, is_req) for ts, tokens, is_req in self._usage_history[instance_id]
+            if ts >= cutoff_time
+        ]
