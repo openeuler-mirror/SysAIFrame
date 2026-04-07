@@ -190,7 +190,12 @@ class ModelConfigManager:
 
     def load_config(self) -> None:
         """Load configuration from YAML file"""
-        pass
+        if not os.path.exists(self.config_path):
+            if self.allow_create_default:
+                self._create_default_config_file()
+            else:
+                logger.warning(f"Config file not found: {self.config_path}")
+                return
 
     @property
     def runtime_config(self) -> RuntimeConfig:
