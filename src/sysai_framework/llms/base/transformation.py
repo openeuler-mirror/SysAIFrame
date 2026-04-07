@@ -13,3 +13,11 @@ from typing import Optional, Union
 import httpx
 
 from .types import BaseLLMModelInfo
+
+
+class BaseLLMException(Exception):
+    """
+    Base exception class for LLM provider errors.
+    Provides Chat Completion API compatible error format.
+    """
+    pass
