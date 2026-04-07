@@ -15,3 +15,8 @@ from sysai_framework.router.routing_strategy import BaseRoutingStrategy
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class LeastBusyStrategy(BaseRoutingStrategy):
+    """Least-busy load balance strategy - selects model with fewest active requests"""
+    pass
