@@ -78,3 +78,9 @@ class RetryPolicyConfig:
     backoff_factor: int = 2
     base_delay: int = 1  # seconds
     max_delay: int = 30  # seconds
+
+
+@dataclass
+class LoadBalanceOptionsConfig:
+    """Load balance strategy options configuration"""
+    pass
