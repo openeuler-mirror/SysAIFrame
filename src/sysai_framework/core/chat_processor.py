@@ -45,7 +45,23 @@ class ChatCompletionProcessor(RequestProcessor):
         router_instance,
         authorization: Optional[str] = None
     ):
-        """Process chat completion request - unified flow"""
+        """
+        Process chat completion request - unified flow
+
+        Flow:
+        1. Pre-call processing
+        2. Execute request with parallel during-call hooks
+        3. Post-call processing (only for non-streaming)
+        4. Wrap response based on streaming flag
+
+        Args:
+            fastapi_request: Original FastAPI request
+            router_instance: Model router instance
+            authorization: Authorization header
+
+        Returns:
+            StreamingResponse for streaming, dict for non-streaming
+        """
         pass
 
     async def _wrap_response(self, response):
