@@ -119,3 +119,4 @@ class ModelConfig:
     Model configuration data structure for SysAIFrame
     """
     name: str
+    instance_id: Optional[str] = None  # Unique instance identifier
