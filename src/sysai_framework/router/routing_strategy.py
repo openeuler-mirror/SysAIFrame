@@ -20,3 +20,12 @@ class RuntimeMode(Enum):
     """Runtime mode enumeration"""
     DEFAULT = "default"
     LOAD_BALANCE = "load-balance"
+
+
+class LoadBalanceStrategy(Enum):
+    """Load balance strategy enumeration"""
+    ROUND_ROBIN = "round-robin"
+    WEIGHTED = "weighted"
+    LEAST_BUSY = "least-busy"
+    LOWEST_LATENCY = "lowest-latency"
+    USAGE_BASED = "usage-based"
