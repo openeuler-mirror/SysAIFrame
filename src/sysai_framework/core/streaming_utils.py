@@ -279,7 +279,15 @@ async def wrap_generator_with_error_handling(
 
 
 def format_sse_chunk(data: Dict[str, Any]) -> str:
-    """Format data as Server-Sent Events chunk"""
+    """
+    Format data as Server-Sent Events chunk
+
+    Args:
+        data: Data to format
+
+    Returns:
+        Formatted SSE string
+    """
     pass
 
 
