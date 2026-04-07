@@ -269,6 +269,12 @@ class ModelConfigManager:
                 return model
         return None
 
+    def list_models(self, model_name: Optional[str] = None) -> List[ModelConfig]:
+        """List all models or models with specific name"""
+        if model_name:
+            return [m for m in self.models.values() if m.name == model_name]
+        return list(self.models.values())
+
     @property
     def runtime_config(self) -> RuntimeConfig:
         """Get runtime configuration"""
