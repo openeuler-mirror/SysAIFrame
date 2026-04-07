@@ -55,3 +55,27 @@ def get_tool_call_names(tools: List[Any]) -> List[str]:
         List of tool names
     """
     return []
+
+
+def filter_value_from_dict(data: dict, keys_to_remove: List[str]) -> dict:
+    """
+    Remove specified keys from dictionary.
+
+    Helper function used by BaseConfig to filter out unwanted parameters.
+
+    Args:
+        data: Dictionary to filter
+        keys_to_remove: List of keys to remove
+
+    Returns:
+        Filtered dictionary
+    """
+    if not data:
+        return data
+
+    filtered = {}
+    for key, value in data.items():
+        if key not in keys_to_remove:
+            filtered[key] = value
+
+    return filtered
