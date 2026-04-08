@@ -619,3 +619,30 @@ def _define_lightweight_disable_command(lightweight_group):
         )
         sys.exit(exit_code)
     return lightweight_disable
+
+
+# Lightweight Set-Interval Command definition
+def _define_lightweight_set_interval_command(lightweight_group):
+    """Define and return the lightweight set-interval click command"""
+    @lightweight_group.command('set-interval')
+    @click.argument('seconds', type=int)
+    def lightweight_set_interval(seconds: int):
+        """Set lightweight health check interval in seconds"""
+        if seconds <= 0:
+            Output.error("Interval must be a positive integer")
+            sys.exit(Output.EXIT_VALIDATION_ERROR)
+
+        def online_mode(client):
+            return _lightweight_set_interval_online(client, seconds)
+        def offline_mode():
+            return _lightweight_offline_mode("set interval for")
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="set lightweight interval",
+            require_config_file=False,
+            config_path=None
+        )
+        sys.exit(exit_code)
+    return lightweight_set_interval
