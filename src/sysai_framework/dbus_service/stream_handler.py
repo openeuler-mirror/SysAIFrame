@@ -140,4 +140,23 @@ class StreamHandler:
             if request_id in self.active_streams:
                 del self.active_streams[request_id]
 
+    def stop_stream(self, request_id: str):
+        """
+        Stop an active stream.
+
+        Args:
+            request_id: Request ID to stop
+        """
+        if request_id in self.active_streams:
+            # Note: We can't forcefully stop a thread in Python
+            # The thread will complete naturally
+            logger.info(f"Marked stream {request_id} for cleanup")
+            del self.active_streams[request_id]
+
+    def stop_all_streams(self):
+        """Stop all active streams."""
+        request_ids = list(self.active_streams.keys())
+        for request_id in request_ids:
+            self.stop_stream(request_id)
+
 
