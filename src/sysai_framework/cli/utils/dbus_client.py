@@ -631,3 +631,16 @@ class AdminDBusClient:
             return (bool(success), str(message))
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to set load balance strategy: {e}")
+
+
+def get_dbus_client(use_system_bus: bool = True) -> AdminDBusClient:
+    """
+    Get a D-Bus admin client instance.
+
+    Args:
+        use_system_bus: Use system bus (True) or session bus (False)
+
+    Returns:
+        AdminDBusClient instance
+    """
+    return AdminDBusClient(use_system_bus=use_system_bus)
