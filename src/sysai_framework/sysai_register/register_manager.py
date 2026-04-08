@@ -24,3 +24,8 @@ class RegisterManager:
         """Start registration service"""
         logger.info("Starting registration service...")
         # TODO: Implement zeroconf-based registration
+
+    def stop(self):
+        """Stop registration service"""
+        logger.info("Stopping registration service...")
+        # TODO: Implement cleanup
