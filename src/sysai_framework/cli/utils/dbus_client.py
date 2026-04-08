@@ -408,3 +408,27 @@ class AdminDBusClient:
             raise DBusClientError(f"Failed to parse service status: {e}")
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to get service status: {e}")
+
+    def get_health_check_config(self) -> str:
+        """
+        Get current health check configuration.
+
+        Returns:
+            JSON string containing health check configuration
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            return str(admin.GetHealthCheckConfig())
+        except dbus.exceptions.DBusException as e:
+            error_msg = str(e)
+            if "NoReply" in error_msg:
+                raise DBusClientError(
+                    f"Service did not respond. Service may be shutting down or unavailable. "
+                    f"Original error: {e}"
+                )
+            raise DBusClientError(f"Failed to get health check config: {e}")
