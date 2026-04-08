@@ -132,3 +132,15 @@ class StreamIterator:
         elif isinstance(value, dbus.Byte):
             return int(value)
         return value
+
+    def _run_mainloop(self):
+        """Run GLib main loop in separate thread"""
+        try:
+            self.mainloop = GLib.MainLoop()
+            logger.debug("Starting GLib main loop")
+            self.mainloop.run()
+            logger.debug("GLib main loop stopped")
+        except Exception as e:
+            logger.error(f"Main loop error: {e}")
+            self.error = ServerError(f"Main loop error: {e}")
+            self.done = True
