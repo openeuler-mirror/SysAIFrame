@@ -1214,3 +1214,24 @@ def _define_routing_show_command(routing_group):
         sys.exit(exit_code)
 
     return routing_show
+
+
+# Routing Set-Mode Command - online_mode
+def _routing_set_mode_online(client, mode):
+    """Set routing mode via D-Bus"""
+    import json as json_module
+
+    try:
+        config = {"mode": mode}
+        success, message = client.update_routing_config(json_module.dumps(config))
+
+        if success:
+            Output.success(f"Routing mode set to '{mode}'")
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to set routing mode: {e}")
+        return 1
