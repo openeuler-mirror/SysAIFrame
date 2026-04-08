@@ -783,4 +783,25 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to update retry policy config: {e}", exc_info=True)
             return (False, f"Failed to update retry policy config: {str(e)}")
 
+    def emit_model_health_changed(self, model_name: str, instance_id: str,
+                                  is_healthy: bool, reason: str):
+        """
+        Emit ModelHealthChanged signal when a model's health status changes.
+
+        Args:
+            model_name: Name of the model
+            instance_id: Instance ID of the model
+            is_healthy: Current health status
+            reason: Unhealthy reason (empty if healthy)
+        """
+        if DBUS_AVAILABLE:
+            try:
+                self.ModelHealthChanged(model_name, instance_id, is_healthy, reason)
+                logger.debug(
+                    f"Emitted ModelHealthChanged signal: "
+                    f"model={model_name}, instance_id={instance_id}, healthy={is_healthy}"
+                )
+            except Exception as e:
+                logger.error(f"Failed to emit ModelHealthChanged signal: {e}")
+
 
