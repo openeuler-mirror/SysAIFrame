@@ -575,3 +575,25 @@ def _lightweight_offline_mode(operation):
     Output.error(f"Cannot {operation} lightweight check in offline mode")
     Output.info("Please start the service and try again")
     return 1
+
+
+# Lightweight Enable Command definition
+def _define_lightweight_enable_command(lightweight_group):
+    """Define and return the lightweight enable click command"""
+    @lightweight_group.command('enable')
+    def lightweight_enable():
+        """Enable lightweight health check"""
+        def online_mode(client):
+            return _lightweight_enable_online(client)
+        def offline_mode():
+            return _lightweight_offline_mode("enable")
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="enable lightweight check",
+            require_config_file=False,
+            config_path=None
+        )
+        sys.exit(exit_code)
+    return lightweight_enable
