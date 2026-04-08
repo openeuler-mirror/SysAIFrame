@@ -988,3 +988,23 @@ def _define_retry_set_attempts_command(retry_group):
         )
         sys.exit(exit_code)
     return retry_set_attempts
+
+
+# Retry Set-Backoff Command - online_mode
+def _retry_set_backoff_online(client, factor):
+    """Set backoff factor via D-Bus"""
+    import json as json_module
+    try:
+        config = {"backoff_factor": factor}
+        success, message = client.update_retry_policy_config(json_module.dumps(config))
+
+        if success:
+            Output.success(f"Backoff factor set to {factor}")
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to set backoff factor: {e}")
+        return 1
