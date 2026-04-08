@@ -432,4 +432,56 @@ class AdminServiceObject(_BaseClass):
             logger.error(error_msg, exc_info=True)
             return (False, error_msg)
 
+    @_dbus_method(INTERFACE_NAME, '', 's')
+    def GetServiceStatus(self) -> str:
+        """
+        Get current service operational status.
+
+        Returns:
+            JSON string containing service status information
+        """
+        logger.debug("D-Bus GetServiceStatus called")
+
+        try:
+            from sysai_framework.core.service_status import get_service_status, update_service_status
+            from sysai_framework.config import get_config_manager
+
+            # Update status from current configuration
+            config_manager = get_config_manager()
+            update_service_status(config_manager)
+
+            # Get status
+            service_status = get_service_status()
+            status_info = service_status.to_dict()
+
+            # Convert to expected format for D-Bus
+            # status_info["state"] is already a string (e.g., "ready", "degraded", "error")
+            state_value = status_info["state"].upper()
+            result = {
+                "state": state_value,
+                "message": status_info.get("error_message") or f"Service is {status_info['state']}",
+                "model_count": status_info["total_models"],
+                "healthy_model_count": status_info["healthy_models"],
+                "config_status": {
+                    "last_load_success": True,
+                    "last_load_message": "Configuration loaded successfully"
+                }
+            }
+
+            return json.dumps(result, ensure_ascii=False)
+
+        except Exception as e:
+            logger.error(f"Failed to get service status: {e}", exc_info=True)
+            # Return minimal error status
+            return json.dumps({
+                "state": "ERROR",
+                "message": f"Failed to get status: {str(e)}",
+                "model_count": 0,
+                "healthy_model_count": 0,
+                "config_status": {
+                    "last_load_success": False,
+                    "last_load_message": "Error retrieving status"
+                }
+            })
+
 
