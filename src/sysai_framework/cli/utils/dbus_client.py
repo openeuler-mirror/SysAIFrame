@@ -307,3 +307,24 @@ class AdminDBusClient:
             return admin.GetServiceConfigPath()
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to get service config path: {e}")
+
+    def get_routing_config(self) -> Dict[str, Any]:
+        """
+        Get routing configuration.
+
+        Returns:
+            Routing configuration dictionary
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            config_json = admin.GetRoutingConfig()
+            if config_json:
+                return json.loads(config_json)
+            return {}
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to get routing config: {e}")
