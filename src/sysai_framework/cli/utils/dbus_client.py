@@ -61,3 +61,28 @@ class AdminDBusClient:
         self.use_system_bus = use_system_bus
         self._bus = None
         self._admin_interface = None
+
+    def _get_bus(self):
+        """Get D-Bus connection"""
+        if not DBUS_AVAILABLE:
+            raise DBusNotAvailableError(
+                "D-Bus is not available. Please install dbus-python."
+            )
+
+        if self._bus is None:
+            try:
+                if self.use_system_bus:
+                    try:
+                        self._bus = dbus.SystemBus()
+                    except Exception:
+                        # Fallback to session bus
+                        self._bus = dbus.SessionBus()
+                else:
+                    self._bus = dbus.SessionBus()
+            except AttributeError as e:
+                # D-Bus module exists but functionality not available (e.g., macOS)
+                raise DBusNotAvailableError(
+                    f"D-Bus functionality is not available on this system: {e}"
+                )
+
+        return self._bus
