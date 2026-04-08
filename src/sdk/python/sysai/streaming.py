@@ -144,3 +144,15 @@ class StreamIterator:
             logger.error(f"Main loop error: {e}")
             self.error = ServerError(f"Main loop error: {e}")
             self.done = True
+
+    def start(self):
+        """Start the streaming thread"""
+        self.thread = threading.Thread(target=self._run_mainloop, daemon=True)
+        self.thread.start()
+
+    def stop(self):
+        """Stop the streaming thread"""
+        if self.mainloop and self.mainloop.is_running():
+            self.mainloop.quit()
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=2)
