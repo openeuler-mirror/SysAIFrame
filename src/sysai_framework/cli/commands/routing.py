@@ -1274,3 +1274,24 @@ def _define_routing_set_mode_command(routing_group):
         sys.exit(exit_code)
 
     return routing_set_mode
+
+
+# Routing Set-Strategy Command - online_mode
+def _routing_set_strategy_online(client, strategy):
+    """Set routing strategy via D-Bus"""
+    import json as json_module
+
+    try:
+        config = {"strategy": strategy}
+        success, message = client.update_routing_config(json_module.dumps(config))
+
+        if success:
+            Output.success(f"Routing strategy set to '{strategy}'")
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to set routing strategy: {e}")
+        return 1
