@@ -933,3 +933,23 @@ def _define_retry_status_command(retry_group):
         sys.exit(exit_code)
 
     return retry_status
+
+
+# Retry Set-Attempts Command - online_mode
+def _retry_set_attempts_online(client, attempts):
+    """Set retry attempts via D-Bus"""
+    import json as json_module
+    try:
+        config = {"max_attempts": attempts}
+        success, message = client.update_retry_policy_config(json_module.dumps(config))
+
+        if success:
+            Output.success(f"Max retry attempts set to {attempts}")
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to set retry attempts: {e}")
+        return 1
