@@ -1186,3 +1186,31 @@ def _routing_show_offline():
     Output.warning("Offline mode: Cannot get real-time configuration")
     Output.info("Please start the service to view routing configuration")
     return 1
+
+
+# Routing Show Command definition
+def _define_routing_show_command(routing_group):
+    """Define and return the routing show click command"""
+    @routing_group.command('show')
+    @click.option('--json', 'json_output', is_flag=True,
+                  help='Output in JSON format')
+    def routing_show(json_output: bool):
+        """Display current routing configuration"""
+
+        def online_mode(client):
+            return _routing_show_online(client, json_output)
+
+        def offline_mode():
+            return _routing_show_offline()
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="show routing config",
+            require_config_file=False,
+            config_path=None
+        )
+
+        sys.exit(exit_code)
+
+    return routing_show
