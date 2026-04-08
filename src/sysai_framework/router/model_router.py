@@ -685,6 +685,10 @@ class ModelRouter:
         """Get routing status information"""
         return self.config_manager.get_model_status()
 
+    def get_health_statistics(self) -> Dict[str, Any]:
+        """Get health statistics from health checker"""
+        return self.health_checker.get_health_statistics()
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
