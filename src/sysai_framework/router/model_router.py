@@ -426,6 +426,16 @@ class ModelRouter:
             else:
                 return self._generate_mock_response(model_config, messages, **kwargs)
 
+        # 3. Identify provider
+        actual_model, provider, api_key, api_base = get_llm_provider(
+            model=model_config.name,
+            custom_llm_provider=model_config.provider,
+            api_base=model_config.api_base,
+            api_key=model_config.api_key
+        )
+
+        logger.debug(f"Provider detected: {provider}, actual_model: {actual_model}")
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
