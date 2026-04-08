@@ -656,3 +656,26 @@ def _define_actual_request_group(health_check_group):
         """Actual request validation management"""
         pass
     return actual_request
+
+
+# Actual Request Enable Command - online_mode
+def _actual_request_enable_online(client, interval):
+    """Enable actual request validation via D-Bus"""
+    import json as json_module
+    try:
+        config = {
+            "actual_request_enabled": True,
+            "actual_request_interval": interval
+        }
+        success, message = client.update_health_check_config(json_module.dumps(config))
+
+        if success:
+            Output.success(f"Actual request validation enabled (interval: {interval}s)")
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to enable actual request validation: {e}")
+        return 1
