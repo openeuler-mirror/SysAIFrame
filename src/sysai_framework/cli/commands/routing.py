@@ -779,3 +779,30 @@ def _define_actual_request_disable_command(actual_request_group):
         )
         sys.exit(exit_code)
     return actual_request_disable
+
+
+# Actual Request Set-Interval Command definition
+def _define_actual_request_set_interval_command(actual_request_group):
+    """Define and return the actual_request set-interval click command"""
+    @actual_request_group.command('set-interval')
+    @click.argument('seconds', type=int)
+    def actual_request_set_interval(seconds: int):
+        """Set actual request validation interval in seconds"""
+        if seconds <= 0:
+            Output.error("Interval must be a positive integer")
+            sys.exit(Output.EXIT_VALIDATION_ERROR)
+
+        def online_mode(client):
+            return _actual_request_set_interval_online(client, seconds)
+        def offline_mode():
+            return _actual_request_offline_mode("set interval for")
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="set actual request interval",
+            require_config_file=False,
+            config_path=None
+        )
+        sys.exit(exit_code)
+    return actual_request_set_interval
