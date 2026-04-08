@@ -97,3 +97,13 @@ class Output:
                 str(cell).ljust(col_widths[i]) for i, cell in enumerate(row)
             )
             click.echo(row_line)
+
+    @staticmethod
+    def json_output(data: Any) -> None:
+        """Print data as formatted JSON"""
+        click.echo(json.dumps(data, indent=2, ensure_ascii=False))
+
+    @staticmethod
+    def print_json(data: Any) -> None:
+        """Print data as formatted JSON (alias for json_output)"""
+        Output.json_output(data)
