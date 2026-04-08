@@ -181,3 +181,245 @@ async def chat_completion(
     for field in optional_fields:
         if field in request_dict:
             request_data[field] = request_dict[field]
+
+    logger.debug(
+        f"[{request_id}] Received chat completion request: model={request.model}, stream={request.stream}"
+    )
+
+    try:
+        # Create chat-specific processor with global hook manager
+        processor = ChatCompletionProcessor(request_data, hook_manager=get_hook_manager())
+
+        # Get router instance
+        router_instance = get_router()
+
+        # Process request - processor handles streaming vs non-streaming internally
+        # Returns StreamingResponse for streaming, dict for non-streaming
+        return await processor.process_request(
+            fastapi_request=fastapi_request,
+            router_instance=router_instance,
+            authorization=authorization
+        )
+
+    except Exception as e:
+        logger.error(f"[{request_id}] Request failed: {e}", exc_info=True)
+
+        # Check for AllModelsFailed exception (all fallback models failed)
+        from sysai_framework.core.exceptions import AllModelsFailed
+        if isinstance(e, AllModelsFailed):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "error": {
+                        "message": f"All models failed after trying: {', '.join(e.attempted_models)}. Please check model configurations and API endpoints.",
+                        "type": "service_unavailable_error",
+                        "code": "all_models_failed",
+                        "attempted_models": e.attempted_models
+                    }
+                }
+            )
+
+        # Check for specific error cases
+        error_message = str(e).lower()
+
+        # Get router instance for checking model count (if available)
+        try:
+            router_instance = get_router()
+            model_count = len(router_instance.config_manager.models) if router_instance.config_manager.models else 0
+        except Exception:
+            # If we can't get router instance, assume no models
+            model_count = 0
+
+        # Case 1: No models configured
+        # Check both error message and actual model count
+        has_no_models = (
+            "no models configured" in error_message or
+            model_count == 0
+        )
+
+        if has_no_models:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "error": {
+                        "message": "No models configured. Please add at least one model using 'ai-config model add'.",
+                        "type": "no_models_configured",
+                        "code": "service_unavailable"
+                    }
+                }
+            )
+
+        # Case 2: No available model found (could be no models or no healthy models)
+        if "no available model found" in error_message:
+            # Check if there are any models configured
+            if model_count == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail={
+                        "error": {
+                            "message": "No models configured. Please add at least one model using 'ai-config model add'.",
+                            "type": "no_models_configured",
+                            "code": "service_unavailable"
+                        }
+                    }
+                )
+            else:
+                # Models are configured but none are available/healthy
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail={
+                        "error": {
+                            "message": "No healthy models available. Please check model health status.",
+                            "type": "no_healthy_models",
+                            "code": "service_unavailable"
+                        }
+                    }
+                )
+
+        # Case 3: No healthy models
+        if "no healthy models" in error_message:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "error": {
+                        "message": "No healthy models available. Please check model health status.",
+                        "type": "no_healthy_models",
+                        "code": "service_unavailable"
+                    }
+                }
+            )
+
+        # Convert to Chat Completion API compatible exception
+        compatible_exception = await handle_exception_with_logging(
+            e,
+            request_id=request_id,
+            model=request.model
+        )
+        raise compatible_exception
+
+
+# ============================================================================
+# Model Management Endpoints
+# ============================================================================
+
+@router.get(
+    "/models",
+    summary="List available models",
+    description="Get list of available AI models"
+)
+async def list_models():
+    """
+    List available models
+
+    Returns a list of models that can be used for chat completion.
+    """
+    try:
+        router_instance = get_router()
+        models = router_instance.get_available_models()
+
+        # Format response according to Chat Completion API specification
+        model_list = [
+            {
+                "id": model_name,
+                "object": "model",
+                "created": int(time.time()),
+                "owned_by": "sysaiframe"
+            }
+            for model_name in models
+        ]
+
+        return {
+            "object": "list",
+            "data": model_list
+        }
+
+    except Exception as e:
+        logger.error(f"Error listing models: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": {"message": "Failed to list models"}}
+        )
+
+
+@router.get(
+    "/models/{model_name}",
+    summary="Get model details",
+    description="Get detailed information about a specific model"
+)
+async def get_model(model_name: str):
+    """
+    Get model details
+
+    Returns detailed information about a specific model.
+    """
+    try:
+        router_instance = get_router()
+        model_config = router_instance.get_model_config(model_name)
+
+        if not model_config:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"error": {"message": f"Model {model_name} not found"}}
+            )
+
+        return {
+            "id": model_config.name,
+            "object": "model",
+            "created": int(time.time()),
+            "owned_by": "sysaiframe",
+            "provider": model_config.provider,
+            "capabilities": model_config.capabilities,
+            "supports_streaming": model_config.supports_streaming
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting model details: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": {"message": "Failed to get model details"}}
+        )
+
+
+@router.get("/status")
+async def get_service_status():
+    """
+    Get service status
+
+    Returns service state and model availability information.
+    This endpoint can be used to check if the service has any configured models
+    and whether they are healthy.
+
+    Response fields:
+    - state: Service state (initializing/ready/degraded/error)
+    - total_models: Total number of configured models
+    - healthy_models: Number of healthy models
+    - error_message: Error message if service is in degraded/error state
+    - last_update: Timestamp of last status update
+    """
+    try:
+        from sysai_framework.core.service_status import get_service_status, update_service_status
+        from sysai_framework.config import get_config_manager
+
+        # Update status from current configuration
+        config_manager = get_config_manager()
+        update_service_status(config_manager)
+
+        # Get status
+        service_status = get_service_status()
+        status_dict = service_status.to_dict()
+
+        # Return appropriate HTTP status code based on service state
+        http_status = status.HTTP_200_OK
+        if service_status.is_degraded():
+            http_status = status.HTTP_503_SERVICE_UNAVAILABLE
+
+        return status_dict
+
+    except Exception as e:
+        logger.error(f"Error getting service status: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": {"message": f"Failed to get service status: {str(e)}"}}
+        )
