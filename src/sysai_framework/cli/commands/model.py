@@ -53,3 +53,30 @@ def _parse_bool_option(value: str) -> bool:
         raise click.BadParameter(
             f"Invalid boolean value '{value}'. Expected 'true' or 'false' (case-insensitive)"
         )
+
+
+def _validate_priority(ctx, param, value):
+    """
+    Validate priority parameter.
+
+    Args:
+        ctx: Click context
+        param: Parameter being validated
+        value: Value to validate
+
+    Returns:
+        Validated value
+
+    Raises:
+        click.BadParameter: If value is not a valid priority
+    """
+    if value is None:
+        return None
+
+    try:
+        priority = int(value)
+        if priority < 1 or priority > 100:
+            raise click.BadParameter("Priority must be between 1 and 100")
+        return priority
+    except ValueError:
+        raise click.BadParameter(f"Invalid priority value: {value}. Must be an integer.")
