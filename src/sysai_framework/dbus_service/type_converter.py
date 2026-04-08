@@ -62,3 +62,38 @@ def python_to_dbus(value: Any) -> Any:
         return dbus.String(str(value))
 
 
+def dbus_to_python(value: Any) -> Any:
+    """
+    Convert D-Bus value to Python type.
+
+    Args:
+        value: D-Bus value
+
+    Returns:
+        Python value
+    """
+    if not DBUS_AVAILABLE:
+        return value
+
+    if isinstance(value, dbus.Dictionary):
+        return {dbus_to_python(k): dbus_to_python(v) for k, v in value.items()}
+    elif isinstance(value, dbus.Array):
+        return [dbus_to_python(item) for item in value]
+    elif isinstance(value, dbus.Boolean):
+        return bool(value)
+    elif isinstance(value, (dbus.Int16, dbus.Int32, dbus.Int64,
+                           dbus.UInt16, dbus.UInt32, dbus.UInt64)):
+        return int(value)
+    elif isinstance(value, dbus.Double):
+        return float(value)
+    elif isinstance(value, (dbus.String, dbus.ObjectPath, dbus.Signature)):
+        s = str(value)
+        # Empty string represents null in our convention
+        return None if s == '' else s
+    elif isinstance(value, dbus.Byte):
+        return int(value)
+    else:
+        # For basic Python types passed through
+        return value
+
+
