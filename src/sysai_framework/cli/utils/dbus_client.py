@@ -104,3 +104,14 @@ class AdminDBusClient:
                     raise DBusClientError(f"D-Bus error: {e}")
 
         return self._admin_interface
+
+    def is_service_running(self) -> bool:
+        """Check if the SysAIFrame service is running"""
+        try:
+            interface = self._get_admin_interface()
+            status = interface.GetStatus()
+            return status.get('status') == 'running'
+        except ServiceNotRunningError:
+            return False
+        except Exception:
+            return False
