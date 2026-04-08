@@ -861,3 +861,13 @@ def _define_health_check_set_timeout_command(health_check_group):
         )
         sys.exit(exit_code)
     return health_check_set_timeout
+
+
+# Retry Policy Command Group definition
+def _define_retry_group(routing_group):
+    """Define and return the retry click group"""
+    @routing_group.group(name='retry')
+    def retry():
+        """Retry policy management commands"""
+        pass
+    return retry
