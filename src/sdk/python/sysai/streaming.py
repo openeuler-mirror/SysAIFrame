@@ -85,3 +85,20 @@ class StreamIterator:
         except Exception as e:
             logger.error(f"Failed to setup signal handlers: {e}")
             raise ServerError(f"Failed to setup streaming: {e}")
+
+    def _handle_chunk(self, request_id: str, chunk: Dict[str, Any]):
+        """Handle StreamChunk signal"""
+        if request_id != self.request_id:
+            return
+
+        try:
+            chunk_dict = self._dbus_to_python(chunk)
+            chat_chunk = ChatChunk.from_dict(self.request_id, self.model, chunk_dict)
+            self.chunk_queue.put(chat_chunk)
+            logger.debug(f"Received chunk for {request_id}")
+        except Exception as e:
+            logger.error(f"Error processing chunk: {e}")
+            self.error = ServerError(f"Error processing chunk: {e}")
+            self.done = True
+            if self.mainloop:
+                self.mainloop.quit()
