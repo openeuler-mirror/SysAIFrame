@@ -496,6 +496,39 @@ class ModelRouter:
             from sysai_framework.llms.openai_like.chat.transformation import OpenAILikeChatConfig
             return OpenAILikeChatConfig()
 
+    async def route_chat_acompletion(
+                                   model: str,
+                                   messages: List[Dict[str, Any]],
+                                   stream: bool = False,
+                                   **kwargs):
+        """
+        Asynchronous chat completion routing with fallback
+
+        For streaming requests, this method implements fallback by wrapping
+        the generator to catch exceptions during iteration and automatically
+        try fallback models.
+
+        For non-streaming requests, it delegates to route_chat_completion_with_fallback.
+
+        Args:
+            model: Model name
+            messages: Chat messages
+            stream: Whether to stream response
+            **kwargs: Additional parameters
+
+        Returns:
+            Dict for non-streaming, AsyncGenerator for streaming
+
+        Raises:
+            AllModelsFailed: If all fallback models fail
+        """
+        # Prepare completion kwargs
+        completion_kwargs = {
+            'model': model,
+            'messages': messages,
+            'stream': stream,
+        }
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
