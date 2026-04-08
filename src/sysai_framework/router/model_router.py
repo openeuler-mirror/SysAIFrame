@@ -314,6 +314,37 @@ class ModelRouter:
         logger.debug(f"Selected model by priority: {selected.name}")
         return selected
 
+    def _select_by_capability(self, capability: str) -> Optional[ModelConfig]:
+        """
+        Select model by capability (only healthy models)
+
+        Args:
+            capability: The capability name (e.g., "code", "general")
+
+        Returns:
+            ModelConfig with highest priority for the capability, or default model
+        """
+        # get_models_by_capability already filters by is_healthy if health check is enabled
+        models = self.config_manager.get_models_by_capability(capability)
+        if models:
+            # Further filter by health status if health check is enabled
+            should_consider_health = self._should_consider_health()
+            if should_consider_health:
+                healthy_models = [m for m in models if m.is_healthy]
+            else:
+                healthy_models = models
+
+            if healthy_models:
+                # Use load balance strategy if enabled
+                if self.runtime_mode == RuntimeMode.LOAD_BALANCE and self.lb_strategy:
+                    selected = self.lb_strategy.select_deployment(healthy_models)
+                    if selected:
+                        logger.debug(
+                            f"Load balance selected model '{selected.name}' "
+                            f"(instance_id={selected.instance_id}) for capability '{capability}'"
+                        )
+                        return selected
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
