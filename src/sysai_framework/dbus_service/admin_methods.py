@@ -804,4 +804,24 @@ class AdminServiceObject(_BaseClass):
             except Exception as e:
                 logger.error(f"Failed to emit ModelHealthChanged signal: {e}")
 
+    @_dbus_method(INTERFACE_NAME, '', 's')
+    def GetRuntimeMode(self) -> str:
+        """
+        Get current runtime mode.
+
+        Returns:
+            Runtime mode string: "default" or "load-balance"
+        """
+        logger.debug("D-Bus GetRuntimeMode called")
+
+        if not self.config_manager:
+            return "default"
+
+        try:
+            runtime_config = self.config_manager.routing_config.runtime
+            return str(runtime_config.mode)
+        except Exception as e:
+            logger.error(f"Failed to get runtime mode: {e}", exc_info=True)
+            return "default"
+
 
