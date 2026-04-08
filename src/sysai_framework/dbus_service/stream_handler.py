@@ -21,6 +21,15 @@ class StreamHandler:
     Handles streaming responses for D-Bus chat completion streaming.
     Manages background threads for stream processing and signal emission.
     """
-    pass
+
+    def __init__(self, service_object):
+        """
+        Initialize stream handler.
+
+        Args:
+            service_object: ChatServiceObject instance for signal emission
+        """
+        self.service_object = service_object
+        self.active_streams = {}  # request_id -> thread
 
 
