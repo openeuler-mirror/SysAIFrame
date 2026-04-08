@@ -39,3 +39,14 @@ class ServiceNotRunningError(DBusClientError):
 class DBusNotAvailableError(DBusClientError):
     """Raised when D-Bus is not available on the system"""
     pass
+
+
+class AdminDBusClient:
+    """
+    D-Bus client for model configuration admin operations.
+
+    Usage:
+        client = AdminDBusClient()
+        if client.is_service_running():
+            success, message, instance_id = client.add_model(model_data)
+    """
