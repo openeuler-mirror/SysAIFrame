@@ -418,6 +418,14 @@ class ModelRouter:
         # Use selected_config for the rest of the method
         model_config = selected_config
 
+        # 2. Special handling for mock model
+        if model_config.name == SPECIAL_MODEL_MOCK or model_config.provider == "mock":
+            logger.debug("Using mock model, returning mock response")
+            if stream:
+                return self._generate_mock_stream_response(model_config, messages, **kwargs)
+            else:
+                return self._generate_mock_response(model_config, messages, **kwargs)
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
