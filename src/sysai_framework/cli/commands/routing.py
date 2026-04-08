@@ -278,3 +278,66 @@ def _set_default_offline_dispatcher(name, instance_id, config_manager):
     elif name and not instance_id:
         return _set_default_offline_name_only(name, config_manager)
     return None
+
+
+# set-default command definition
+def _define_set_default_command(routing_group):
+    """Define and return the set-default click command"""
+    @routing_group.command('set-default')
+    @click.option('--name', help='Model name to set as default')
+    @click.option('--instance_id', help='Instance ID to set as default')
+    @click.option('--config_path', 'config_file',
+                  help=f'Configuration file path (default: {DEFAULT_CONFIG_PATH})')
+    def set_default(name: Optional[str], instance_id: Optional[str], config_file: Optional[str]):
+        """
+        Set default model for routing
+
+        At least one of --name or --instance_id must be provided.
+        If only --name is provided and multiple models with the same name exist, you must specify --instance_id.
+        If both are provided, they must match (the instance_id must belong to a model with the given name).
+
+        Examples:
+            ai-config routing set-default --name qwen
+            ai-config routing set-default --name qwen --instance_id qwen_1
+            ai-config routing set-default --instance_id qwen_1
+            ai-config routing set-default --name moonshot --config_path /path/to/config.yaml
+        """
+        from sysai_framework.config.model_config import ModelConfigManager
+        from sysai_framework.cli.constants import DEFAULT_CONFIG_PATH
+
+        # Parameter validation
+        validation_result = _set_default_validate_params(name, instance_id)
+        if validation_result is not None:
+            sys.exit(validation_result)
+
+        # Use default config path if not specified
+        if not config_file:
+            config_file = DEFAULT_CONFIG_PATH
+
+        def online_mode(client):
+            """Execute via D-Bus (service running)"""
+            return _set_default_online_dispatcher(name, instance_id, client)
+
+        def offline_mode():
+            """Execute in offline mode (direct file access)"""
+            try:
+                # In CLI offline mode, don't allow creating default config
+                config_manager = ModelConfigManager(config_path=config_file, allow_create_default=False)
+                return _set_default_offline_dispatcher(name, instance_id, config_manager)
+            except Exception as e:
+                Output.error(f"Failed to set default model: {e}")
+                logger.error(f"Offline mode failed: {e}", exc_info=True)
+                return 1
+
+        # Auto-execute based on service status
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="set default model",
+            require_config_file=True,
+            config_path=config_file
+        )
+
+        sys.exit(exit_code)
+
+    return set_default
