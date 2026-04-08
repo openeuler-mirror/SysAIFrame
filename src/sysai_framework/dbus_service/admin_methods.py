@@ -292,4 +292,40 @@ class AdminServiceObject(_BaseClass):
             with open(config_path, 'w', encoding='utf-8') as f:
                 yaml_obj.dump(config, f)
 
+    @_dbus_method(INTERFACE_NAME, '', 'bs')
+    def ReloadConfig(self) -> Tuple[bool, str]:
+        """
+        Reload configuration from file.
+
+        Returns:
+            (success, message)
+            Message format: "[STATUS:code] message" for new status code system
+        """
+        from sysai_framework.core.status_codes import (
+            encode_status_in_message, CONFIG_RELOADED,
+            CONFIG_INVALID, VALIDATION_ERROR, INTERNAL_ERROR
+        )
+
+        logger.info("D-Bus ReloadConfig called")
+
+        if not self.config_manager:
+            error_msg = encode_status_in_message(VALIDATION_ERROR, "Config manager not available")
+            return (False, error_msg)
+
+        try:
+            success = self.config_manager.reload_config()
+
+            if success:
+                logger.info("Configuration reloaded via D-Bus")
+                success_msg = encode_status_in_message(CONFIG_RELOADED, "Configuration reloaded successfully")
+                return (True, success_msg)
+            else:
+                error_msg = encode_status_in_message(CONFIG_INVALID, "Failed to reload configuration")
+                return (False, error_msg)
+
+        except Exception as e:
+            error_msg = encode_status_in_message(INTERNAL_ERROR, f"Failed to reload configuration: {e}")
+            logger.error(error_msg, exc_info=True)
+            return (False, error_msg)
+
 
