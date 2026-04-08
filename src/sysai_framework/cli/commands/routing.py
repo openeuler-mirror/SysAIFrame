@@ -1063,3 +1063,11 @@ def _retry_set_base_delay_online(client, seconds):
     except Exception as e:
         Output.error(f"Failed to set base delay: {e}")
         return 1
+
+
+# Retry Set-Base-Delay Command - offline_mode
+def _retry_set_base_delay_offline():
+    """Set base delay in offline mode"""
+    Output.error("Cannot set base delay in offline mode")
+    Output.info("Please start the service and try again")
+    return 1
