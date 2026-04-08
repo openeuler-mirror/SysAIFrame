@@ -289,4 +289,20 @@ class ChatServiceObject(dbus.service.Object if DBUS_AVAILABLE else object):
             }
             return response_to_dbus(error_status)
 
+    @dbus.service.signal(
+        dbus_interface=INTERFACE_NAME,
+        signature='sa{sv}'
+    )
+    def StreamChunk(self, request_id, chunk):
+        """
+        Signal emitted for each streaming response chunk.
+
+        Args:
+            request_id: Request ID
+            chunk: Chunk data as variant dict
+        """
+        # This method is called to emit the signal
+        # The actual signal emission is handled by dbus-python
+        pass
+
 
