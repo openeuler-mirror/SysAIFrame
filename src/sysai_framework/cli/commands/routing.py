@@ -150,3 +150,38 @@ def _set_default_online_name_only(name, client):
         if result.details and 'available_models' in result.details:
             Output.info(f"Available models: {', '.join(result.details['available_models'])}")
         return result.status.cli_exit_code if hasattr(result, 'status') else 1
+
+
+# set-default command - offline_mode with name and instance_id
+def _set_default_offline_name_instance_id(name, instance_id, config_manager):
+    """Handle set-default offline_mode when both name and instance_id are provided"""
+    model = config_manager.get_model_by_instance_id(instance_id)
+    if not model:
+        Output.error(f"Model with instance_id '{instance_id}' not found")
+        return Output.EXIT_VALIDATION_ERROR
+
+    if model.name != name:
+        Output.error(f"Model name mismatch: instance_id '{instance_id}' belongs to model '{model.name}', not '{name}'")
+        return Output.EXIT_VALIDATION_ERROR
+
+    # Names match, proceed with setting default
+    result = config_manager.set_default_model(
+        model_name=name,
+        instance_id=instance_id,
+        persist=True,
+        require_file_lock=True
+    )
+
+    if result.success:
+        Output.success(result.get_message())
+        Output.info(f"Default model: {name}")
+        Output.info(f"Instance ID: {instance_id}")
+        return 0
+    else:
+        Output.error(result.get_message())
+        if result.details:
+            if 'available_models' in result.details:
+                Output.info(f"Available models: {', '.join(result.details['available_models'])}")
+            if 'available_instances' in result.details:
+                Output.info(f"Available instances: {', '.join(result.details['available_instances'])}")
+        return 1
