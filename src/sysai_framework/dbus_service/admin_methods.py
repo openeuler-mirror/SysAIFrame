@@ -48,6 +48,23 @@ class AdminServiceObject(_BaseClass):
     INTERFACE_NAME = 'org.ctyunos.AIGateway.Admin'
 
     def __init__(self, bus_name, object_path):
-        pass
+        """
+        Initialize admin service object.
+
+        Args:
+            bus_name: D-Bus bus name
+            object_path: D-Bus object path
+        """
+        if DBUS_AVAILABLE:
+            super().__init__(bus_name, object_path)
+
+        # Import config manager
+        try:
+            from sysai_framework.config import get_config_manager
+            self.config_manager = get_config_manager()
+            logger.info("Admin service object initialized with config manager")
+        except Exception as e:
+            logger.error(f"Failed to initialize config manager: {e}", exc_info=True)
+            self.config_manager = None
 
 
