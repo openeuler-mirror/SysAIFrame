@@ -75,3 +75,9 @@ class ChatCompletionRequest(BaseModel):
         }
 
 
+class ChatMessage(BaseModel):
+    """Chat message in response"""
+    role: str
+    content: str
+
+
