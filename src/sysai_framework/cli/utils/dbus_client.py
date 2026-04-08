@@ -50,3 +50,14 @@ class AdminDBusClient:
         if client.is_service_running():
             success, message, instance_id = client.add_model(model_data)
     """
+
+    def __init__(self, use_system_bus: bool = True):
+        """
+        Initialize D-Bus client.
+
+        Args:
+            use_system_bus: Use system bus (True) or session bus (False)
+        """
+        self.use_system_bus = use_system_bus
+        self._bus = None
+        self._admin_interface = None
