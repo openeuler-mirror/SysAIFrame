@@ -961,3 +961,30 @@ def _retry_set_attempts_offline():
     Output.error("Cannot set retry attempts in offline mode")
     Output.info("Please start the service and try again")
     return 1
+
+
+# Retry Set-Attempts Command definition
+def _define_retry_set_attempts_command(retry_group):
+    """Define and return the retry set-attempts click command"""
+    @retry_group.command('set-attempts')
+    @click.argument('attempts', type=int)
+    def retry_set_attempts(attempts: int):
+        """Set maximum retry attempts"""
+        if attempts <= 0:
+            Output.error("Attempts must be a positive integer")
+            sys.exit(Output.EXIT_VALIDATION_ERROR)
+
+        def online_mode(client):
+            return _retry_set_attempts_online(client, attempts)
+        def offline_mode():
+            return _retry_set_attempts_offline()
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="set retry attempts",
+            require_config_file=False,
+            config_path=None
+        )
+        sys.exit(exit_code)
+    return retry_set_attempts
