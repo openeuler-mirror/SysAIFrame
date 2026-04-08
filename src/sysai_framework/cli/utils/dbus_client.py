@@ -387,3 +387,24 @@ class AdminDBusClient:
                 return result
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to set default model: {e}")
+
+    def get_service_status(self) -> Dict[str, Any]:
+        """
+        Get current service operational status.
+
+        Returns:
+            Dictionary containing service status information
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            status_json = admin.GetServiceStatus()
+            return json.loads(status_json)
+        except json.JSONDecodeError as e:
+            raise DBusClientError(f"Failed to parse service status: {e}")
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to get service status: {e}")
