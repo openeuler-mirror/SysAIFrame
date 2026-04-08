@@ -27,3 +27,14 @@ from .type_converter import request_to_python, response_to_dbus
 from .stream_handler import StreamHandler
 
 
+class ChatServiceObject(dbus.service.Object if DBUS_AVAILABLE else object):
+    """
+    D-Bus service object implementing chat completion methods.
+    """
+
+    INTERFACE_NAME = 'org.ctyunos.AIGateway.Chat'
+
+    def __init__(self, bus_name, object_path, gateway_app=None):
+        pass
+
+
