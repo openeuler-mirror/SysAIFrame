@@ -1008,3 +1008,11 @@ def _retry_set_backoff_online(client, factor):
     except Exception as e:
         Output.error(f"Failed to set backoff factor: {e}")
         return 1
+
+
+# Retry Set-Backoff Command - offline_mode
+def _retry_set_backoff_offline():
+    """Set backoff factor in offline mode"""
+    Output.error("Cannot set backoff factor in offline mode")
+    Output.info("Please start the service and try again")
+    return 1
