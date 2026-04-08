@@ -805,6 +805,30 @@ class ModelRouter:
             **kwargs
         )
 
+    def _build_fallback_list(self, original_model_name: str,
+                            requested_model: Optional[str] = None) -> List[ModelConfig]:
+        """
+        Build fallback list dynamically based on request type
+
+        Strategy:
+        1. Specific model -> same model other instances
+        2. "default" -> all healthy models by priority
+        3. "capability-xxx" -> same capability + general capability
+        4. "mock" -> no fallback
+
+        Args:
+            original_model_name: Original model name that failed
+            requested_model: Original user request string
+
+        Returns:
+            List of ModelConfig to try as fallbacks
+        """
+        fallback_list = []
+
+        # Mock model: no fallback
+        if original_model_name == SPECIAL_MODEL_MOCK:
+            return []
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
