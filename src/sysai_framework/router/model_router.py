@@ -448,6 +448,34 @@ class ModelRouter:
         routing_timeout = self.config_manager.routing_config.timeout if self.config_manager else 180
         timeout = kwargs.get('timeout', float(routing_timeout))
 
+        try:
+            return http_handler.completion(
+                provider_config=provider_config,
+                model=actual_model,
+                messages=messages,
+                api_base=api_base,
+                api_key=api_key,
+                optional_params=kwargs,
+                stream=stream,
+                timeout=timeout
+            )
+        except (RetriableError, NonRetriableError, AllModelsFailed) as e:
+            # Re-raise known exception types directly
+            # These are already properly typed exceptions from http_handler
+            logger.error(
+                f"Exception in route_chat_completion for {model_config.name}: {e}",
+                exc_info=True
+            )
+            raise
+        except Exception as e:
+            # For unknown exceptions, log and re-raise
+            # The upper layer (handle_exception_with_logging) will handle conversion
+            logger.error(
+                f"Unexpected exception in route_chat_completion for {model_config.name}: {e}",
+                exc_info=True
+            )
+            raise
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
