@@ -359,6 +359,19 @@ class ModelRouter:
         )
         return self._select_default_model()
 
+    def _get_mock_model(self) -> ModelConfig:
+        """
+        Return built-in mock model configuration
+
+        Mock model uses existing mock response generators and doesn't need
+        complex configuration since it doesn't make real API calls.
+        """
+        return ModelConfig(
+            name=SPECIAL_MODEL_MOCK,
+            provider="mock",
+            is_healthy=True
+        )
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
