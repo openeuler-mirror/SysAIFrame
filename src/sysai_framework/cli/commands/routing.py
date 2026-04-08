@@ -527,3 +527,23 @@ def _lightweight_enable_online(client):
     except Exception as e:
         Output.error(f"Failed to enable lightweight check: {e}")
         return 1
+
+
+# Lightweight Disable Command - online_mode
+def _lightweight_disable_online(client):
+    """Disable lightweight health check via D-Bus"""
+    import json as json_module
+    try:
+        config = {"lightweight_enabled": False}
+        success, message = client.update_health_check_config(json_module.dumps(config))
+
+        if success:
+            Output.success("Lightweight health check disabled")
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to disable lightweight check: {e}")
+        return 1
