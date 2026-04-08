@@ -1295,3 +1295,11 @@ def _routing_set_strategy_online(client, strategy):
     except Exception as e:
         Output.error(f"Failed to set routing strategy: {e}")
         return 1
+
+
+# Routing Set-Strategy Command - offline_mode
+def _routing_set_strategy_offline():
+    """Set routing strategy in offline mode"""
+    Output.error("Cannot set routing strategy in offline mode")
+    Output.info("Please start the service and try again")
+    return 1
