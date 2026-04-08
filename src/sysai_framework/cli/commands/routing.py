@@ -1390,3 +1390,44 @@ def _define_routing_set_option_command(routing_group):
         sys.exit(exit_code)
 
     return routing_set_option
+
+
+# Register all commands to routing group
+def register_all_commands(routing_group):
+    """Register all routing commands to the routing group"""
+    # Register set-default command
+    _define_set_default_command(routing_group)
+
+    # Register health-check group and commands
+    health_check_group = _define_health_check_group(routing_group)
+    _define_health_check_status_command(health_check_group)
+    _define_health_check_trigger_command(health_check_group)
+
+    # Register lightweight subcommands
+    lightweight_group = _define_lightweight_group(health_check_group)
+    _define_lightweight_enable_command(lightweight_group)
+    _define_lightweight_disable_command(lightweight_group)
+    _define_lightweight_set_interval_command(lightweight_group)
+
+    # Register actual-request subcommands
+    actual_request_group = _define_actual_request_group(health_check_group)
+    _define_actual_request_enable_command(actual_request_group)
+    _define_actual_request_disable_command(actual_request_group)
+    _define_actual_request_set_interval_command(actual_request_group)
+
+    # Register set-timeout command
+    _define_health_check_set_timeout_command(health_check_group)
+
+    # Register retry group and commands
+    retry_group = _define_retry_group(routing_group)
+    _define_retry_status_command(retry_group)
+    _define_retry_set_attempts_command(retry_group)
+    _define_retry_set_backoff_command(retry_group)
+    _define_retry_set_base_delay_command(retry_group)
+    _define_retry_set_max_delay_command(retry_group)
+
+    # Register routing show/set commands
+    _define_routing_show_command(routing_group)
+    _define_routing_set_mode_command(routing_group)
+    _define_routing_set_strategy_command(routing_group)
+    _define_routing_set_option_command(routing_group)
