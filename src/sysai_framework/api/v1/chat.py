@@ -111,3 +111,10 @@ class DeltaMessage(BaseModel):
     content: Optional[str] = None
 
 
+class ChatChoiceChunk(BaseModel):
+    """Single completion choice chunk for streaming"""
+    index: int
+    delta: DeltaMessage
+    finish_reason: Optional[str] = None
+
+
