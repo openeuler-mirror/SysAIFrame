@@ -567,3 +567,11 @@ def _lightweight_set_interval_online(client, seconds):
     except Exception as e:
         Output.error(f"Failed to set interval: {e}")
         return 1
+
+
+# Lightweight offline_mode helper
+def _lightweight_offline_mode(operation):
+    """Generic offline_mode for lightweight commands"""
+    Output.error(f"Cannot {operation} lightweight check in offline mode")
+    Output.info("Please start the service and try again")
+    return 1
