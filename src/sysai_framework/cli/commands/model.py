@@ -109,6 +109,28 @@ def _validate_timeout(ctx, param, value):
         raise click.BadParameter(f"Invalid timeout value: {value}. Must be an integer.")
 
 
+def _validate_max_retries(ctx, param, value):
+    """
+    Validate max_retries parameter.
+
+    Args:
+        ctx: Click context
+        param: Parameter being validated
+        value: Value to validate
+
+    Returns:
+        int: Validated max_retries value
+
+    Raises:
+        click.BadParameter: If value out of valid range
+    """
+    if value < 0:
+        raise click.BadParameter('Max retries must be >= 0')
+    if value > 10:
+        raise click.BadParameter('Max retries must be <= 10')
+    return value
+
+
 @click.group()
 def model():
     """Model management commands"""
