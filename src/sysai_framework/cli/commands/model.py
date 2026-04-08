@@ -80,3 +80,30 @@ def _validate_priority(ctx, param, value):
         return priority
     except ValueError:
         raise click.BadParameter(f"Invalid priority value: {value}. Must be an integer.")
+
+
+def _validate_timeout(ctx, param, value):
+    """
+    Validate timeout parameter.
+
+    Args:
+        ctx: Click context
+        param: Parameter being validated
+        value: Value to validate
+
+    Returns:
+        Validated value
+
+    Raises:
+        click.BadParameter: If value is not a valid timeout
+    """
+    if value is None:
+        return None
+
+    try:
+        timeout = int(value)
+        if timeout < 1 or timeout > 3600:
+            raise click.BadParameter("Timeout must be between 1 and 3600 seconds")
+        return timeout
+    except ValueError:
+        raise click.BadParameter(f"Invalid timeout value: {value}. Must be an integer.")
