@@ -176,6 +176,18 @@ class ModelRouter:
             logger.debug(f"Selecting model by capability: {capability}")
             return self._select_by_capability(capability)
 
+        # Case 4: Specific model name or model_name:instance_id
+        # Check if it's model_name:instance_id format
+        if ':' in requested_model:
+            # Specific instance requested, bypass load balancing
+            model_config = self.config_manager.get_model_config(requested_model)
+            if model_config and (not self._should_consider_health() or model_config.is_healthy):
+                logger.debug(
+                    f"Selected requested model: {requested_model} "
+                    f"(instance_id={model_config.instance_id})"
+                )
+                return model_config
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
