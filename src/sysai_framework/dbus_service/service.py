@@ -29,3 +29,19 @@ except ImportError:
 INTERFACE_XML_PATH = os.path.join(os.path.dirname(__file__), 'interface.xml')
 
 
+class DBusAIGatewayService:
+    """
+    D-Bus service for SysAIFrame Gateway.
+    Provides system-level interface for AI chat completions and admin operations.
+    """
+
+    BUS_NAME = 'org.ctyunos.AIGateway.Chat'
+    OBJECT_PATH = '/org/ctyunos/AIGateway/Chat'
+    ADMIN_OBJECT_PATH = '/org/ctyunos/AIGateway/Admin'
+    INTERFACE_NAME = 'org.ctyunos.AIGateway.Chat'
+    ADMIN_INTERFACE_NAME = 'org.ctyunos.AIGateway.Admin'
+
+    def __init__(self, gateway_app=None, use_system_bus: bool = True):
+        pass
+
+
