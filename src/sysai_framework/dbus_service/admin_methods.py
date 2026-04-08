@@ -145,4 +145,28 @@ class AdminServiceObject(_BaseClass):
             logger.error(error_msg, exc_info=True)
             return (False, error_msg, "")
 
+    @_dbus_method(INTERFACE_NAME, '', 's')
+    def ListModels(self) -> str:
+        """
+        List all configured models.
+
+        Returns:
+            JSON string containing array of model configurations
+        """
+        logger.debug("D-Bus ListModels called")
+
+        if not self.config_manager:
+            return json.dumps([])
+
+        try:
+            models_list = []
+            for model_config in self.config_manager.models.values():
+                models_list.append(self._model_config_to_dict(model_config))
+
+            return json.dumps(models_list, ensure_ascii=False)
+
+        except Exception as e:
+            logger.error(f"Failed to list models: {e}", exc_info=True)
+            return json.dumps([])
+
 
