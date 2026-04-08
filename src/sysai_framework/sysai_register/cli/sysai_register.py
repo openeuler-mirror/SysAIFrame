@@ -16,3 +16,31 @@ import os
 def cli():
     """AI Model Registration tool"""
     pass
+
+
+@cli.command()
+@click.argument('service_name')
+@click.option('--port', default=8000, help='Service port')
+@click.option('--host', default='0.0.0.0', help='Service host')
+@click.option('--service-type', default='_sysaiframe._tcp.local.',
+              help='Service type')
+@click.option('--config', help='Path to service configuration file')
+def register(service_name, port, host, service_type, config):
+    """Register a model service"""
+    click.echo(f"Registering service: {service_name}")
+    click.echo(f"Host: {host}, Port: {port}")
+    click.echo(f"Service Type: {service_type}")
+
+    service_info = {
+        'name': service_name,
+        'host': host,
+        'port': port,
+        'type': service_type
+    }
+
+    if config and os.path.exists(config):
+        with open(config, 'r') as f:
+            service_info['config'] = yaml.safe_load(f)
+
+    # TODO: Implement actual registration using RegisterManager
+    click.echo("Service registration not yet implemented")
