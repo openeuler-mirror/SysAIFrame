@@ -155,3 +155,14 @@ class DBusAIGatewayService:
 _service_instance: Optional[DBusAIGatewayService] = None
 
 
+def set_service_instance(service: DBusAIGatewayService) -> None:
+    """
+    Set the global D-Bus service instance.
+
+    Args:
+        service: DBusAIGatewayService instance
+    """
+    global _service_instance
+    _service_instance = service
+
+
