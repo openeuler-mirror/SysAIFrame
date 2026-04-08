@@ -44,3 +44,12 @@ def register(service_name, port, host, service_type, config):
 
     # TODO: Implement actual registration using RegisterManager
     click.echo("Service registration not yet implemented")
+
+
+@cli.command()
+@click.argument('service_name')
+def unregister(service_name):
+    """Unregister a model service"""
+    click.echo(f"Unregistering service: {service_name}")
+    # TODO: Implement actual unregistration
+    click.echo("Service unregistration not yet implemented")
