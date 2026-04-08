@@ -253,6 +253,36 @@ class ModelRouter:
                     f"(instance_id={default_instance_id})"
                 )
                 return model_config
+        elif default_model:
+            # Get all instances of default model
+            candidates = self.config_manager.get_models_by_name(default_model)
+            if candidates:
+                # Filter by health if needed
+                should_consider_health = self._should_consider_health()
+                healthy_candidates = [
+                    m for m in candidates
+                    if not should_consider_health or m.is_healthy
+                ]
+
+                if healthy_candidates:
+                    # Use load balance strategy if enabled
+                    if self.runtime_mode == RuntimeMode.LOAD_BALANCE and self.lb_strategy:
+                        selected = self.lb_strategy.select_deployment(healthy_candidates)
+                        if selected:
+                            logger.debug(
+                                f"Load balance selected default model: {default_model} "
+                                f"(instance_id={selected.instance_id})"
+                            )
+                            return selected
+
+                    # Default mode: use priority-based selection
+                    healthy_candidates.sort(key=lambda m: (m.is_healthy, m.priority), reverse=True)
+                    selected = healthy_candidates[0]
+                    logger.debug(
+                        f"Selected best instance of default model: {default_model} "
+                        f"(instance_id={selected.instance_id})"
+                    )
+                    return selected
 
 
 # Global router instance
