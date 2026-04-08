@@ -679,3 +679,23 @@ def _actual_request_enable_online(client, interval):
     except Exception as e:
         Output.error(f"Failed to enable actual request validation: {e}")
         return 1
+
+
+# Actual Request Disable Command - online_mode
+def _actual_request_disable_online(client):
+    """Disable actual request validation via D-Bus"""
+    import json as json_module
+    try:
+        config = {"actual_request_enabled": False}
+        success, message = client.update_health_check_config(json_module.dumps(config))
+
+        if success:
+            Output.success("Actual request validation disabled")
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to disable actual request validation: {e}")
+        return 1
