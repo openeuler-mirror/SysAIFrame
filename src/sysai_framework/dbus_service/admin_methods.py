@@ -40,3 +40,14 @@ def _dbus_method(interface, in_sig, out_sig):
         return identity
 
 
+class AdminServiceObject(_BaseClass):
+    """
+    D-Bus service object implementing model configuration admin methods.
+    """
+
+    INTERFACE_NAME = 'org.ctyunos.AIGateway.Admin'
+
+    def __init__(self, bus_name, object_path):
+        pass
+
+
