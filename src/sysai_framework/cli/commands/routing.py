@@ -1303,3 +1303,34 @@ def _routing_set_strategy_offline():
     Output.error("Cannot set routing strategy in offline mode")
     Output.info("Please start the service and try again")
     return 1
+
+
+# Routing Set-Strategy Command definition
+def _define_routing_set_strategy_command(routing_group):
+    """Define and return the routing set-strategy click command"""
+    @routing_group.command('set-strategy')
+    @click.argument('strategy', type=str)
+    def routing_set_strategy(strategy: str):
+        """Set routing strategy (priority/rr/load_balance)"""
+        valid_strategies = ['priority', 'rr', 'load_balance']
+        if strategy not in valid_strategies:
+            Output.error(f"Invalid strategy '{strategy}'. Must be one of: {', '.join(valid_strategies)}")
+            sys.exit(Output.EXIT_VALIDATION_ERROR)
+
+        def online_mode(client):
+            return _routing_set_strategy_online(client, strategy)
+
+        def offline_mode():
+            return _routing_set_strategy_offline()
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="set routing strategy",
+            require_config_file=False,
+            config_path=None
+        )
+
+        sys.exit(exit_code)
+
+    return routing_set_strategy
