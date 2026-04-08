@@ -568,3 +568,25 @@ class AdminDBusClient:
             return str(mode)
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to get runtime mode: {e}")
+
+    def set_runtime_mode(self, mode: str) -> Tuple[bool, str]:
+        """
+        Set runtime mode.
+
+        Args:
+            mode: Runtime mode ("default" or "load-balance")
+
+        Returns:
+            Tuple of (success, message)
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            success, message = admin.SetRuntimeMode(mode)
+            return (bool(success), str(message))
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to set runtime mode: {e}")
