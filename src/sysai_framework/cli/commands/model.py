@@ -179,3 +179,101 @@ def _add_model_offline(normalized_data: dict, force: bool, config_path: str, set
         force=force,
         set_as_default=set_as_default
     )
+
+
+@model.command()
+@click.option('--name', required=True, help='Model name (required)')
+@click.option('--api', required=True, help='API base URL (required)')
+@click.option('--api_key', default=None, help='API key (required for cloud providers)')
+@click.option('--provider', default='openai_like',
+              help='Provider type: openai, deepseek, dashscope, moonshot, ollama, openai_like')
+@click.option('--instance_id', default=None, help='Instance ID (auto-generated if not provided)')
+@click.option('--priority', default=1, type=int, callback=_validate_priority,
+              help='Model priority (default: 1, range: 1-100)')
+@click.option('--capabilities', default='general',
+              help='Comma-separated capabilities, e.g., general,code,analysis (default: general)')
+@click.option('--timeout', default=30, type=int, callback=_validate_timeout,
+              help='Request timeout in seconds (default: 30, range: 1-3600)')
+@click.option('--max_retries', default=3, type=int, callback=_validate_max_retries,
+              help='Max retry attempts (default: 3, range: 0-10)')
+@click.option('--streaming', default='true', type=_parse_bool_option,
+              help='Enable streaming support: true/false (default: true, case-insensitive)')
+@click.option('--config_path', default=DEFAULT_CONFIG_PATH,
+              help=f'Configuration file path (default: {DEFAULT_CONFIG_PATH})')
+@click.option('--dry_run', is_flag=True, help='Validate only, do not add model')
+@click.option('--force', is_flag=True, help='Force overwrite if instance_id exists')
+@click.option('--default', 'set_as_default', is_flag=True,
+              help='Set this model as the default model')
+def add(
+    name: str,
+    api: str,
+    api_key: Optional[str],
+    provider: str,
+    instance_id: Optional[str],
+    priority: int,
+    capabilities: str,
+    timeout: int,
+    max_retries: int,
+    streaming: bool,
+    config_path: str,
+    dry_run: bool,
+    force: bool,
+    set_as_default: bool
+):
+    """
+    Add a new model configuration
+
+    Examples:
+      ai-config model add --name mymodel --api https://api.example.com/v1 --api_key sk-xxx
+      ai-config model add --name deepseek --api https://api.deepseek.com/v1 --provider deepseek --api_key sk-xxx
+    """
+    # Build model data dict from CLI options
+    model_data = {
+        'name': name,
+        'api_base': api,
+        'api_key': api_key,
+        'provider': provider,
+        'instance_id': instance_id,
+        'priority': priority,
+        'capabilities': capabilities,
+        'timeout': timeout,
+        'max_retries': max_retries,
+        'supports_streaming': streaming,
+    }
+
+    # Use ModelValidator to validate and normalize
+    validator = ModelValidator()
+    is_valid, errors, warnings = validator.validate(model_data)
+
+    # Print warnings
+    for warning in warnings:
+        Output.warning(warning)
+
+    # Print validation errors if any
+    if not is_valid:
+        Output.validation_errors(errors)
+        sys.exit(Output.EXIT_VALIDATION_ERROR)
+
+    # Dry run mode - just validate
+    if dry_run:
+        Output.success("Validation passed. Model data is valid.")
+        return
+
+    # Normalize data for saving
+    normalized_data = ModelValidator.normalize_model_data(model_data)
+
+    # Execute with auto mode switch
+    result = auto_execute(
+        online_func=lambda client: _add_model_via_dbus(normalized_data, force, set_as_default),
+        offline_func=lambda: _add_model_offline(normalized_data, force, config_path, set_as_default),
+        operation_name="add model",
+        config_path=config_path
+    )
+
+    # Handle result
+    if result.success:
+        Output.success(result.get_message())
+        sys.exit(Output.EXIT_SUCCESS)
+    else:
+        Output.error(result.get_message())
+        sys.exit(Output.EXIT_WRITE_FAILED)
