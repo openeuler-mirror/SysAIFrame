@@ -150,3 +150,23 @@ def response_to_dbus(python_response: Dict) -> Any:
         raise
 
 
+def models_to_dbus(models: List[str]) -> Any:
+    """
+    Convert Python model list to D-Bus string array.
+
+    Args:
+        models: List of model names
+
+    Returns:
+        D-Bus array of strings
+    """
+    if not DBUS_AVAILABLE:
+        return models
+
+    try:
+        return dbus.Array([dbus.String(m) for m in models], signature='s')
+    except Exception as e:
+        logger.error(f"Error converting models: {e}")
+        raise
+
+
