@@ -529,6 +529,61 @@ class ModelRouter:
             'stream': stream,
         }
 
+        try:
+            if stream:
+                # Streaming: use generator-based fallback approach
+                # 1. Get initial model and generator
+                model_config = self.select_model(model)
+                if not model_config:
+                    raise ValueError(f"No model available for: {model}")
+
+                # 2. Call route_chat_completion to get initial generator
+                # (not route_chat_completion_with_fallback, to avoid nested fallback)
+                # Note: route_chat_completion is sync but returns AsyncGenerator for streaming
+                initial_generator = self.route_chat_completion(
+                    model=model_config.name,
+                    messages=messages,
+                    stream=True,
+                    model_config=model_config,
+                    **kwargs
+                )
+
+                # 3. Wrap with fallback logic
+                # Note: _acompletion_streaming_with_fallback is an async generator function,
+                # so we call it directly without await (it returns AsyncGenerator)
+                return self._acompletion_streaming_with_fallback(
+                    generator=initial_generator,
+                    model=model,
+                    messages=messages,
+                    original_model_config=model_config,
+                    requested_model=model,
+                    **kwargs
+                )
+            else:
+                # Non-streaming: use original fallback approach
+                func = partial(
+                    self.route_chat_completion_with_fallback,
+                    **completion_kwargs,
+                    **kwargs
+                )
+
+                # Add the context to the function
+                ctx = contextvars.copy_context()
+                func_with_context = partial(ctx.run, func)
+
+                # Run sync function in thread pool executor
+                loop = asyncio.get_event_loop()
+                response = await loop.run_in_executor(None, func_with_context)
+                return response
+
+        except AllModelsFailed as e:
+            # All fallback models failed
+            logger.error(f"All models failed after fallback: {e.attempted_models}")
+            raise
+        except Exception as e:
+            logger.error(f"Error in async completion routing: {e}")
+            raise
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
