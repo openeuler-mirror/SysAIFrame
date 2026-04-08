@@ -30,3 +30,8 @@ class Output:
     def success(message: str) -> None:
         """Print success message in green"""
         click.echo(click.style(message, fg='green'))
+
+    @staticmethod
+    def error(message: str) -> None:
+        """Print error message in red"""
+        click.echo(click.style(message, fg='red'), err=True)
