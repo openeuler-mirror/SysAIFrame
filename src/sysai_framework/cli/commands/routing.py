@@ -412,3 +412,33 @@ def _health_check_status_offline():
     Output.warning("Offline mode: Cannot get real-time health status")
     Output.info("Please start the service to view health check status")
     return 1
+
+
+# Health Check Status Command definition
+def _define_health_check_status_command(health_check_group):
+    """Define and return the health_check status click command"""
+    @health_check_group.command('status')
+    @click.option('--json', 'json_output', is_flag=True,
+                  help='Output in JSON format')
+    def health_check_status(json_output: bool):
+        """Display health check configuration and model health status"""
+
+        def online_mode(client):
+            """Execute via D-Bus"""
+            return _health_check_status_online(client, json_output)
+
+        def offline_mode():
+            """Execute in offline mode"""
+            return _health_check_status_offline()
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="get health check status",
+            require_config_file=False,
+            config_path=None
+        )
+
+        sys.exit(exit_code)
+
+    return health_check_status
