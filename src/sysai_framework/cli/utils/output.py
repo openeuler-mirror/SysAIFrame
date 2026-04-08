@@ -45,3 +45,27 @@ class Output:
     def info(message: str) -> None:
         """Print info message"""
         click.echo(message)
+
+    @staticmethod
+    def print_result(result: 'OperationResult') -> None:
+        """
+        Print OperationResult with appropriate styling
+
+        Args:
+            result: OperationResult object from status code system
+        """
+        from sysai_framework.core.status_codes import StatusLevel
+
+        message = result.get_message()
+
+        if result.status.level == StatusLevel.SUCCESS:
+            Output.success(message)
+        elif result.status.level == StatusLevel.INFO:
+            Output.info(message)
+        elif result.status.level == StatusLevel.WARNING:
+            Output.warning(message)
+        elif result.status.level in (StatusLevel.ERROR, StatusLevel.CRITICAL):
+            Output.error(message)
+        else:
+            # Default
+            click.echo(message)
