@@ -1235,3 +1235,11 @@ def _routing_set_mode_online(client, mode):
     except Exception as e:
         Output.error(f"Failed to set routing mode: {e}")
         return 1
+
+
+# Routing Set-Mode Command - offline_mode
+def _routing_set_mode_offline():
+    """Set routing mode in offline mode"""
+    Output.error("Cannot set routing mode in offline mode")
+    Output.info("Please start the service and try again")
+    return 1
