@@ -1243,3 +1243,34 @@ def _routing_set_mode_offline():
     Output.error("Cannot set routing mode in offline mode")
     Output.info("Please start the service and try again")
     return 1
+
+
+# Routing Set-Mode Command definition
+def _define_routing_set_mode_command(routing_group):
+    """Define and return the routing set-mode click command"""
+    @routing_group.command('set-mode')
+    @click.argument('mode', type=str)
+    def routing_set_mode(mode: str):
+        """Set routing mode (auto/manual)"""
+        valid_modes = ['auto', 'manual']
+        if mode not in valid_modes:
+            Output.error(f"Invalid mode '{mode}'. Must be one of: {', '.join(valid_modes)}")
+            sys.exit(Output.EXIT_VALIDATION_ERROR)
+
+        def online_mode(client):
+            return _routing_set_mode_online(client, mode)
+
+        def offline_mode():
+            return _routing_set_mode_offline()
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="set routing mode",
+            require_config_file=False,
+            config_path=None
+        )
+
+        sys.exit(exit_code)
+
+    return routing_set_mode
