@@ -905,3 +905,31 @@ def _retry_status_offline():
     Output.warning("Offline mode: Cannot get real-time configuration")
     Output.info("Please start the service to view retry policy")
     return 1
+
+
+# Retry Status Command definition
+def _define_retry_status_command(retry_group):
+    """Define and return the retry status click command"""
+    @retry_group.command('status')
+    @click.option('--json', 'json_output', is_flag=True,
+                  help='Output in JSON format')
+    def retry_status(json_output: bool):
+        """Display current retry policy configuration"""
+
+        def online_mode(client):
+            return _retry_status_online(client, json_output)
+
+        def offline_mode():
+            return _retry_status_offline()
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="get retry policy",
+            require_config_file=False,
+            config_path=None
+        )
+
+        sys.exit(exit_code)
+
+    return retry_status
