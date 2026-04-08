@@ -133,3 +133,37 @@ class Output:
         Output.error("Validation failed:")
         for error in errors:
             click.echo(f"  • {error}", err=True)
+
+    @staticmethod
+    def sanitize_sensitive_data(data: Any) -> Any:
+        """
+        Recursively sanitize sensitive information in data structures.
+
+        Replaces sensitive fields (api_key, api-key, API_KEY, etc.) with '***'.
+
+        Args:
+            data: Data structure (dict, list, or primitive) to sanitize
+
+        Returns:
+            Sanitized data structure with sensitive fields replaced
+        """
+        # List of sensitive field names (case-insensitive matching)
+        SENSITIVE_FIELDS = {'api_key', 'api-key', 'api_key', 'API_KEY', 'secret', 'password', 'token'}
+
+        if isinstance(data, dict):
+            sanitized = {}
+            for key, value in data.items():
+                # Check if key is a sensitive field (case-insensitive)
+                key_lower = key.lower().replace('-', '_').replace(' ', '_')
+                if key_lower in SENSITIVE_FIELDS or any(sensitive in key_lower for sensitive in ['api_key', 'secret', 'password', 'token']):
+                    # Replace sensitive value with '***' if it exists and is not empty
+                    sanitized[key] = '***' if value else value
+                else:
+                    # Recursively sanitize nested structures
+                    sanitized[key] = Output.sanitize_sensitive_data(value)
+            return sanitized
+        elif isinstance(data, list):
+            return [Output.sanitize_sensitive_data(item) for item in data]
+        else:
+            # Primitive types (str, int, bool, None, etc.) - return as is
+            return data
