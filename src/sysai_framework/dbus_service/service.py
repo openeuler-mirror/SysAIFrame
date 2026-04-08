@@ -42,6 +42,27 @@ class DBusAIGatewayService:
     ADMIN_INTERFACE_NAME = 'org.ctyunos.AIGateway.Admin'
 
     def __init__(self, gateway_app=None, use_system_bus: bool = True):
-        pass
+        """
+        Initialize D-Bus service.
+
+        Args:
+            gateway_app: FastAPI application instance (for accessing routes)
+            use_system_bus: Use system bus (True) or session bus (False)
+        """
+        self.gateway_app = gateway_app
+        self.use_system_bus = use_system_bus
+        self.bus = None
+        self.bus_name = None
+        self.service_object = None
+        self.admin_service_object = None
+        self.mainloop = None
+        self.thread = None
+        self.running = False
+
+        if not DBUS_AVAILABLE:
+            logger.error("Cannot initialize D-Bus service: dependencies not available")
+            return
+
+        logger.info(f"D-Bus service initialized for {self.BUS_NAME}")
 
 
