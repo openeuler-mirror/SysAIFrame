@@ -102,3 +102,14 @@ class StreamIterator:
             self.done = True
             if self.mainloop:
                 self.mainloop.quit()
+
+    def _handle_done(self, request_id: str, usage: Dict[str, Any]):
+        """Handle StreamDone signal"""
+        if request_id != self.request_id:
+            return
+
+        logger.debug(f"Stream done for {request_id}")
+        self.done = True
+        self.chunk_queue.put(None)
+        if self.mainloop:
+            self.mainloop.quit()
