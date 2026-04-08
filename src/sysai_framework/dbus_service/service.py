@@ -166,3 +166,13 @@ def set_service_instance(service: DBusAIGatewayService) -> None:
     _service_instance = service
 
 
+def get_service_instance() -> Optional[DBusAIGatewayService]:
+    """
+    Get the global D-Bus service instance.
+
+    Returns:
+        DBusAIGatewayService instance or None if not set
+    """
+    return _service_instance
+
+
