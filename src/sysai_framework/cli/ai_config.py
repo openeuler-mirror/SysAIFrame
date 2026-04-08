@@ -81,3 +81,10 @@ def show(config_path: str, as_json: bool):
     except Exception as e:
         Output.error(f"Failed to read configuration: {e}")
         sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
+
+
+@cli.command()
+@click.option('--config_path', default=DEFAULT_CONFIG_PATH,
+              help=f'Path to configuration file (default: {DEFAULT_CONFIG_PATH})')
+def validate(config_path: str):
+    """Validate configuration file"""
