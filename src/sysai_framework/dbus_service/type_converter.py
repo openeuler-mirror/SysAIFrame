@@ -130,3 +130,23 @@ def request_to_python(dbus_request: Dict) -> Dict:
         raise
 
 
+def response_to_dbus(python_response: Dict) -> Any:
+    """
+    Convert Python response dict to D-Bus format.
+
+    Args:
+        python_response: Python response dictionary
+
+    Returns:
+        D-Bus dictionary
+    """
+    if not DBUS_AVAILABLE:
+        return python_response
+
+    try:
+        return python_to_dbus(python_response)
+    except Exception as e:
+        logger.error(f"Error converting response: {e}")
+        raise
+
+
