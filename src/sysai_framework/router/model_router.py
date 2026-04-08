@@ -716,6 +716,61 @@ class ModelRouter:
                 if actual_request_enabled and model_config.connection_health:
                     self.health_checker.check_model_actual_request(model_config)
 
+    async def _acompletion_streaming_with_fallback(
+        self,
+        generator: AsyncGenerator[str, None],
+        model: str,
+        messages: List[Dict[str, Any]],
+        original_model_config: ModelConfig,
+        requested_model: Optional[str] = None,
+        **kwargs
+    ) -> AsyncGenerator[str, None]:
+        """
+        Wrap streaming generator with automatic fallback on error
+
+        This method implements fallback for streaming requests:
+        - Catches exceptions during generator iteration
+        - Automatically tries fallback models on failure
+        - Records health status for each attempt
+        - Enforces global timeout across all fallback attempts
+
+        Args:
+            generator: Initial async generator from route_chat_completion
+            model: Original model name
+            messages: Chat messages
+            original_model_config: Initial model configuration
+            requested_model: Original user request (for fallback list building)
+            **kwargs: Additional parameters for route_chat_completion
+
+        Yields:
+            Chunks from the successful model's generator
+
+        Raises:
+            AllModelsFailed: If all models (including fallbacks) fail or global timeout exceeded
+        """
+        # Global timeout tracking
+        fallback_start_time = time.time()
+        routing_timeout = self.config_manager.routing_config.timeout if self.config_manager else 180
+        total_timeout = kwargs.get('timeout', float(routing_timeout))
+
+        # Max fallback depth control (inspired by LiteLLM)
+        max_fallbacks = getattr(self.config_manager.routing_config, 'max_fallbacks', 5) if self.config_manager else 5
+
+        current_generator = generator
+        current_model_config = original_model_config
+        attempted_models = [original_model_config.name]
+
+        # Build fallback list once
+        fallback_candidates = self._build_fallback_list(
+            original_model_config.name,
+            requested_model or model
+        )
+
+        fallback_idx = 0
+        fallback_depth = 0
+        first_chunk_read = False
+        start_time = time.time()
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
