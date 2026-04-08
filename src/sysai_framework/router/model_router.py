@@ -123,6 +123,10 @@ class ModelRouter:
             # Fallback to weighted
             return WeightedStrategy(self.config_manager)
 
+    def get_available_models(self) -> List[str]:
+        """Get list of available models"""
+        return self.config_manager.get_available_models()
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
