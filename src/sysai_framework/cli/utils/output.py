@@ -25,3 +25,8 @@ class Output:
     EXIT_VERSION_CONFLICT = 7
     EXIT_SERVICE_NOT_RUNNING = 8
     EXIT_DBUS_ERROR = 9
+
+    @staticmethod
+    def success(message: str) -> None:
+        """Print success message in green"""
+        click.echo(click.style(message, fg='green'))
