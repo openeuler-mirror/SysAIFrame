@@ -871,3 +871,29 @@ def _define_retry_group(routing_group):
         """Retry policy management commands"""
         pass
     return retry
+
+
+# Retry Status Command - online_mode
+def _retry_status_online(client, json_output):
+    """Get retry policy status via D-Bus"""
+    import json as json_module
+
+    try:
+        config_json = client.get_retry_policy_config()
+        config = json_module.loads(config_json)
+
+        if json_output:
+            Output.print_json(config)
+            return 0
+
+        Output.section("Retry Policy Configuration")
+        Output.info(f"  Max Attempts: {config.get('max_attempts')}")
+        Output.info(f"  Backoff Factor: {config.get('backoff_factor')}")
+        Output.info(f"  Base Delay: {config.get('base_delay')}s")
+        Output.info(f"  Max Delay: {config.get('max_delay')}s")
+
+        return 0
+
+    except Exception as e:
+        Output.error(f"Failed to get retry policy: {e}")
+        return 1
