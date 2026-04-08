@@ -1178,3 +1178,11 @@ def _routing_show_online(client, json_output):
     except Exception as e:
         Output.error(f"Failed to get routing config: {e}")
         return 1
+
+
+# Routing Show Command - offline_mode
+def _routing_show_offline():
+    """Show routing configuration in offline mode"""
+    Output.warning("Offline mode: Cannot get real-time configuration")
+    Output.info("Please start the service to view routing configuration")
+    return 1
