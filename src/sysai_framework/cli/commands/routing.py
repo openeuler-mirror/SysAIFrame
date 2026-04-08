@@ -806,3 +806,23 @@ def _define_actual_request_set_interval_command(actual_request_group):
         )
         sys.exit(exit_code)
     return actual_request_set_interval
+
+
+# Health Check Set-Timeout Command - online_mode
+def _health_check_set_timeout_online(client, seconds):
+    """Set health check timeout via D-Bus"""
+    import json as json_module
+    try:
+        config = {"timeout": seconds}
+        success, message = client.update_health_check_config(json_module.dumps(config))
+
+        if success:
+            Output.success(f"Health check timeout set to {seconds}s")
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to set timeout: {e}")
+        return 1
