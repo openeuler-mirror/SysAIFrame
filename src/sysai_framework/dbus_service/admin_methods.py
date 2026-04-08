@@ -169,4 +169,48 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to list models: {e}", exc_info=True)
             return json.dumps([])
 
+    @_dbus_method(INTERFACE_NAME, 's', 's')
+    def GetModel(self, identifier: str) -> str:
+        """
+        Get model configuration by identifier.
+
+        Args:
+            identifier: Model name or instance_id
+
+        Returns:
+            JSON string containing model configuration(s), empty if not found
+        """
+        logger.debug(f"D-Bus GetModel called: {identifier}")
+
+        if not self.config_manager:
+            return "[]"
+
+        try:
+            matching = []
+
+            # Try to get by model name (may return multiple instances)
+            models_by_name = self.config_manager.get_models_by_name(identifier)
+            if models_by_name:
+                for model_config in models_by_name:
+                    matching.append(self._model_config_to_dict(model_config))
+
+            # If not found by name, try instance_id
+            if not matching:
+                model_config = self.config_manager.get_model_by_instance_id(identifier)
+                if model_config:
+                    matching.append(self._model_config_to_dict(model_config))
+
+            if not matching:
+                return "[]"
+
+            # Return single object if only one match, otherwise array
+            if len(matching) == 1:
+                return json.dumps(matching[0], ensure_ascii=False)
+            else:
+                return json.dumps(matching, ensure_ascii=False)
+
+        except Exception as e:
+            logger.error(f"Failed to get model: {e}", exc_info=True)
+            return "[]"
+
 
