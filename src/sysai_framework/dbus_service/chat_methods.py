@@ -104,4 +104,87 @@ class ChatServiceObject(dbus.service.Object if DBUS_AVAILABLE else object):
             }
             return response_to_dbus(error_response)
 
+    def _handle_non_streaming_request(self, request: Dict) -> Any:
+        """
+        Handle non-streaming chat completion request.
+
+        Args:
+            request: Python request dictionary
+
+        Returns:
+            D-Bus response
+        """
+        try:
+            # Check if model router is initialized
+            if not self.model_router:
+                raise Exception("Model router not initialized")
+
+            # Create a minimal request object
+            from pydantic import BaseModel
+            from typing import List, Optional
+
+            class Message(BaseModel):
+                role: str
+                content: str
+
+            class ChatRequest(BaseModel):
+                model: Optional[str] = None
+                messages: List[Message]
+                temperature: Optional[float] = 0.7
+                max_tokens: Optional[int] = 1000
+                top_p: Optional[float] = 1.0
+                stream: bool = False
+
+            # Validate required fields
+            if 'messages' not in request or not request['messages']:
+                raise ValueError("'messages' field is required and cannot be empty")
+
+            # Convert request to Pydantic model
+            messages = [Message(**msg) for msg in request['messages']]
+            chat_request = ChatRequest(
+                model=request.get('model'),
+                messages=messages,
+                temperature=request.get('temperature', 0.7),
+                max_tokens=request.get('max_tokens', 1000),
+                top_p=request.get('top_p', 1.0),
+                stream=False
+            )
+
+            # Process request using existing processor
+            # Note: This is synchronous, which is appropriate for D-Bus method calls
+            result = self.model_router.route_chat_completion(
+                model=chat_request.model,
+                messages=[msg.dict() for msg in chat_request.messages],
+                temperature=chat_request.temperature,
+                max_tokens=chat_request.max_tokens,
+                top_p=chat_request.top_p,
+                stream=False
+            )
+
+            # Convert result to response format
+            if isinstance(result, dict):
+                response = result
+            else:
+                # If result is a string or other type, wrap it
+                response = {
+                    'id': f'chatcmpl-{uuid.uuid4().hex[:8]}',
+                    'object': 'chat.completion',
+                    'created': int(time.time()),
+                    'model': chat_request.model or 'default',
+                    'choices': [{
+                        'index': 0,
+                        'message': {
+                            'role': 'assistant',
+                            'content': str(result)
+                        },
+                        'finish_reason': 'stop'
+                    }]
+                }
+
+            return response_to_dbus(response)
+
+        except Exception as e:
+            logger.error(f"Non-streaming request error: {e}", exc_info=True)
+            raise
+
 
