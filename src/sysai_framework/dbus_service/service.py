@@ -176,3 +176,16 @@ def get_service_instance() -> Optional[DBusAIGatewayService]:
     return _service_instance
 
 
+def get_admin_service():
+    """
+    Get the admin service object for emitting signals.
+
+    Returns:
+        Admin service object or None if not available
+    """
+    service = get_service_instance()
+    if service and service.admin_service_object:
+        return service.admin_service_object
+    return None
+
+
