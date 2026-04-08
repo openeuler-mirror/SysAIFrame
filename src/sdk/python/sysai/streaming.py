@@ -156,3 +156,26 @@ class StreamIterator:
             self.mainloop.quit()
         if self.thread and self.thread.is_alive():
             self.thread.join(timeout=2)
+
+    def __iter__(self) -> Iterator[ChatChunk]:
+        """Iterator protocol"""
+        return self
+
+    def __next__(self) -> ChatChunk:
+        """Get next chunk"""
+        try:
+            chunk = self.chunk_queue.get(timeout=self.timeout)
+
+            if chunk is None:
+                self.stop()
+                raise StopIteration
+
+            if self.error:
+                self.stop()
+                raise self.error
+
+            return chunk
+
+        except queue.Empty:
+            self.stop()
+            raise SysAITimeoutError(f"Stream timeout after {self.timeout} seconds")
