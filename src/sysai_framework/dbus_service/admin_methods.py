@@ -83,4 +83,66 @@ class AdminServiceObject(_BaseClass):
             'is_healthy': model_config.is_healthy,
         }
 
+    @_dbus_method(INTERFACE_NAME, 'sbb', 'bss')
+    def AddModel(self, model_data_json: str, force: bool, set_as_default: bool) -> Tuple[bool, str, str]:
+        """
+        Add a new model configuration.
+
+        Args:
+            model_data_json: Model configuration as JSON string
+            force: Force overwrite if instance_id exists
+            set_as_default: Set this model as the default model
+
+        Returns:
+            (success, message, instance_id)
+            Message format: "[STATUS:code] message" for new status code system
+        """
+        from sysai_framework.core.status_codes import encode_status_in_message, VALIDATION_ERROR
+
+        logger.info(f"D-Bus AddModel called, force={force}, set_as_default={set_as_default}")
+
+        if not self.config_manager:
+            error_msg = encode_status_in_message(VALIDATION_ERROR, "Config manager not available")
+            return (False, error_msg, "")
+
+        try:
+            # Parse JSON
+            model_data = json.loads(model_data_json)
+
+            api_base = model_data.get('api_base') or model_data.get('endpoint')
+            if api_base and not (api_base.startswith('http://') or api_base.startswith('https://')):
+                error_msg = encode_status_in_message(VALIDATION_ERROR, "Invalid API base URL: must start with http:// or https://")
+                return (False, error_msg, "")
+
+            # Call config manager to add model (now returns OperationResult)
+            result = self.config_manager.add_model(
+                model_data,
+                persist=True,
+                force=force,
+                require_file_lock=False,  # Service process: use thread lock only
+                set_as_default=set_as_default
+            )
+
+            instance_id = result.data.instance_id if result.data else ""
+
+            # Encode status code in message for backward compatibility
+            message = encode_status_in_message(result.status, result.get_message())
+
+            if result.success:
+                logger.info(f"Model added via D-Bus: {model_data.get('name')} (instance_id={instance_id})")
+            else:
+                logger.warning(f"Failed to add model via D-Bus: {message}")
+
+            return (result.success, message, instance_id)
+
+        except json.JSONDecodeError as e:
+            error_msg = encode_status_in_message(VALIDATION_ERROR, f"Invalid JSON: {e}")
+            logger.error(error_msg)
+            return (False, error_msg, "")
+        except Exception as e:
+            from sysai_framework.core.status_codes import INTERNAL_ERROR
+            error_msg = encode_status_in_message(INTERNAL_ERROR, f"Failed to add model: {e}")
+            logger.error(error_msg, exc_info=True)
+            return (False, error_msg, "")
+
 
