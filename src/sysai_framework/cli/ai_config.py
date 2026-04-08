@@ -58,3 +58,26 @@ cli.add_command(service)
 @click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
 def show(config_path: str, as_json: bool):
     """Show current configuration"""
+    if not os.path.exists(config_path):
+        Output.error(f"Configuration file not found: {config_path}")
+        sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
+
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+
+        # Sanitize sensitive information before output
+        sanitized_config = Output.sanitize_sensitive_data(config)
+
+        if as_json:
+            import json
+            click.echo(json.dumps(sanitized_config, indent=2, ensure_ascii=False))
+        else:
+            click.echo(yaml.dump(sanitized_config, default_flow_style=False, allow_unicode=True))
+
+    except yaml.YAMLError as e:
+        Output.error(f"Invalid YAML: {e}")
+        sys.exit(Output.EXIT_VALIDATION_ERROR)
+    except Exception as e:
+        Output.error(f"Failed to read configuration: {e}")
+        sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
