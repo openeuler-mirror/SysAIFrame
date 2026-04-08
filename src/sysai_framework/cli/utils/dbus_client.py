@@ -503,3 +503,27 @@ class AdminDBusClient:
             return (bool(success), str(message))
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to trigger health check: {e}")
+
+    def get_retry_policy_config(self) -> str:
+        """
+        Get current retry policy configuration.
+
+        Returns:
+            JSON string containing retry policy configuration
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            return str(admin.GetRetryPolicyConfig())
+        except dbus.exceptions.DBusException as e:
+            error_msg = str(e)
+            if "NoReply" in error_msg:
+                raise DBusClientError(
+                    f"Service did not respond. Service may be shutting down or unavailable. "
+                    f"Original error: {e}"
+                )
+            raise DBusClientError(f"Failed to get retry policy config: {e}")
