@@ -497,3 +497,13 @@ def _define_health_check_trigger_command(health_check_group):
         sys.exit(exit_code)
 
     return health_check_trigger
+
+
+# Lightweight Health Check Subgroup definition
+def _define_lightweight_group(health_check_group):
+    """Define and return the lightweight health check subgroup"""
+    @health_check_group.group('lightweight')
+    def lightweight():
+        """Lightweight health check management"""
+        pass
+    return lightweight
