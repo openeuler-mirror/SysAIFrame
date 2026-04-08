@@ -166,3 +166,18 @@ async def chat_completion(
     # Prepare request data - use Pydantic's dict() method to safely handle optional fields
     # exclude_none=True ensures None values are not included, preventing downstream issues
     request_dict = request.dict(exclude_none=True)
+
+    # Build request_data with required fields and optional fields (only if provided)
+    request_data = {
+        'request_id': request_id,
+        'model': request_dict['model'],
+        'messages': [msg.dict() for msg in request.messages],
+        'stream': request_dict.get('stream', False),  # Always include stream, default False
+    }
+
+    # Add optional fields that were provided (exclude_none=True already filtered them)
+    optional_fields = ['temperature', 'max_tokens', 'top_p', 'stop',
+                       'presence_penalty', 'frequency_penalty', 'user']
+    for field in optional_fields:
+        if field in request_dict:
+            request_data[field] = request_dict[field]
