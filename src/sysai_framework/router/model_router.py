@@ -584,6 +584,38 @@ class ModelRouter:
             logger.error(f"Error in async completion routing: {e}")
             raise
 
+    def _generate_mock_response(self,
+                              model_config: ModelConfig,
+                              messages: List[Dict[str, Any]],
+                              **kwargs) -> Dict[str, Any]:
+        """Generate mock response for testing"""
+        # Simulate processing time
+        time.sleep(0.1)
+
+        # Build response
+        response = {
+            "id": f"chatcmpl-mock-{int(time.time())}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": model_config.name,
+            "choices": [{
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": f"This is a mock response from {model_config.name}. Your message has been received."
+                },
+                "finish_reason": "stop"
+            }],
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 15,
+                "total_tokens": 25
+            }
+        }
+
+        logger.debug(f"Generated mock response for model: {model_config.name}")
+        return response
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
