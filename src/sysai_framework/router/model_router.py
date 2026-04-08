@@ -288,6 +288,32 @@ class ModelRouter:
         logger.warning("Default model not available, selecting any available model")
         return self._select_any_available_model()
 
+    def _select_any_available_model(self) -> Optional[ModelConfig]:
+        """Select any available healthy model instance"""
+        should_consider_health = self._should_consider_health()
+
+        if should_consider_health:
+            all_healthy = self.config_manager.get_all_healthy_models()
+        else:
+            all_healthy = list(self.config_manager.models.values())
+
+        if not all_healthy:
+            logger.error("No healthy models available")
+            return None
+
+        # Use load balance strategy if enabled
+        if self.runtime_mode == RuntimeMode.LOAD_BALANCE and self.lb_strategy:
+            selected = self.lb_strategy.select_deployment(all_healthy)
+            if selected:
+                logger.debug(f"Load balance selected model: {selected.name}")
+                return selected
+
+        # Default: use priority-based selection
+        all_healthy.sort(key=lambda m: (m.is_healthy, m.priority), reverse=True)
+        selected = all_healthy[0]
+        logger.debug(f"Selected model by priority: {selected.name}")
+        return selected
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
