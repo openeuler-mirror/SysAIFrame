@@ -441,3 +441,58 @@ def show_model(identifier: Optional[str], name: Optional[str], instance_id: Opti
     except Exception as e:
         Output.error(f"Failed to show model: {e}")
         sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
+
+
+def _remove_model_via_dbus(instance_id: str) -> 'OperationResult':
+    """Remove model via D-Bus"""
+    client = get_dbus_client()
+    return client.remove_model(instance_id)
+
+
+def _remove_model_offline(instance_id: str, config_path: str) -> 'OperationResult':
+    """Remove model from config file directly"""
+    from sysai_framework.config import ModelConfigManager
+    from sysai_framework.core.status_codes import (
+        OperationResult, CONFIG_NOT_FOUND, CONFIG_PERMISSION_DENIED
+    )
+
+    if not os.path.exists(config_path):
+        return OperationResult.error_result(
+            CONFIG_NOT_FOUND,
+            details={"path": config_path}
+        )
+
+    if not os.access(config_path, os.W_OK):
+        return OperationResult.error_result(
+            CONFIG_PERMISSION_DENIED,
+            details={"path": config_path}
+        )
+
+    manager = ModelConfigManager(config_path=config_path)
+    return manager.remove_model(instance_id, persist=True)
+
+
+@model.command()
+@click.argument('instance_id')
+@click.option('--config_path', default=DEFAULT_CONFIG_PATH,
+              help=f'Configuration file path (default: {DEFAULT_CONFIG_PATH})')
+def remove(instance_id: str, config_path: str):
+    """
+    Remove a model by instance ID
+
+    Examples:
+      ai-config model remove model-123
+    """
+    result = auto_execute(
+        online_func=lambda client: _remove_model_via_dbus(instance_id),
+        offline_func=lambda: _remove_model_offline(instance_id, config_path),
+        operation_name="remove model",
+        config_path=config_path
+    )
+
+    if result.success:
+        Output.success(result.get_message())
+        sys.exit(Output.EXIT_SUCCESS)
+    else:
+        Output.error(result.get_message())
+        sys.exit(Output.EXIT_WRITE_FAILED)
