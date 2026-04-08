@@ -351,3 +351,56 @@ def _define_health_check_group(routing_group):
         """Health check management commands"""
         pass
     return health_check
+
+
+# Health Check Status Command - online_mode
+def _health_check_status_online(client, json_output):
+    """Get health check status via D-Bus"""
+    import json as json_module
+
+    try:
+        config_json = client.get_health_check_config()
+        config = json_module.loads(config_json)
+
+        status_json = client.get_health_status("")
+        status = json_module.loads(status_json)
+
+        if json_output:
+            Output.print_json({
+                "config": config,
+                "status": status
+            })
+            return 0
+
+        Output.section("Health Check Configuration")
+        Output.info(f"  Lightweight Check: {'Enabled' if config.get('lightweight_enabled') else 'Disabled'}")
+        Output.info(f"  Lightweight Interval: {config.get('lightweight_interval')}s")
+        Output.info(f"  Actual Request Check: {'Enabled' if config.get('actual_request_enabled') else 'Disabled'}")
+        Output.info(f"  Actual Request Interval: {config.get('actual_request_interval')}s")
+        Output.info(f"  Timeout: {config.get('timeout')}s")
+
+        Output.section("Model Health Status")
+        total = status.get("total_models", 0)
+        healthy = status.get("healthy_models", 0)
+        unhealthy = status.get("unhealthy_models", 0)
+
+        Output.info(f"  Total Models: {total}")
+        Output.success(f"  Healthy: {healthy}")
+        if unhealthy > 0:
+            Output.error(f"  Unhealthy: {unhealthy}")
+
+        for model in status.get("models", []):
+            name = model.get("name")
+            is_healthy = model.get("is_healthy")
+            reason = model.get("unhealthy_reason", "none")
+
+            if is_healthy:
+                Output.success(f"    {name}: Healthy")
+            else:
+                Output.error(f"    {name}: Unhealthy (reason: {reason})")
+
+        return 0
+
+    except Exception as e:
+        Output.error(f"Failed to get health check status: {e}")
+        return 1
