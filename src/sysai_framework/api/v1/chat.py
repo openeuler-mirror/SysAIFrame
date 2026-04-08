@@ -88,3 +88,10 @@ class ChatChoice(BaseModel):
     finish_reason: Optional[str] = None
 
 
+class UsageInfo(BaseModel):
+    """Token usage information"""
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+
+
