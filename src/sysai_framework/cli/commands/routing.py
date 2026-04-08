@@ -699,3 +699,23 @@ def _actual_request_disable_online(client):
     except Exception as e:
         Output.error(f"Failed to disable actual request validation: {e}")
         return 1
+
+
+# Actual Request Set-Interval Command - online_mode
+def _actual_request_set_interval_online(client, seconds):
+    """Set actual request validation interval via D-Bus"""
+    import json as json_module
+    try:
+        config = {"actual_request_interval": seconds}
+        success, message = client.update_health_check_config(json_module.dumps(config))
+
+        if success:
+            Output.success(f"Actual request interval set to {seconds}s")
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to set interval: {e}")
+        return 1
