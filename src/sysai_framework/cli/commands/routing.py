@@ -266,3 +266,15 @@ def _set_default_online_dispatcher(name, instance_id, client):
     elif name and not instance_id:
         return _set_default_online_name_only(name, client)
     return None
+
+
+# set-default command - offline_mode dispatcher
+def _set_default_offline_dispatcher(name, instance_id, config_manager):
+    """Dispatch to appropriate offline_mode handler based on provided parameters"""
+    if name and instance_id:
+        return _set_default_offline_name_instance_id(name, instance_id, config_manager)
+    elif instance_id and not name:
+        return _set_default_offline_instance_id_only(instance_id, config_manager)
+    elif name and not instance_id:
+        return _set_default_offline_name_only(name, config_manager)
+    return None
