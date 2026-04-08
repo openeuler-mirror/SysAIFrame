@@ -284,6 +284,10 @@ class ModelRouter:
                     )
                     return selected
 
+        # Fallback: any available healthy model
+        logger.warning("Default model not available, selecting any available model")
+        return self._select_any_available_model()
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
