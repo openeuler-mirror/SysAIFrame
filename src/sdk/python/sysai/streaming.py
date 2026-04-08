@@ -179,3 +179,13 @@ class StreamIterator:
         except queue.Empty:
             self.stop()
             raise SysAITimeoutError(f"Stream timeout after {self.timeout} seconds")
+
+    def __enter__(self):
+        """Context manager entry"""
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit"""
+        self.stop()
+        return False
