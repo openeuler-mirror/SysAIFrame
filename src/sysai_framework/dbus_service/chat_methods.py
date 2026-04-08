@@ -187,4 +187,39 @@ class ChatServiceObject(dbus.service.Object if DBUS_AVAILABLE else object):
             logger.error(f"Non-streaming request error: {e}", exc_info=True)
             raise
 
+    def _handle_streaming_request(self, request: Dict) -> Any:
+        """
+        Handle streaming chat completion request.
+
+        Args:
+            request: Python request dictionary
+
+        Returns:
+            D-Bus response with initial metadata (id, model)
+        """
+        try:
+            # Validate required fields
+            if 'messages' not in request or not request['messages']:
+                raise ValueError("'messages' field is required and cannot be empty")
+
+            # Generate request ID
+            request_id = f'chatcmpl-{uuid.uuid4().hex[:8]}'
+
+            # Return initial response immediately
+            initial_response = {
+                'id': request_id,
+                'object': 'chat.completion',
+                'created': int(time.time()),
+                'model': request.get('model', 'default')
+            }
+
+            # Start streaming in background
+            self.stream_handler.start_stream(request_id, request)
+
+            return response_to_dbus(initial_response)
+
+        except Exception as e:
+            logger.error(f"Streaming request error: {e}", exc_info=True)
+            raise
+
 
