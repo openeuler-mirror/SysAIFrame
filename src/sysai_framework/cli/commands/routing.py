@@ -442,3 +442,21 @@ def _define_health_check_status_command(health_check_group):
         sys.exit(exit_code)
 
     return health_check_status
+
+
+# Health Check Trigger Command - online_mode
+def _health_check_trigger_online(client, model_name):
+    """Trigger health check via D-Bus"""
+    try:
+        success, message = client.trigger_health_check(model_name or "")
+
+        if success:
+            Output.success(message)
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to trigger health check: {e}")
+        return 1
