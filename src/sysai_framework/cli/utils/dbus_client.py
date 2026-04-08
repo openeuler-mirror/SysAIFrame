@@ -169,3 +169,24 @@ class AdminDBusClient:
                 )
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to add model: {e}")
+
+    def list_models(self) -> List[Dict[str, Any]]:
+        """
+        List all configured models.
+
+        Returns:
+            List of model configurations
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            models_json = admin.ListModels()
+            if models_json:
+                return json.loads(models_json)
+            return []
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to list models: {e}")
