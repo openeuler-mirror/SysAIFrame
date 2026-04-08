@@ -215,3 +215,42 @@ def _set_default_offline_instance_id_only(instance_id, config_manager):
             if 'available_instances' in result.details:
                 Output.info(f"Available instances: {', '.join(result.details['available_instances'])}")
         return 1
+
+
+# set-default command - offline_mode with name only
+def _set_default_offline_name_only(name, config_manager):
+    """Handle set-default offline_mode when only name is provided"""
+    models = config_manager.get_models_by_name(name)
+    if not models:
+        Output.error(f"Model with name '{name}' not found")
+        return Output.EXIT_VALIDATION_ERROR
+
+    if len(models) > 1:
+        Output.error(f"Multiple models found with name '{name}':")
+        for m in models:
+            Output.info(f"  Instance ID: {m.instance_id}, Provider: {m.provider}, API: {m.api_base}")
+        Output.info("Use --instance_id to specify a specific instance")
+        return Output.EXIT_VALIDATION_ERROR
+
+    # Only one model found, use it
+    model = models[0]
+    result = config_manager.set_default_model(
+        model_name=name,
+        instance_id=model.instance_id,
+        persist=True,
+        require_file_lock=True
+    )
+
+    if result.success:
+        Output.success(result.get_message())
+        Output.info(f"Default model: {name}")
+        Output.info(f"Instance ID: {model.instance_id}")
+        return 0
+    else:
+        Output.error(result.get_message())
+        if result.details:
+            if 'available_models' in result.details:
+                Output.info(f"Available models: {', '.join(result.details['available_models'])}")
+            if 'available_instances' in result.details:
+                Output.info(f"Available instances: {', '.join(result.details['available_instances'])}")
+        return 1
