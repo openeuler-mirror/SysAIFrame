@@ -1363,3 +1363,30 @@ def _routing_set_option_offline():
     Output.error("Cannot set routing option in offline mode")
     Output.info("Please start the service and try again")
     return 1
+
+
+# Routing Set-Option Command definition
+def _define_routing_set_option_command(routing_group):
+    """Define and return the routing set-option click command"""
+    @routing_group.command('set-option')
+    @click.argument('key', type=str)
+    @click.argument('value', type=str)
+    def routing_set_option(key: str, value: str):
+        """Set a routing configuration option"""
+        def online_mode(client):
+            return _routing_set_option_online(client, key, value)
+
+        def offline_mode():
+            return _routing_set_option_offline()
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="set routing option",
+            require_config_file=False,
+            config_path=None
+        )
+
+        sys.exit(exit_code)
+
+    return routing_set_option
