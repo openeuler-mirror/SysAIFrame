@@ -97,3 +97,39 @@ class Usage:
             total_tokens=data.get("total_tokens", 0)
         )
 
+
+@dataclass
+class ChatResponse:
+    """Chat completion response"""
+    id: str
+    model: str
+    content: str
+    finish_reason: Optional[str]
+    usage: Usage
+    raw_response: Dict[str, Any]
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ChatResponse":
+        """Create from D-Bus response dictionary"""
+        content = ""
+        finish_reason = None
+        if "choices" in data and data["choices"]:
+            choice = data["choices"][0]
+            if "message" in choice:
+                content = choice["message"].get("content", "")
+            finish_reason = choice.get("finish_reason")
+            if finish_reason == "":
+                finish_reason = None
+
+        usage_data = data.get("usage", {})
+        usage = Usage.from_dict(usage_data)
+
+        return cls(
+            id=data.get("id", ""),
+            model=data.get("model", ""),
+            content=content,
+            finish_reason=finish_reason,
+            usage=usage,
+            raw_response=data
+        )
+
