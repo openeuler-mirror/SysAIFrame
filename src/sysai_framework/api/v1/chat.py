@@ -81,3 +81,10 @@ class ChatMessage(BaseModel):
     content: str
 
 
+class ChatChoice(BaseModel):
+    """Single completion choice"""
+    index: int
+    message: ChatMessage
+    finish_reason: Optional[str] = None
+
+
