@@ -609,3 +609,25 @@ class AdminDBusClient:
             return str(strategy)
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to get load balance strategy: {e}")
+
+    def set_load_balance_strategy(self, strategy: str) -> Tuple[bool, str]:
+        """
+        Set load balance strategy.
+
+        Args:
+            strategy: Strategy name
+
+        Returns:
+            Tuple of (success, message)
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            success, message = admin.SetLoadBalanceStrategy(strategy)
+            return (bool(success), str(message))
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to set load balance strategy: {e}")
