@@ -131,6 +131,16 @@ class ModelRouter:
         """Get model configuration by name"""
         return self.config_manager.get_model_config(model_name)
 
+    def _should_consider_health(self) -> bool:
+        """
+        Check if health status should be considered when selecting models
+
+        Returns:
+            True if health check is enabled (lightweight or actual_request), False otherwise
+        """
+        health_check = self.config_manager.routing_config.health_check
+        return health_check.lightweight_enabled or health_check.actual_request_enabled
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
