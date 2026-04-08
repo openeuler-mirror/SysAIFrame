@@ -484,4 +484,52 @@ class AdminServiceObject(_BaseClass):
                 }
             })
 
+    @_dbus_method(INTERFACE_NAME, 's', 's')
+    def GetHealthStatus(self, model_name: str) -> str:
+        """
+        Get health status for specified model or all models.
+
+        Args:
+            model_name: Model name (empty string for all models)
+
+        Returns:
+            JSON string containing health status information
+        """
+        logger.debug(f"D-Bus GetHealthStatus called for model: {model_name or 'all'}")
+
+        try:
+            from sysai_framework.router import get_router
+
+            router = get_router()
+            stats = router.get_health_statistics()
+
+            if model_name:
+                # Filter for specific model
+                model_instances = [
+                    m for m in stats.get("models", [])
+                    if m.get("name") == model_name
+                ]
+
+                if not model_instances:
+                    return json.dumps({
+                        "error": f"Model '{model_name}' not found",
+                        "available_models": list(set(m.get("name") for m in stats.get("models", [])))
+                    }, ensure_ascii=False)
+
+                result = {
+                    "model_name": model_name,
+                    "total_instances": len(model_instances),
+                    "healthy_instances": sum(1 for m in model_instances if m.get("is_healthy")),
+                    "instances": model_instances
+                }
+            else:
+                # Return all models
+                result = stats
+
+            return json.dumps(result, ensure_ascii=False)
+
+        except Exception as e:
+            logger.error(f"Failed to get health status: {e}", exc_info=True)
+            return json.dumps({"error": f"Failed to get health status: {str(e)}"}, ensure_ascii=False)
+
 
