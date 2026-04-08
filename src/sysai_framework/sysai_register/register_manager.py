@@ -1,0 +1,12 @@
+"""
+Copyright (C) 2025 CTyunOS. All Rights Reserved.
+File: registry/register_manager.py
+Desc: Register Manager for model registration using mDNS/DNS-SD
+Date: 2025-10-22
+Author: Liu Mingran
+"""
+
+import logging
+from typing import Dict, Optional
+
+logger = logging.getLogger(__name__)
