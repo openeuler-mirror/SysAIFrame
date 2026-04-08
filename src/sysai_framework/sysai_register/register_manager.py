@@ -19,3 +19,8 @@ class RegisterManager:
         """Initialize register manager"""
         self._registered_services: Dict[str, Dict] = {}
         logger.info("RegisterManager initialized")
+
+    def start(self):
+        """Start registration service"""
+        logger.info("Starting registration service...")
+        # TODO: Implement zeroconf-based registration
