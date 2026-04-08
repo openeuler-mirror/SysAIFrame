@@ -50,3 +50,11 @@ def cli():
 cli.add_command(model)
 cli.add_command(routing)
 cli.add_command(service)
+
+
+@cli.command()
+@click.option('--config_path', default=DEFAULT_CONFIG_PATH,
+              help=f'Path to configuration file (default: {DEFAULT_CONFIG_PATH})')
+@click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
+def show(config_path: str, as_json: bool):
+    """Show current configuration"""
