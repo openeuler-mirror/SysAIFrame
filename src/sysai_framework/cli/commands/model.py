@@ -135,3 +135,47 @@ def _validate_max_retries(ctx, param, value):
 def model():
     """Model management commands"""
     pass
+
+
+def _add_model_via_dbus(normalized_data: dict, force: bool, set_as_default: bool = False) -> 'OperationResult':
+    """
+    Add model via D-Bus (service must be running).
+
+    Returns:
+        OperationResult with status and data
+    """
+    client = get_dbus_client()
+    return client.add_model(normalized_data, force=force, set_as_default=set_as_default)
+
+
+def _add_model_offline(normalized_data: dict, force: bool, config_path: str, set_as_default: bool = False) -> 'OperationResult':
+    """
+    Add model directly to config file (offline mode).
+
+    Returns:
+        OperationResult with status and data
+    """
+    from sysai_framework.config import ModelConfigManager
+    from sysai_framework.core.status_codes import (
+        OperationResult, CONFIG_NOT_FOUND, CONFIG_PERMISSION_DENIED
+    )
+
+    if not os.path.exists(config_path):
+        return OperationResult.error_result(
+            CONFIG_NOT_FOUND,
+            details={"path": config_path}
+        )
+
+    if not os.access(config_path, os.W_OK):
+        return OperationResult.error_result(
+            CONFIG_PERMISSION_DENIED,
+            details={"path": config_path}
+        )
+
+    manager = ModelConfigManager(config_path=config_path, allow_create_default=False)
+    return manager.add_model(
+        normalized_data,
+        persist=True,
+        force=force,
+        set_as_default=set_as_default
+    )
