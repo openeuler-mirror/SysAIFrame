@@ -118,3 +118,12 @@ class ChatChoiceChunk(BaseModel):
     finish_reason: Optional[str] = None
 
 
+class ChatCompletionChunk(BaseModel):
+    """Chat completion chunk model for streaming - Chat Completion API compatible"""
+    id: str
+    object: str = "chat.completion.chunk"
+    created: int
+    model: str
+    choices: List[ChatChoiceChunk]
+
+
