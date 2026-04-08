@@ -265,4 +265,31 @@ class AdminServiceObject(_BaseClass):
             logger.error(error_msg, exc_info=True)
             return (False, error_msg)
 
+    def _remove_model_from_file(self, instance_id: str) -> None:
+        """Remove model from configuration file"""
+        import os
+        from ruamel.yaml import YAML
+
+        config_path = self.config_manager.config_path
+        if not os.path.exists(config_path):
+            return
+
+        yaml_obj = YAML()
+        yaml_obj.preserve_quotes = True
+
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml_obj.load(f)
+
+        if config and 'models' in config:
+            # Find and remove model by instance_id
+            models = config['models']
+            for i in range(len(models) - 1, -1, -1):
+                if models[i].get('instance_id') == instance_id:
+                    del models[i]
+                    break
+
+            # Write back
+            with open(config_path, 'w', encoding='utf-8') as f:
+                yaml_obj.dump(config, f)
+
 
