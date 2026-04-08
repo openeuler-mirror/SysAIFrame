@@ -590,3 +590,22 @@ class AdminDBusClient:
             return (bool(success), str(message))
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to set runtime mode: {e}")
+
+    def get_load_balance_strategy(self) -> str:
+        """
+        Get current load balance strategy.
+
+        Returns:
+            Strategy string
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            strategy = admin.GetLoadBalanceStrategy()
+            return str(strategy)
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to get load balance strategy: {e}")
