@@ -834,3 +834,30 @@ def _health_check_set_timeout_offline():
     Output.error("Cannot set timeout in offline mode")
     Output.info("Please start the service and try again")
     return 1
+
+
+# Health Check Set-Timeout Command definition
+def _define_health_check_set_timeout_command(health_check_group):
+    """Define and return the health_check set-timeout click command"""
+    @health_check_group.command('set-timeout')
+    @click.argument('seconds', type=int)
+    def health_check_set_timeout(seconds: int):
+        """Set health check timeout in seconds"""
+        if seconds <= 0:
+            Output.error("Timeout must be a positive integer")
+            sys.exit(Output.EXIT_VALIDATION_ERROR)
+
+        def online_mode(client):
+            return _health_check_set_timeout_online(client, seconds)
+        def offline_mode():
+            return _health_check_set_timeout_offline()
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="set health check timeout",
+            require_config_file=False,
+            config_path=None
+        )
+        sys.exit(exit_code)
+    return health_check_set_timeout
