@@ -69,3 +69,31 @@ class Output:
         else:
             # Default
             click.echo(message)
+
+    @staticmethod
+    def table(headers: List[str], rows: List[List[str]]) -> None:
+        """Print data as a formatted table"""
+        if not rows:
+            click.echo("No data to display.")
+            return
+
+        # Calculate column widths
+        col_widths = [len(h) for h in headers]
+        for row in rows:
+            for i, cell in enumerate(row):
+                if i < len(col_widths):
+                    col_widths[i] = max(col_widths[i], len(str(cell)))
+
+        # Print header
+        header_line = " | ".join(
+            h.ljust(col_widths[i]) for i, h in enumerate(headers)
+        )
+        click.echo(header_line)
+        click.echo("-" * len(header_line))
+
+        # Print rows
+        for row in rows:
+            row_line = " | ".join(
+                str(cell).ljust(col_widths[i]) for i, cell in enumerate(row)
+            )
+            click.echo(row_line)
