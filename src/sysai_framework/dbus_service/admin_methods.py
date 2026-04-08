@@ -378,4 +378,58 @@ class AdminServiceObject(_BaseClass):
                 "default_model_instance_id": None
             })
 
+    @_dbus_method(INTERFACE_NAME, 'ss', 'bs')
+    def SetDefaultModel(self, model_name: str, instance_id: str) -> Tuple[bool, str]:
+        """
+        Set default model for routing.
+
+        Args:
+            model_name: Model name to set as default
+            instance_id: Optional specific instance ID (empty string if not specified)
+
+        Returns:
+            (success, message)
+            Message format: "[STATUS:code] message" for new status code system
+        """
+        from sysai_framework.core.status_codes import (
+            encode_status_in_message, SUCCESS,
+            MODEL_NOT_FOUND, VALIDATION_ERROR, INTERNAL_ERROR
+        )
+
+        logger.info(f"D-Bus SetDefaultModel called: model_name={model_name}, instance_id={instance_id}")
+
+        if not self.config_manager:
+            error_msg = encode_status_in_message(VALIDATION_ERROR, "Config manager not available")
+            return (False, error_msg)
+
+        try:
+            # Convert empty string to None
+            instance_id_value = instance_id if instance_id else None
+
+            # Call config manager to set default model
+            result = self.config_manager.set_default_model(
+                model_name=model_name,
+                instance_id=instance_id_value,
+                persist=True,
+                require_file_lock=False  # D-Bus call, already in service process
+            )
+
+            if result.success:
+                logger.info(
+                    f"Default model set via D-Bus: model_name={model_name}, "
+                    f"instance_id={instance_id_value}"
+                )
+                success_msg = encode_status_in_message(SUCCESS, result.get_message())
+                return (True, success_msg)
+            else:
+                # Map error codes - use the status code from result, or INTERNAL_ERROR as fallback
+                status_code = result.status if result.status != SUCCESS else INTERNAL_ERROR
+                error_msg = encode_status_in_message(status_code, result.get_message())
+                return (False, error_msg)
+
+        except Exception as e:
+            error_msg = encode_status_in_message(INTERNAL_ERROR, f"Failed to set default model: {e}")
+            logger.error(error_msg, exc_info=True)
+            return (False, error_msg)
+
 
