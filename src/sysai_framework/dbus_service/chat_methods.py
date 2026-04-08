@@ -305,4 +305,19 @@ class ChatServiceObject(dbus.service.Object if DBUS_AVAILABLE else object):
         # The actual signal emission is handled by dbus-python
         pass
 
+    @dbus.service.signal(
+        dbus_interface=INTERFACE_NAME,
+        signature='sa{sv}'
+    )
+    def StreamDone(self, request_id, usage):
+        """
+        Signal emitted when streaming is complete.
+
+        Args:
+            request_id: Request ID
+            usage: Token usage statistics as variant dict
+        """
+        # This method is called to emit the signal
+        pass
+
 
