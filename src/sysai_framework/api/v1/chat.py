@@ -95,3 +95,13 @@ class UsageInfo(BaseModel):
     total_tokens: int
 
 
+class ChatCompletionResponse(BaseModel):
+    """Chat completion response model - Chat Completion API compatible"""
+    id: str
+    object: str = "chat.completion"
+    created: int
+    model: str
+    choices: List[ChatChoice]
+    usage: UsageInfo
+
+
