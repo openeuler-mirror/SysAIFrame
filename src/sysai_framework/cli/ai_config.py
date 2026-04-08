@@ -26,3 +26,21 @@ from .utils.dbus_client import (
 
 # Default configuration path
 from .constants import DEFAULT_CONFIG_PATH
+
+
+@click.group()
+@click.version_option(version='1.0.0', prog_name='ai-config')
+def cli():
+    """
+    SysAIFrame configuration management tool
+
+    Manage AI model configurations, routing settings, and more.
+
+    \b
+    Examples:
+      ai-config model add mymodel --api https://api.example.com/v1 --api_key sk-xxx
+      ai-config model list
+      ai-config show
+      ai-config validate
+    """
+    pass
