@@ -638,6 +638,30 @@ class ModelRouter:
         }
         yield f"data: {json.dumps(initial_chunk_data, ensure_ascii=False)}\n\n"
 
+        # Simulate streaming content
+        content_parts = [
+            f"This is a mock streaming response from {model_config.name}.",
+            "Your message has been received,",
+            "processing in progress...",
+            "Processing completed!"
+        ]
+
+        for i, part in enumerate(content_parts):
+            await asyncio.sleep(0.2)  # Simulate processing delay
+            chunk_data = {
+                "id": response_id,
+                "object": "chat.completion.chunk",
+                "created": created_time,
+                "model": model_config.name,
+                "choices": [{
+                    "index": 0,
+                    "delta": {"content": part},
+                    "finish_reason": None
+                }]
+            }
+            # Convert to SSE format
+            yield f"data: {json.dumps(chunk_data, ensure_ascii=False)}\n\n"
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
