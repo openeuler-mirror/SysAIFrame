@@ -214,3 +214,42 @@ class AdminDBusClient:
             return None
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to get model: {e}")
+
+    def remove_model(self, instance_id: str) -> 'OperationResult':
+        """
+        Remove a model configuration.
+
+        Args:
+            instance_id: Instance ID of the model to remove
+
+        Returns:
+            OperationResult with status and message
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        from sysai_framework.core.status_codes import (
+            OperationResult, parse_status_from_message, SUCCESS, INTERNAL_ERROR
+        )
+
+        admin = self._get_admin_interface()
+
+        try:
+            success, message = admin.RemoveModel(instance_id)
+
+            # Parse status code from message if present
+            status, pure_message = parse_status_from_message(str(message))
+
+            if success:
+                return OperationResult(
+                    status=status or SUCCESS,
+                    details={"_formatted_message": pure_message}
+                )
+            else:
+                return OperationResult(
+                    status=status or INTERNAL_ERROR,
+                    details={"_formatted_message": pure_message}
+                )
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to remove model: {e}")
