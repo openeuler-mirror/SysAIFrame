@@ -277,3 +277,76 @@ def add(
     else:
         Output.error(result.get_message())
         sys.exit(Output.EXIT_WRITE_FAILED)
+
+
+@model.command()
+@click.option('--config_path', default=DEFAULT_CONFIG_PATH,
+              help=f'Configuration file path (default: {DEFAULT_CONFIG_PATH})')
+@click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
+def list_models(config_path: str, as_json: bool):
+    """
+    List all configured models
+    """
+    def online_mode(client):
+        """Get models via D-Bus"""
+        return client.list_models()
+
+    def offline_mode():
+        """Get models from config file directly"""
+        from sysai_framework.config import ModelConfigManager
+
+        manager = ModelConfigManager(config_path=config_path)
+        models = [
+            {
+                'name': m.name,
+                'instance_id': m.instance_id,
+                'provider': m.provider,
+                'priority': m.priority,
+                'capabilities': m.capabilities,
+                'supports_streaming': m.supports_streaming,
+                'timeout': m.timeout,
+                'max_retries': m.max_retries,
+                'is_healthy': m.is_healthy,
+            }
+            for m in manager.models.values()
+        ]
+        return models
+
+    try:
+        models = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="list models",
+            require_config_file=True,
+            config_path=config_path,
+            silent_offline=True
+        )
+
+        if not models:
+            Output.info("No models configured")
+            sys.exit(Output.EXIT_SUCCESS)
+
+        if as_json:
+            Output.json_output(models)
+        else:
+            headers = ['Name', 'Instance ID', 'Provider', 'Priority', 'Healthy']
+            rows = []
+            for model in models:
+                instance_id = model.get('instance_id', 'auto')
+                if instance_id and len(instance_id) > 16:
+                    instance_id = instance_id[:16] + '...'
+                rows.append([
+                    model.get('name', 'N/A'),
+                    instance_id,
+                    model.get('provider', 'openai_like'),
+                    str(model.get('priority', 1)),
+                    'Yes' if model.get('is_healthy', True) else 'No'
+                ])
+
+            Output.table(headers, rows)
+
+        sys.exit(Output.EXIT_SUCCESS)
+
+    except Exception as e:
+        Output.error(f"Failed to list models: {e}")
+        sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
