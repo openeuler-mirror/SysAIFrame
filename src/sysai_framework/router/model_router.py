@@ -892,6 +892,59 @@ class ModelRouter:
         )
         return fallback_list
 
+    def _calculate_backoff(
+        self,
+        attempt: int,
+        model_config: Optional[ModelConfig] = None,
+        fallback_list: Optional[List[ModelConfig]] = None,
+        current_model_idx: Optional[int] = None,
+        error: Optional[Exception] = None
+    ) -> float:
+        """
+        Calculate smart backoff delay (inspired by LiteLLM)
+
+        Features:
+        - Returns 0 (immediate retry) if healthy alternatives exist
+        - Considers Retry-After header (future enhancement)
+        - Falls back to exponential backoff
+
+        Args:
+            attempt: Current attempt number (0-indexed)
+            model_config: Current model configuration
+            fallback_list: List of all fallback models
+            current_model_idx: Index of current model in fallback list
+            error: Exception that triggered the retry (may contain Retry-After info)
+
+        Returns:
+            Delay in seconds (0 for immediate retry)
+        """
+        retry_config = self.config_manager.routing_config.retry_policy
+
+        # Smart backoff: check if healthy alternatives exist (same model name, different instance)
+        if model_config and fallback_list and current_model_idx is not None:
+            has_healthy_alternatives = any(
+                m.name == model_config.name and
+                m.instance_id != model_config.instance_id and
+                m.is_healthy
+                for m in fallback_list[current_model_idx+1:]
+            )
+
+            if has_healthy_alternatives:
+                logger.debug(
+                    f"Healthy alternatives available for {model_config.name}, "
+                    f"immediate retry (0s delay)"
+                )
+                return 0.0
+
+        # TODO: Check Retry-After header for rate limit errors
+        # if error and isinstance(error, RateLimitError):
+        #     if hasattr(error, 'retry_after'):
+        #         return float(error.retry_after)
+
+        # Normal exponential backoff
+        delay = retry_config.base_delay * (retry_config.backoff_factor ** attempt)
+        return min(delay, retry_config.max_delay)
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
