@@ -22,3 +22,12 @@ logger = logging.getLogger(__name__)
 def routing():
     """Routing configuration management commands"""
     pass
+
+
+# set-default command - parameter validation
+def _set_default_validate_params(name, instance_id):
+    """Validate set-default command parameters"""
+    if not name and not instance_id:
+        Output.error("At least one of --name or --instance_id must be provided")
+        return Output.EXIT_VALIDATION_ERROR
+    return None
