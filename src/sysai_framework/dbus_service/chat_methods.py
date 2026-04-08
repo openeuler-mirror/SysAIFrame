@@ -63,4 +63,45 @@ class ChatServiceObject(dbus.service.Object if DBUS_AVAILABLE else object):
             self.config_manager = None
             self.model_router = None
 
+    @dbus.service.method(
+        dbus_interface=INTERFACE_NAME,
+        in_signature='a{sv}',
+        out_signature='a{sv}'
+    )
+    def ChatCompletion(self, request):
+        """
+        Perform chat completion.
+
+        Args:
+            request: D-Bus variant dict with request parameters
+
+        Returns:
+            D-Bus variant dict with response
+        """
+        try:
+            # Convert D-Bus request to Python dict
+            python_request = request_to_python(request)
+
+            logger.info(f"ChatCompletion request: model={python_request.get('model', 'default')}, "
+                       f"stream={python_request.get('stream', False)}")
+
+            # Check if this is a streaming request
+            is_streaming = python_request.get('stream', False)
+
+            if is_streaming:
+                return self._handle_streaming_request(python_request)
+            else:
+                return self._handle_non_streaming_request(python_request)
+
+        except Exception as e:
+            logger.error(f"ChatCompletion error: {e}", exc_info=True)
+            error_response = {
+                'error': {
+                    'message': str(e),
+                    'type': 'internal_error',
+                    'code': 'dbus_error'
+                }
+            }
+            return response_to_dbus(error_response)
+
 
