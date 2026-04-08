@@ -567,4 +567,40 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to trigger health check: {e}", exc_info=True)
             return (False, f"Failed to trigger health check: {str(e)}")
 
+    @_dbus_method(INTERFACE_NAME, '', 's')
+    def GetHealthCheckConfig(self) -> str:
+        """
+        Get current health check configuration.
+
+        Returns:
+            JSON string containing health check configuration
+        """
+        logger.debug("D-Bus GetHealthCheckConfig called")
+
+        # Check if config_manager is available
+        if not self.config_manager:
+            error_msg = json.dumps({
+                "error": "Config manager not available. Service may be shutting down."
+            }, ensure_ascii=False)
+            logger.error("GetHealthCheckConfig failed: config_manager is None")
+            return error_msg
+
+        try:
+            routing_config = self.config_manager.routing_config
+            health_config = routing_config.health_check
+
+            result = {
+                "lightweight_enabled": health_config.lightweight_enabled,
+                "lightweight_interval": health_config.lightweight_interval,
+                "actual_request_enabled": health_config.actual_request_enabled,
+                "actual_request_interval": health_config.actual_request_interval,
+                "timeout": health_config.timeout
+            }
+
+            return json.dumps(result, ensure_ascii=False)
+
+        except Exception as e:
+            logger.error(f"Failed to get health check config: {e}", exc_info=True)
+            return json.dumps({"error": f"Failed to get health check config: {str(e)}"}, ensure_ascii=False)
+
 
