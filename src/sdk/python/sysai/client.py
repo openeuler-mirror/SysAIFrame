@@ -168,3 +168,46 @@ class SysAIClient:
             request["top_p"] = top_p
 
         return request
+
+    def _handle_api_error(self, error: Dict[str, Any]) -> Exception:
+        """Map API error dictionary to SDK Exception"""
+        error_msg = error.get("message", "Unknown error")
+        error_type = error.get("type", "unknown").lower()
+
+        if "not_found" in error_type:
+            return ModelNotFoundError(error_msg)
+        elif "unavailable" in error_type:
+            return ServiceUnavailableError(error_msg)
+        elif "invalid" in error_type or "validation" in error_type:
+            return InvalidRequestError(error_msg)
+
+        if "[STATUS:404]" in error_msg:
+            return ModelNotFoundError(error_msg)
+        elif "[STATUS:400]" in error_msg:
+            return InvalidRequestError(error_msg)
+        elif "[STATUS:503]" in error_msg:
+            return ServiceUnavailableError(error_msg)
+
+        if "timeout" in error_msg.lower():
+            return SysAITimeoutError(error_msg)
+
+        msg_lower = error_msg.lower()
+        if "not found" in msg_lower:
+            return ModelNotFoundError(error_msg)
+        elif "unavailable" in msg_lower:
+            return ServiceUnavailableError(error_msg)
+        elif "invalid" in msg_lower:
+            return InvalidRequestError(error_msg)
+
+        return ServerError(error_msg)
+
+    def _handle_dbus_error(self, e: Exception) -> Exception:
+        """Map dbus.DBusException to SDK Exception"""
+        if not hasattr(e, "get_dbus_name"):
+            return ServerError(f"D-Bus error: {e}")
+        error_name = e.get_dbus_name()
+        if "ServiceUnknown" in error_name or "NameHasNoOwner" in error_name:
+            return ServiceUnavailableError(f"SysAIFrame service not available: {e}")
+        elif "NoReply" in error_name or "Timeout" in error_name:
+            return SysAITimeoutError(f"Request timeout: {e}")
+        return ServerError(f"D-Bus error: {e}")
