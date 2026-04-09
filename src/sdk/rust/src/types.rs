@@ -75,4 +75,9 @@ impl ChatOptions {
         self.temperature = Some(temperature);
         self
     }
+
+    pub fn max_tokens(mut self, max_tokens: i32) -> Self {
+        self.max_tokens = Some(max_tokens);
+        self
+    }
 }
