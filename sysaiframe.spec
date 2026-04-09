@@ -101,3 +101,57 @@ cd ../..
 install -d -m 0755 %{buildroot}%{_datadir}/sysaiframe/rust-sdk
 cp -a sdk/rust/src %{buildroot}%{_datadir}/sysaiframe/rust-sdk/
 cp sdk/rust/Cargo.toml %{buildroot}%{_datadir}/sysaiframe/rust-sdk/
+
+%post
+# Create working directory
+if [ ! -d /opt/sysaiframe ]; then
+    mkdir -p /opt/sysaiframe
+    chmod 755 /opt/sysaiframe
+fi
+
+# Note: Configuration file (models.yaml) will be automatically created by the service
+# on first startup with empty configuration. Do not copy from example file.
+
+# Ensure configuration directory has correct permissions
+chmod 755 %{_sysconfdir}/sysaiframe
+
+# Ensure log directory has correct permissions
+# Log directory permissions are set during installation
+
+# Reload D-Bus configuration
+systemctl daemon-reload >/dev/null 2>&1 || :
+if [ -f %{_sysconfdir}/dbus-1/system.d/sysaiframe.conf ]; then
+    systemctl reload dbus >/dev/null 2>&1 || :
+fi
+
+# Enable service
+systemctl enable sysaiframe.service >/dev/null 2>&1 || :
+
+# Start service automatically
+# $1 == 1: First installation, start service
+if [ $1 -eq 1 ]; then
+    systemctl start sysaiframe.service >/dev/null 2>&1 || :
+fi
+
+# $1 >= 2: Upgrade, restart if running, otherwise start
+if [ $1 -ge 2 ]; then
+    if systemctl is-active --quiet sysaiframe.service; then
+        systemctl restart sysaiframe.service >/dev/null 2>&1 || :
+    else
+        systemctl start sysaiframe.service >/dev/null 2>&1 || :
+    fi
+fi
+
+%preun
+# Stop service before uninstall
+if [ $1 -eq 0 ]; then
+    systemctl stop sysaiframe.service >/dev/null 2>&1 || :
+    systemctl disable sysaiframe.service >/dev/null 2>&1 || :
+fi
+
+%postun
+# Reload D-Bus configuration after uninstall
+if [ $1 -eq 0 ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || :
+    systemctl reload dbus >/dev/null 2>&1 || :
+fi
