@@ -36,4 +36,9 @@ impl Message {
     pub fn assistant<S: Into<String>>(content: S) -> Self {
         Self::new("assistant", content)
     }
+
+    pub fn with_name<S: Into<String>>(mut self, name: S) -> Self {
+        self.name = Some(name.into());
+        self
+    }
 }
