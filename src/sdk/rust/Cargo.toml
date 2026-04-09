@@ -1,0 +1,26 @@
+[package]
+name = "sysai-sdk"
+version = "0.1.0"
+edition = "2021"
+authors = ["CTyunOS Team <sysai@ctyunos.org>"]
+description = "Rust SDK for SysAIFrame AI Gateway"
+license = "Proprietary"
+repository = "https://github.com/CTyunOS/SysAIFrame"
+keywords = ["ai", "llm", "dbus", "sysaiframe"]
+categories = ["api-bindings"]
+
+[dependencies]
+zbus = "4"
+zvariant = "4"
+tokio = { version = "1", features = ["full"], optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+futures = "0.3"
+thiserror = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full", "rt-multi-thread", "macros"] }
+
+[features]
+default = ["async"]
+async = ["dep:tokio"]
