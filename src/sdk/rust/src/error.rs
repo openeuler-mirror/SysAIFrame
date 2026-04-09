@@ -52,4 +52,8 @@ impl SysAIError {
     pub fn invalid_request<S: Into<String>>(msg: S) -> Self {
         Self::InvalidRequest(msg.into())
     }
+
+    pub fn timeout<S: Into<String>>(msg: S) -> Self {
+        Self::Timeout(msg.into())
+    }
 }
