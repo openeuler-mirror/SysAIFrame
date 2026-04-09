@@ -48,4 +48,8 @@ impl SysAIError {
     pub fn service_unavailable<S: Into<String>>(msg: S) -> Self {
         Self::ServiceUnavailable(msg.into())
     }
+
+    pub fn invalid_request<S: Into<String>>(msg: S) -> Self {
+        Self::InvalidRequest(msg.into())
+    }
 }
