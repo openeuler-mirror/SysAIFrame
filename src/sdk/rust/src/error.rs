@@ -39,3 +39,9 @@ pub enum SysAIError {
     #[error("Variant conversion error: {0}")]
     Variant(#[from] zvariant::Error),
 }
+
+impl SysAIError {
+    pub fn connection<S: Into<String>>(msg: S) -> Self {
+        Self::Connection(msg.into())
+    }
+}
