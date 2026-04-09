@@ -113,3 +113,23 @@ class SysAIClient:
             return dbus.Dictionary(converted, signature='sv')
         else:
             return dbus.String(str(value))
+
+    def _dbus_to_python(self, value: Any) -> Any:
+        """Convert D-Bus value to Python type"""
+        if isinstance(value, dbus.Dictionary):
+            return {self._dbus_to_python(k): self._dbus_to_python(v) for k, v in value.items()}
+        elif isinstance(value, dbus.Array):
+            return [self._dbus_to_python(item) for item in value]
+        elif isinstance(value, dbus.Boolean):
+            return bool(value)
+        elif isinstance(value, (dbus.Int16, dbus.Int32, dbus.Int64,
+                               dbus.UInt16, dbus.UInt32, dbus.UInt64)):
+            return int(value)
+        elif isinstance(value, dbus.Double):
+            return float(value)
+        elif isinstance(value, (dbus.String, dbus.ObjectPath, dbus.Signature)):
+            s = str(value)
+            return None if s == "" else s
+        elif isinstance(value, dbus.Byte):
+            return int(value)
+        return value
