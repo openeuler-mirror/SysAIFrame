@@ -32,4 +32,8 @@ impl Message {
     pub fn system<S: Into<String>>(content: S) -> Self {
         Self::new("system", content)
     }
+
+    pub fn assistant<S: Into<String>>(content: S) -> Self {
+        Self::new("assistant", content)
+    }
 }
