@@ -60,4 +60,8 @@ impl SysAIError {
     pub fn model_not_found<S: Into<String>>(msg: S) -> Self {
         Self::ModelNotFound(msg.into())
     }
+
+    pub fn server<S: Into<String>>(msg: S) -> Self {
+        Self::Server(msg.into())
+    }
 }
