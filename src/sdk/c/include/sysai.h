@@ -54,4 +54,15 @@ typedef struct sysai_response sysai_response_t;
 /* Streaming callback */
 typedef void (*sysai_stream_cb)(const char *content, int is_done, void *user_data);
 
+/* ============================================================================
+ * Client Management
+ * ========================================================================= */
+
+/**
+ * Create a new SysAI client connected to system bus
+ *
+ * @return Client handle or NULL on error
+ */
+SYSAI_API sysai_client_t *sysai_client_new(void);
+
 #endif /* SYSAI_H */
