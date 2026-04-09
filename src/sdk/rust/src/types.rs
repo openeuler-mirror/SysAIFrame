@@ -24,4 +24,8 @@ impl Message {
             name: None,
         }
     }
+
+    pub fn user<S: Into<String>>(content: S) -> Self {
+        Self::new("user", content)
+    }
 }
