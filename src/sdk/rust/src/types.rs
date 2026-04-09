@@ -60,3 +60,9 @@ pub struct ChatOptions {
     pub max_tokens: Option<i32>,
     pub top_p: Option<f64>,
 }
+
+impl ChatOptions {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
