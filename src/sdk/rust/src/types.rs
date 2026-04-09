@@ -132,3 +132,9 @@ fn unwrap_zvariant(v: serde_json::Value) -> serde_json::Value {
         other => other,
     }
 }
+
+fn extract_string(dict: &HashMap<String, OwnedValue>, key: &str) -> Option<String> {
+    let v = dict.get(key)?;
+    let json = to_json(v);
+    json.as_str().filter(|s| !s.is_empty()).map(|s| s.to_string())
+}
