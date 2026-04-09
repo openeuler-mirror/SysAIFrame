@@ -65,4 +65,11 @@ typedef void (*sysai_stream_cb)(const char *content, int is_done, void *user_dat
  */
 SYSAI_API sysai_client_t *sysai_client_new(void);
 
+/**
+ * Create a new SysAI client connected to session bus
+ *
+ * @return Client handle or NULL on error
+ */
+SYSAI_API sysai_client_t *sysai_client_new_session(void);
+
 #endif /* SYSAI_H */
