@@ -254,3 +254,57 @@ class SysAIClient:
             raise
         except Exception as e:
             raise ServerError(f"Unexpected error: {e}")
+
+    def chat_stream(
+        self,
+        messages: List[Union[Dict[str, str], ChatMessage]],
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        top_p: Optional[float] = None,
+        timeout: int = 60,
+    ) -> Iterator[ChatChunk]:
+        """Send a chat completion request with streaming."""
+        if not self.interface:
+            raise SysAIConnectionError("Not connected to D-Bus")
+
+        try:
+            request = self._build_request(
+                messages=messages,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                top_p=top_p,
+                stream=True
+            )
+
+            dbus_request = self._python_to_dbus(request)
+
+            logger.debug(f"Sending streaming chat request: model={model}")
+
+            dbus_response = self.interface.ChatCompletion(dbus_request)
+            response = self._dbus_to_python(dbus_response)
+
+            if "error" in response:
+                raise self._handle_api_error(response["error"])
+
+            request_id = response.get("id")
+            actual_model = response.get("model", model or "default")
+
+            if not request_id:
+                raise ServerError("No request_id in streaming response")
+
+            logger.debug(f"Got streaming request_id: {request_id}")
+
+            stream_iter = StreamIterator(self.bus, request_id, actual_model, timeout)
+            stream_iter.start()
+
+            return stream_iter
+
+        except dbus.DBusException as e:
+            raise self._handle_dbus_error(e)
+        except (SysAIConnectionError, ServiceUnavailableError, InvalidRequestError,
+                ModelNotFoundError, ServerError, SysAITimeoutError):
+            raise
+        except Exception as e:
+            raise ServerError(f"Unexpected error: {e}")
