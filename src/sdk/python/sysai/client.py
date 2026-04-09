@@ -211,3 +211,46 @@ class SysAIClient:
         elif "NoReply" in error_name or "Timeout" in error_name:
             return SysAITimeoutError(f"Request timeout: {e}")
         return ServerError(f"D-Bus error: {e}")
+
+    def chat(
+        self,
+        messages: List[Union[Dict[str, str], ChatMessage]],
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        top_p: Optional[float] = None,
+    ) -> ChatResponse:
+        """Send a chat completion request (non-streaming)."""
+        if not self.interface:
+            raise SysAIConnectionError("Not connected to D-Bus")
+
+        try:
+            request = self._build_request(
+                messages=messages,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                top_p=top_p,
+                stream=False
+            )
+
+            dbus_request = self._python_to_dbus(request)
+
+            logger.debug(f"Sending chat request: model={model}")
+
+            dbus_response = self.interface.ChatCompletion(dbus_request)
+
+            response = self._dbus_to_python(dbus_response)
+
+            if "error" in response:
+                raise self._handle_api_error(response["error"])
+
+            return ChatResponse.from_dict(response)
+
+        except dbus.DBusException as e:
+            raise self._handle_dbus_error(e)
+        except (SysAIConnectionError, ServiceUnavailableError, InvalidRequestError,
+                ModelNotFoundError, ServerError, SysAITimeoutError):
+            raise
+        except Exception as e:
+            raise ServerError(f"Unexpected error: {e}")
