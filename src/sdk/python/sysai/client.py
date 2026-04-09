@@ -88,3 +88,28 @@ class SysAIClient:
             raise SysAIConnectionError(f"Failed to connect to D-Bus: {e}")
         except Exception as e:
             raise SysAIConnectionError(f"Unexpected error connecting to D-Bus: {e}")
+
+    def _python_to_dbus(self, value: Any) -> Any:
+        """Convert Python value to D-Bus type"""
+        if value is None:
+            return dbus.String("")
+        elif isinstance(value, bool):
+            return dbus.Boolean(value)
+        elif isinstance(value, int):
+            return dbus.Int64(value)
+        elif isinstance(value, float):
+            return dbus.Double(value)
+        elif isinstance(value, str):
+            return dbus.String(value)
+        elif isinstance(value, list):
+            if not value:
+                return dbus.Array([], signature='v')
+            converted = [self._python_to_dbus(item) for item in value]
+            return dbus.Array(converted, signature='v')
+        elif isinstance(value, dict):
+            converted = {}
+            for k, v in value.items():
+                converted[str(k)] = self._python_to_dbus(v)
+            return dbus.Dictionary(converted, signature='sv')
+        else:
+            return dbus.String(str(value))
