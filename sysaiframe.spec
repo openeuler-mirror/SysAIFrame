@@ -155,3 +155,50 @@ if [ $1 -eq 0 ]; then
     systemctl daemon-reload >/dev/null 2>&1 || :
     systemctl reload dbus >/dev/null 2>&1 || :
 fi
+
+%files
+%defattr(-,root,root,-)
+%{python3_sitelib}/sysai_framework/
+%{python3_sitelib}/build/lib/sysai_framework/
+%{python3_sitelib}/sysai_framework-*.egg-info/
+# Bundled dependencies
+%{python3_sitelib}/fastapi/
+%{python3_sitelib}/fastapi-*.dist-info/
+%{python3_sitelib}/bin/fastapi
+%{python3_sitelib}/starlette/
+%{python3_sitelib}/starlette-*.dist-info/
+%{python3_sitelib}/uvicorn/
+%{python3_sitelib}/uvicorn-*.dist-info/
+%{python3_sitelib}/bin/uvicorn
+%{python3_sitelib}/python_multipart/
+%{python3_sitelib}/python_multipart-*.dist-info/
+%{python3_sitelib}/multipart/
+%{python3_sitelib}/annotated_doc/
+%{python3_sitelib}/annotated_doc-*.dist-info/
+%{_bindir}/ai-config
+%{_bindir}/ai-discover
+%config(noreplace) %{_sysconfdir}/sysaiframe/models.yaml.example
+%config(noreplace) %{_sysconfdir}/dbus-1/system.d/sysaiframe.conf
+%config(noreplace) %{_unitdir}/sysaiframe.service
+%dir %attr(0755,root,root) /opt/sysaiframe
+%dir %attr(0755,root,root) /var/log/sysaiframe
+
+%files devel
+%defattr(-,root,root,-)
+%{_libdir}/libsysai.so*
+%{_includedir}/sysai.h
+%{_libdir}/pkgconfig/sysai.pc
+%{_libdir}/cmake/sysai/
+
+%files python-devel
+%defattr(-,root,root,-)
+%{python3_sitelib}/sysai/
+%{python3_sitelib}/sysai-*.dist-info/
+
+%files rust-devel
+%defattr(-,root,root,-)
+%{_datadir}/sysaiframe/rust-sdk/
+
+%changelog
+* Sun Nov 23 2025 SysAIFrame Team <sysaiframe@ctyunos.com> - 1.0.0-1
+- Initial release of SysAIFrame Gateway
