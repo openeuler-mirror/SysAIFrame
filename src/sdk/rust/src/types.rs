@@ -105,6 +105,44 @@ impl Default for Usage {
     }
 }
 
+/// Chat response
+#[derive(Debug, Clone)]
+pub struct ChatResponse {
+    pub id: String,
+    pub model: String,
+    content: String,
+    pub finish_reason: Option<String>,
+    pub usage: Usage,
+}
+
+impl ChatResponse {
+    /// Get response content (first choice)
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+
+    /// Parse from D-Bus variant dictionary
+    pub(crate) fn from_variant_dict(dict: HashMap<String, OwnedValue>) -> crate::Result<Self> {
+        let id = extract_string(&dict, "id").unwrap_or_default();
+        let model = extract_string(&dict, "model").unwrap_or_default();
+
+        // Extract content from choices[0].message.content
+        let content = extract_content_from_choices(&dict).unwrap_or_default();
+        let finish_reason = extract_finish_reason(&dict);
+
+        // Extract usage
+        let usage = extract_usage(&dict);
+
+        Ok(Self {
+            id,
+            model,
+            content,
+            finish_reason,
+            usage,
+        })
+    }
+}
+
 // Helper: convert OwnedValue to clean serde_json::Value (unwrap zvariant wrappers)
 pub(crate) fn to_json(v: &OwnedValue) -> serde_json::Value {
     let raw = serde_json::to_value(v).unwrap_or(serde_json::Value::Null);
