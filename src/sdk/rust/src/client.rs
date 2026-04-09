@@ -152,3 +152,36 @@ impl SysAIClient {
         Ok(status)
     }
 }
+
+// Helper function to build request dictionary
+fn build_request_dict(
+    messages: &[Message],
+    options: Option<ChatOptions>,
+    stream: bool,
+) -> Result<HashMap<String, OwnedValue>> {
+    let mut request = HashMap::new();
+
+    let messages_vec: Vec<OwnedValue> = messages
+        .iter()
+        .map(|m| Value::new(m.to_variant_dict()).try_to_owned().unwrap())
+        .collect();
+    request.insert("messages".to_string(), Value::new(messages_vec).try_to_owned().unwrap());
+    request.insert("stream".to_string(), Value::new(stream).try_to_owned().unwrap());
+
+    if let Some(opts) = options {
+        if let Some(model) = opts.model {
+            request.insert("model".to_string(), Value::new(model).try_to_owned().unwrap());
+        }
+        if let Some(temperature) = opts.temperature {
+            request.insert("temperature".to_string(), Value::new(temperature).try_to_owned().unwrap());
+        }
+        if let Some(max_tokens) = opts.max_tokens {
+            request.insert("max_tokens".to_string(), Value::new(max_tokens as i64).try_to_owned().unwrap());
+        }
+        if let Some(top_p) = opts.top_p {
+            request.insert("top_p".to_string(), Value::new(top_p).try_to_owned().unwrap());
+        }
+    }
+
+    Ok(request)
+}
