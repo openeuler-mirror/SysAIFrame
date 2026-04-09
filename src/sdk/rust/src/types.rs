@@ -171,3 +171,20 @@ fn extract_finish_reason(dict: &HashMap<String, OwnedValue>) -> Option<String> {
         .as_str()?;
     if reason.is_empty() { None } else { Some(reason.to_string()) }
 }
+
+fn extract_usage(dict: &HashMap<String, OwnedValue>) -> Usage {
+    let v = match dict.get("usage") {
+        Some(v) => v,
+        None => return Usage::default(),
+    };
+    let json = to_json(v);
+    let obj = match json.as_object() {
+        Some(o) => o,
+        None => return Usage::default(),
+    };
+    Usage {
+        prompt_tokens: obj.get("prompt_tokens").and_then(|v| v.as_i64()).unwrap_or(0) as i32,
+        completion_tokens: obj.get("completion_tokens").and_then(|v| v.as_i64()).unwrap_or(0) as i32,
+        total_tokens: obj.get("total_tokens").and_then(|v| v.as_i64()).unwrap_or(0) as i32,
+    }
+}
