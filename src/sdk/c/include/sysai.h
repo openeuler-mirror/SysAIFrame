@@ -72,4 +72,27 @@ SYSAI_API sysai_client_t *sysai_client_new(void);
  */
 SYSAI_API sysai_client_t *sysai_client_new_session(void);
 
+/**
+ * Free a SysAI client
+ *
+ * @param client Client handle
+ */
+SYSAI_API void sysai_client_free(sysai_client_t *client);
+
+/**
+ * Get last error message
+ *
+ * @param client Client handle
+ * @return Error message string or NULL
+ */
+SYSAI_API const char *sysai_last_error(sysai_client_t *client);
+
+/**
+ * Get last error code
+ *
+ * @param client Client handle
+ * @return Error code
+ */
+SYSAI_API int sysai_last_error_code(sysai_client_t *client);
+
 #endif /* SYSAI_H */
