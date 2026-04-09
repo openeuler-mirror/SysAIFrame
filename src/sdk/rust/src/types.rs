@@ -149,3 +149,15 @@ fn extract_content_from_choices(dict: &HashMap<String, OwnedValue>) -> Option<St
         .as_str()?;
     if content.is_empty() { None } else { Some(content.to_string()) }
 }
+
+#[allow(dead_code)]
+fn extract_delta_content(dict: &HashMap<String, OwnedValue>) -> Option<String> {
+    let choices = dict.get("choices")?;
+    let json = to_json(choices);
+    let content = json.as_array()?
+        .first()?
+        .get("delta")?
+        .get("content")?
+        .as_str()?;
+    if content.is_empty() { None } else { Some(content.to_string()) }
+}
