@@ -201,4 +201,78 @@ SYSAI_API int sysai_chat_stream(
     void *user_data
 );
 
+/* ============================================================================
+ * Response Access
+ * ========================================================================= */
+
+/**
+ * Get response content
+ *
+ * @param resp Response handle
+ * @return Content string
+ */
+SYSAI_API const char *sysai_response_get_content(const sysai_response_t *resp);
+
+/**
+ * Get response model
+ *
+ * @param resp Response handle
+ * @return Model name
+ */
+SYSAI_API const char *sysai_response_get_model(const sysai_response_t *resp);
+
+/**
+ * Get response ID
+ *
+ * @param resp Response handle
+ * @return Response ID
+ */
+SYSAI_API const char *sysai_response_get_id(const sysai_response_t *resp);
+
+/**
+ * Get total tokens used
+ *
+ * @param resp Response handle
+ * @return Total tokens
+ */
+SYSAI_API int sysai_response_get_total_tokens(const sysai_response_t *resp);
+
+/**
+ * Get finish reason
+ *
+ * @param resp Response handle
+ * @return Finish reason or NULL
+ */
+SYSAI_API const char *sysai_response_get_finish_reason(const sysai_response_t *resp);
+
+/**
+ * Free response
+ *
+ * @param resp Response handle
+ */
+SYSAI_API void sysai_response_free(sysai_response_t *resp);
+
+/* ============================================================================
+ * Model Management
+ * ========================================================================= */
+
+/**
+ * List available models
+ *
+ * @param client Client handle
+ * @return NULL-terminated array of model names, or NULL on error
+ */
+SYSAI_API char **sysai_list_models(sysai_client_t *client);
+
+/**
+ * Free models array
+ *
+ * @param models Models array from sysai_list_models
+ */
+SYSAI_API void sysai_free_models(char **models);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* SYSAI_H */
