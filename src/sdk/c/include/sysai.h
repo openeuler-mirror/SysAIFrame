@@ -95,4 +95,24 @@ SYSAI_API const char *sysai_last_error(sysai_client_t *client);
  */
 SYSAI_API int sysai_last_error_code(sysai_client_t *client);
 
+/* ============================================================================
+ * Message Construction
+ * ========================================================================= */
+
+/**
+ * Create a new message
+ *
+ * @param role Message role ("user", "system", "assistant")
+ * @param content Message content
+ * @return Message handle or NULL on error
+ */
+SYSAI_API sysai_message_t *sysai_message_new(const char *role, const char *content);
+
+/**
+ * Free a message
+ *
+ * @param message Message handle
+ */
+SYSAI_API void sysai_message_free(sysai_message_t *message);
+
 #endif /* SYSAI_H */
