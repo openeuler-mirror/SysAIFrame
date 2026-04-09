@@ -65,4 +65,9 @@ impl ChatOptions {
     pub fn new() -> Self {
         Self::default()
     }
+
+    pub fn model<S: Into<String>>(mut self, model: S) -> Self {
+        self.model = Some(model.into());
+        self
+    }
 }
