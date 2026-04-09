@@ -25,4 +25,11 @@ impl SysAIClient {
             .map_err(|e| SysAIError::connection(format!("Failed to connect to system bus: {}", e)))?;
         Ok(Self { connection })
     }
+
+    /// Create a new client connected to session bus
+    pub fn with_session_bus() -> Result<Self> {
+        let connection = Connection::session()
+            .map_err(|e| SysAIError::connection(format!("Failed to connect to session bus: {}", e)))?;
+        Ok(Self { connection })
+    }
 }
