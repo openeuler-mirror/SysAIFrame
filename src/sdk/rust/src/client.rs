@@ -119,4 +119,20 @@ impl SysAIClient {
 
         crate::streaming::StreamIterator::new(self.connection.clone(), request_id, model)
     }
+
+    /// Get list of available models
+    pub fn list_models(&self) -> Result<Vec<String>> {
+        let proxy = Proxy::new(
+            &self.connection, BUS_NAME, OBJECT_PATH, INTERFACE,
+        ).map_err(|e| SysAIError::connection(format!("Failed to create proxy: {}", e)))?;
+
+        let reply = proxy
+            .call_method("GetChatModels", &())
+            .map_err(|e| SysAIError::Server(format!("Failed to list models: {}", e)))?;
+
+        let models: Vec<String> = reply.body().deserialize()
+            .map_err(|e| SysAIError::Server(format!("Failed to deserialize models: {}", e)))?;
+
+        Ok(models)
+    }
 }
