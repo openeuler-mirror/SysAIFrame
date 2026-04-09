@@ -70,4 +70,9 @@ impl ChatOptions {
         self.model = Some(model.into());
         self
     }
+
+    pub fn temperature(mut self, temperature: f64) -> Self {
+        self.temperature = Some(temperature);
+        self
+    }
 }
