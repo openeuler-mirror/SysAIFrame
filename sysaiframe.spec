@@ -64,3 +64,40 @@ Summary: Rust development library for SysAIFrame AI Gateway
 %description rust-devel
 Rust SDK source (sysai-sdk crate) for developing applications that
 communicate with SysAIFrame AI Gateway via D-Bus.
+
+%prep
+%autosetup -n %{name}-%{version} -p1
+# Move src contents to top level for build
+mv src/* src/.[!.]* . 2>/dev/null || true
+rmdir src
+
+%build
+# Build main package using RPM standard macro
+%py3_build
+
+# Build C SDK
+mkdir -p sdk/c/build && cd sdk/c/build
+cmake .. -DCMAKE_INSTALL_PREFIX=%{_prefix} \
+         -DCMAKE_INSTALL_LIBDIR=%{_libdir} \
+         -DBUILD_EXAMPLES=OFF
+make %{?_smp_mflags}
+cd ../../..
+
+%install
+# Install main package using RPM standard macro
+%py3_install
+
+# Install C SDK
+cd sdk/c/build
+make install DESTDIR=%{buildroot}
+cd ../../..
+
+# Install Python SDK
+cd sdk/python
+%{__python3} -m pip install --no-deps --root=%{buildroot} --prefix=%{_prefix} .
+cd ../..
+
+# Install Rust SDK source
+install -d -m 0755 %{buildroot}%{_datadir}/sysaiframe/rust-sdk
+cp -a sdk/rust/src %{buildroot}%{_datadir}/sysaiframe/rust-sdk/
+cp sdk/rust/Cargo.toml %{buildroot}%{_datadir}/sysaiframe/rust-sdk/
