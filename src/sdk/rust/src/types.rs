@@ -41,4 +41,14 @@ impl Message {
         self.name = Some(name.into());
         self
     }
+
+    pub(crate) fn to_variant_dict(&self) -> HashMap<String, OwnedValue> {
+        let mut map = HashMap::new();
+        map.insert("role".to_string(), Value::new(&self.role).try_to_owned().unwrap());
+        map.insert("content".to_string(), Value::new(&self.content).try_to_owned().unwrap());
+        if let Some(ref name) = self.name {
+            map.insert("name".to_string(), Value::new(name).try_to_owned().unwrap());
+        }
+        map
+    }
 }
