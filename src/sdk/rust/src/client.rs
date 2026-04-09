@@ -32,4 +32,51 @@ impl SysAIClient {
             .map_err(|e| SysAIError::connection(format!("Failed to connect to session bus: {}", e)))?;
         Ok(Self { connection })
     }
+
+    /// Send a chat completion request (non-streaming)
+    pub fn chat(&self, messages: &[Message], options: Option<ChatOptions>) -> Result<ChatResponse> {
+        let request = build_request_dict(messages, options, false)?;
+
+        let proxy = Proxy::new(
+            &self.connection, BUS_NAME, OBJECT_PATH, INTERFACE,
+        ).map_err(|e| SysAIError::connection(format!("Failed to create proxy: {}", e)))?;
+
+        let reply = proxy
+            .call_method("ChatCompletion", &(request,))
+            .map_err(|e| {
+                let msg = e.to_string();
+                if msg.contains("ServiceUnknown") {
+                    SysAIError::service_unavailable("SysAIFrame service not available")
+                } else if msg.contains("Timeout") {
+                    SysAIError::timeout("Request timeout")
+                } else {
+                    SysAIError::Server(format!("D-Bus call failed: {}", e))
+                }
+            })?;
+
+        let response: HashMap<String, OwnedValue> = reply.body().deserialize()
+            .map_err(|e| SysAIError::Server(format!("Failed to deserialize response: {}", e)))?;
+
+        // Check for errors in response
+        if let Some(error) = response.get("error") {
+            let error_json = crate::types::to_json(error);
+            if let Some(obj) = error_json.as_object() {
+                let message = obj.get("message")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Unknown error");
+
+                if message.to_lowercase().contains("not found") {
+                    return Err(SysAIError::model_not_found(message));
+                } else if message.to_lowercase().contains("unavailable") {
+                    return Err(SysAIError::service_unavailable(message));
+                } else if message.to_lowercase().contains("invalid") {
+                    return Err(SysAIError::invalid_request(message));
+                } else {
+                    return Err(SysAIError::server(message));
+                }
+            }
+        }
+
+        ChatResponse::from_variant_dict(response)
+    }
 }
