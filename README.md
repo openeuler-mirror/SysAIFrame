@@ -1,23 +1,54 @@
 # SysAIFrame
 
 #### 介绍
-Focusing on AI frontiers, enhancing the operating system's overall support for AI applications.
+SysAIFrame 是 CTyunOS 操作系统级 AI 服务统一框架，提供统一的 AI 模型调用接口。
 
 #### 软件架构
-软件架构说明
 
+SysAIFrame 采用分层架构设计：
+- **API 层**：提供 OpenAI 兼容的 REST API
+- **路由层**：智能模型选择和负载均衡
+- **LLM 适配层**：支持多种模型提供商
+- **D-Bus 服务层**：提供系统级 D-Bus 接口
+
+#### 主要特性
+
+- OpenAI API 兼容接口
+- 支持多种 LLM 提供商（DeepSeek、GPT、MoonShot 等）
+- 智能路由和负载均衡
+- D-Bus 系统服务接口
+- 健康检查和自动故障转移
+- 多语言 SDK 支持（Python、Rust、C）
 
 #### 安装教程
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+1. 安装 RPM 包：`rpm -ivh sysaiframe-1.0.0-1.el8.x86_64.rpm`
+2. 配置模型：`cp /etc/sysaiframe/models.yaml.example /etc/sysaiframe/models.yaml`
+3. 修改配置文件中的 endpoint 和 api_key
+4. 启动服务：`systemctl start sysaiframe`
 
 #### 使用说明
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+1. API 调用示例（curl）：
+```bash
+curl http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "deepseek-chat", "messages": [{"role": "user", "content": "Hello"}]}'
+```
+
+2. Python SDK 使用：
+```python
+from sysai import SysAIClient
+client = SysAIClient()
+response = client.chat(messages=[{"role": "user", "content": "Hello"}])
+print(response.content)
+```
+
+3. CLI 工具：
+```bash
+ai-config model list
+ai-config model add my-model --api http://localhost:8000/v1 --api_key sk-xxx
+```
 
 #### 参与贡献
 
@@ -26,12 +57,6 @@ Focusing on AI frontiers, enhancing the operating system's overall support for A
 3.  提交代码
 4.  新建 Pull Request
 
+#### 许可证
 
-#### 特技
-
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+MulanPSL-2.0
