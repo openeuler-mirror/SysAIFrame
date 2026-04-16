@@ -41,3 +41,9 @@ from sysai_framework.core.request_processor import (
     RequestContext,
     RequestProcessor
 )
+
+from sysai_framework.core.chat_processor import (
+    ChatCompletionProcessor,
+    ImageGenerationProcessor,
+    EmbeddingProcessor
+)
