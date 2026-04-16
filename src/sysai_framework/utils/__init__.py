@@ -5,3 +5,5 @@ Desc: Utils module for SysAIFrame Gateway
 Date: 2025-11-17
 Author: Liu Mingran
 """
+
+from .provider_utils import get_llm_provider
