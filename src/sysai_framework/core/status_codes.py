@@ -47,3 +47,8 @@ class StatusCode:
     def is_success(self) -> bool:
         """Whether this is a success status"""
         return self.level == StatusLevel.SUCCESS
+
+    @property
+    def is_error(self) -> bool:
+        """Whether this is an error status (includes ERROR and CRITICAL)"""
+        return self.level in (StatusLevel.ERROR, StatusLevel.CRITICAL)
