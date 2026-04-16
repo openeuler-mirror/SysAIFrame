@@ -5,3 +5,5 @@ Desc: Base classes for LLM providers
 Date: 2025-11-17
 Author: Liu Mingran
 """
+
+from .transformation import BaseConfig, BaseLLMException
