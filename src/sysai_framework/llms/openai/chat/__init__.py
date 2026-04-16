@@ -5,3 +5,5 @@ Desc: OpenAI chat completion implementation
 Date: 2025-11-17
 Author: Liu Mingran
 """
+
+from .gpt_transformation import OpenAIGPTConfig
