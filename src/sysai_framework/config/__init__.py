@@ -19,3 +19,23 @@ from sysai_framework.config.model_config import (
     SPECIAL_MODEL_DEFAULT,
     SPECIAL_MODEL_MOCK
 )
+from sysai_framework.config.cors_config import (
+    Config,
+    config
+)
+
+__all__ = [
+    "ModelConfig",
+    "ModelConfigManager",
+    "get_config_manager",
+    "reload_config_manager",
+    "CAPABILITY_GENERAL",
+    "CAPABILITY_CODE",
+    "CAPABILITY_ANALYSIS",
+    "CAPABILITY_CREATIVE",
+    "CAPABILITY_PREFIX",
+    "SPECIAL_MODEL_DEFAULT",
+    "SPECIAL_MODEL_MOCK",
+    "Config",
+    "config"
+]
