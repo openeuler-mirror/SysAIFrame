@@ -52,3 +52,8 @@ class StatusCode:
     def is_error(self) -> bool:
         """Whether this is an error status (includes ERROR and CRITICAL)"""
         return self.level in (StatusLevel.ERROR, StatusLevel.CRITICAL)
+
+    @property
+    def is_warning(self) -> bool:
+        """Whether this is a warning status"""
+        return self.level == StatusLevel.WARNING
