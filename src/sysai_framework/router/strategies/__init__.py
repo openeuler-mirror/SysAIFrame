@@ -9,3 +9,4 @@ Author: Liu Mingran
 from .round_robin import RoundRobinStrategy
 from .weighted import WeightedStrategy
 from .least_busy import LeastBusyStrategy
+from .lowest_latency import LowestLatencyStrategy
