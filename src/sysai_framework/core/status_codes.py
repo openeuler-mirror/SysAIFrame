@@ -92,3 +92,8 @@ DELETED = StatusCode(
     3, "DELETED", "Resource deleted successfully",
     StatusLevel.SUCCESS, 200, 0
 )
+
+CONFIG_RELOADED = StatusCode(
+    4, "CONFIG_RELOADED", "Configuration reloaded successfully",
+    StatusLevel.SUCCESS, 200, 0
+)
