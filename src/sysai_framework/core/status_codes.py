@@ -82,3 +82,8 @@ CREATED = StatusCode(
     1, "CREATED", "Resource created successfully",
     StatusLevel.SUCCESS, 201, 0
 )
+
+UPDATED = StatusCode(
+    2, "UPDATED", "Resource updated successfully",
+    StatusLevel.SUCCESS, 200, 0
+)
