@@ -87,3 +87,8 @@ UPDATED = StatusCode(
     2, "UPDATED", "Resource updated successfully",
     StatusLevel.SUCCESS, 200, 0
 )
+
+DELETED = StatusCode(
+    3, "DELETED", "Resource deleted successfully",
+    StatusLevel.SUCCESS, 200, 0
+)
