@@ -67,4 +67,16 @@ class PreCallHook(BaseHook):
     - Model alias resolution
     """
 
-    pass
+    async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute pre-call hook
+
+        Available context:
+        - data: Request data (model, messages, etc.)
+        - request_id: Unique request ID
+        - fastapi_request: Original FastAPI request
+        - user_id: User ID (if authenticated)
+        """
+        logger.debug(f"[{context.get('request_id')}] Executing pre-call hook: {self.name}")
+
+        return context
