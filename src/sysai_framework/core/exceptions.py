@@ -269,3 +269,17 @@ async def handle_exception_with_logging(
         TIMEOUT_ERROR, CONNECTION_ERROR, NETWORK_ERROR,
         VALIDATION_ERROR, INTERNAL_ERROR
     )
+
+    extra_context = {}
+    if request_id:
+        extra_context['request_id'] = request_id
+    if model:
+        extra_context['model'] = model
+    if user_id:
+        extra_context['user_id'] = user_id
+
+    logger.error(
+        f"Request failed: {str(e)}",
+        exc_info=True,
+        extra=extra_context
+    )
