@@ -191,3 +191,15 @@ class ModelNotFoundError(CompatibleException):
             message=MODEL_NOT_FOUND.message_template.format(model=model_name),
             param="model"
         )
+
+
+class InvalidRequestError(CompatibleException, NonRetriableError):
+    """Invalid request error - non-retriable"""
+
+    def __init__(self, message: str, param: Optional[str] = None):
+        CompatibleException.__init__(
+            self,
+            status_obj=INVALID_PARAMETER,
+            message=message,
+            param=param
+        )
