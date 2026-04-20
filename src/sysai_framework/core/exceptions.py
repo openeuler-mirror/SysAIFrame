@@ -88,3 +88,29 @@ class CompatibleException(HTTPException):
             status_obj.http_status,
             "internal_error"
         )
+
+    def __init__(
+        self,
+        status_code: Optional[int] = None,
+        message: Optional[str] = None,
+        error_type: str = "invalid_request_error",
+        param: Optional[str] = None,
+        code: Optional[Union[str, int]] = None,
+        status_obj: Optional[StatusCode] = None
+    ):
+        """
+        Initialize Chat Completion API compatible exception
+
+        Supports two modes:
+        1. Traditional mode: Pass status_code, message, error_type, etc.
+        2. StatusCode mode: Pass status_obj, and optionally override message/param
+
+        Args:
+            status_code: HTTP status code (optional if status_obj provided)
+            message: Error message (optional if status_obj provided)
+            error_type: Type of error (ignored if status_obj provided)
+            param: Parameter that caused the error
+            code: Error code (string or int, optional if status_obj provided)
+            status_obj: StatusCode object (new recommended way)
+        """
+        self.status_obj = status_obj
