@@ -148,3 +148,8 @@ CONFIG_NOT_FOUND = StatusCode(
     3001, "CONFIG_NOT_FOUND", "Configuration file not found: {path}",
     StatusLevel.ERROR, 404, 1
 )
+
+CONFIG_INVALID = StatusCode(
+    3002, "CONFIG_INVALID", "Invalid configuration: {details}",
+    StatusLevel.ERROR, 400, 3
+)
