@@ -372,3 +372,18 @@ class OperationResult:
             OperationResult instance
         """
         return cls(status=status or SUCCESS, data=data, details=details)
+
+    @classmethod
+    def error_result(cls, status: StatusCode, details: Dict[str, Any] = None, data: Any = None) -> "OperationResult":
+        """
+        Convenience method to create an error result
+
+        Args:
+            status: Error status code
+            details: Additional details (for message formatting)
+            data: Optional data (some errors may need to return partial data)
+
+        Returns:
+            OperationResult instance
+        """
+        return cls(status=status, details=details, data=data)
