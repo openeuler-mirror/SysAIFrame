@@ -246,3 +246,10 @@ INVALID_PARAMETER = StatusCode(
     7003, "INVALID_PARAMETER", "Invalid parameter: {param}",
     StatusLevel.ERROR, 400, 3
 )
+
+
+# ========== Stream Processing Errors (8000-8999) ==========
+STREAM_ERROR = StatusCode(
+    8001, "STREAM_ERROR", "Stream processing error: {details}",
+    StatusLevel.ERROR, 500, 5
+)
