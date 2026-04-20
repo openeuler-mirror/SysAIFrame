@@ -114,3 +114,10 @@ NO_CHANGE = StatusCode(
     1003, "NO_CHANGE", "No changes needed",
     StatusLevel.INFO, 200, 0
 )
+
+
+# ========== Warning Status (2000-2999) ==========
+DEPRECATION_WARNING = StatusCode(
+    2001, "DEPRECATION_WARNING", "Feature deprecated: {details}",
+    StatusLevel.WARNING, 200, 0
+)
