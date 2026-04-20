@@ -155,3 +155,28 @@ class CompatibleException(HTTPException):
             504: "gateway_timeout"
         }
         return code_map.get(status_code, "unknown_error")
+
+    @classmethod
+    def from_status_code(
+        cls,
+        status_obj: StatusCode,
+        param: Optional[str] = None,
+        **format_kwargs
+    ) -> "CompatibleException":
+        """
+        Create exception from StatusCode object with message formatting
+
+        Args:
+            status_obj: StatusCode object
+            param: Parameter that caused the error
+            **format_kwargs: Arguments for message template formatting
+
+        Returns:
+            CompatibleException instance
+        """
+        try:
+            message = status_obj.message_template.format(**format_kwargs)
+        except KeyError:
+            message = status_obj.message_template
+
+        return cls(status_obj=status_obj, message=message, param=param)
