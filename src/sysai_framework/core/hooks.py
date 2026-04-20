@@ -177,4 +177,16 @@ class FailureHook(BaseHook):
     - Error metrics
     """
 
-    pass
+    async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute failure hook
+
+        Available context:
+        - data: Original request data
+        - error: Exception object
+        - request_id: Unique request ID
+        - model: Model name
+        """
+        logger.debug(f"[{context.get('request_id')}] Executing failure hook: {self.name}")
+
+        return context
