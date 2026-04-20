@@ -357,3 +357,18 @@ class OperationResult:
             Tuple of (success: bool, message: str, data: Any)
         """
         return (self.success, self.get_message(), self.data)
+
+    @classmethod
+    def success_result(cls, data: Any = None, status: StatusCode = None, details: Dict[str, Any] = None) -> "OperationResult":
+        """
+        Convenience method to create a success result
+
+        Args:
+            data: Return data
+            status: Status code (defaults to SUCCESS)
+            details: Additional details
+
+        Returns:
+            OperationResult instance
+        """
+        return cls(status=status or SUCCESS, data=data, details=details)
