@@ -121,3 +121,8 @@ DEPRECATION_WARNING = StatusCode(
     2001, "DEPRECATION_WARNING", "Feature deprecated: {details}",
     StatusLevel.WARNING, 200, 0
 )
+
+CONFIG_FALLBACK = StatusCode(
+    2002, "CONFIG_FALLBACK", "Config loading failed, using default configuration",
+    StatusLevel.WARNING, 200, 0
+)
