@@ -14,4 +14,8 @@ from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
 
-pass
+
+class BaseHook(ABC):
+    """Base hook class - all hooks must inherit from this"""
+
+    pass
