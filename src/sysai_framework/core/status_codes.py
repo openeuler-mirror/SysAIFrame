@@ -163,3 +163,8 @@ CONFIG_LOCKED = StatusCode(
     3004, "CONFIG_LOCKED", "Configuration file is locked",
     StatusLevel.ERROR, 423, 6
 )
+
+CONFIG_WRITE_FAILED = StatusCode(
+    3005, "CONFIG_WRITE_FAILED", "Failed to write configuration: {details}",
+    StatusLevel.ERROR, 500, 5
+)
