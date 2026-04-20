@@ -53,3 +53,18 @@ class BaseHook(ABC):
     def enable(self):
         """Enable this hook"""
         self.enabled = True
+
+
+class PreCallHook(BaseHook):
+    """
+    Pre-call hook - executed before request is sent to backend
+
+    Use cases:
+    - Request parameter validation
+    - Add metadata to request
+    - Content filtering
+    - Permission checking
+    - Model alias resolution
+    """
+
+    pass
