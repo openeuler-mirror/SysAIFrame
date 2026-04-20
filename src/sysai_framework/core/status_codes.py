@@ -253,3 +253,8 @@ STREAM_ERROR = StatusCode(
     8001, "STREAM_ERROR", "Stream processing error: {details}",
     StatusLevel.ERROR, 500, 5
 )
+
+STREAM_INTERRUPTED = StatusCode(
+    8002, "STREAM_INTERRUPTED", "Stream interrupted",
+    StatusLevel.ERROR, 499, 5
+)
