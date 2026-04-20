@@ -158,3 +158,8 @@ CONFIG_PERMISSION_DENIED = StatusCode(
     3003, "CONFIG_PERMISSION_DENIED", "Permission denied: {path}",
     StatusLevel.ERROR, 403, 2
 )
+
+CONFIG_LOCKED = StatusCode(
+    3004, "CONFIG_LOCKED", "Configuration file is locked",
+    StatusLevel.ERROR, 423, 6
+)
