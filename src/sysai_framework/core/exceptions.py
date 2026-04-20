@@ -31,3 +31,9 @@ class RetriableError(ModelError):
 class NonRetriableError(ModelError):
     """Non-retriable error - should not retry"""
     pass
+
+
+class AllModelsFailed(ModelError):
+    """All models failed after trying all fallback options"""
+
+    pass
