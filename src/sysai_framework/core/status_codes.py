@@ -168,3 +168,10 @@ CONFIG_WRITE_FAILED = StatusCode(
     3005, "CONFIG_WRITE_FAILED", "Failed to write configuration: {details}",
     StatusLevel.ERROR, 500, 5
 )
+
+
+# ========== Model Errors (4000-4999) ==========
+MODEL_NOT_FOUND = StatusCode(
+    4001, "MODEL_NOT_FOUND", "Model not found: {model}",
+    StatusLevel.ERROR, 404, 3
+)
