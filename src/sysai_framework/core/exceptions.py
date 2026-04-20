@@ -283,3 +283,17 @@ async def handle_exception_with_logging(
         exc_info=True,
         extra=extra_context
     )
+
+    if isinstance(e, CompatibleException):
+        return e
+    elif isinstance(e, RetriableError):
+        error_msg = str(e) if str(e) else "Service temporarily unavailable"
+        return ServiceUnavailableError(error_msg)
+    elif isinstance(e, NonRetriableError):
+        error_str = str(e).lower()
+        if any(keyword in error_str for keyword in ["invalid", "validation", "missing", "required"]):
+            error_msg = str(e) if str(e) else "Invalid request"
+            return InvalidRequestError(error_msg)
+        else:
+            error_msg = str(e) if str(e) else "Service error"
+            return ServiceUnavailableError(error_msg)
