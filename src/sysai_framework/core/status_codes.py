@@ -126,3 +126,8 @@ CONFIG_FALLBACK = StatusCode(
     2002, "CONFIG_FALLBACK", "Config loading failed, using default configuration",
     StatusLevel.WARNING, 200, 0
 )
+
+MODEL_UNHEALTHY = StatusCode(
+    2003, "MODEL_UNHEALTHY", "Model unhealthy: {model}",
+    StatusLevel.WARNING, 200, 0
+)
