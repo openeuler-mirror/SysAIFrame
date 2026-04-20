@@ -348,3 +348,12 @@ class OperationResult:
         if self.data is not None:
             result["data"] = self.data
         return result
+
+    def to_tuple(self) -> tuple:
+        """
+        Convert to traditional tuple format (for backward compatibility)
+
+        Returns:
+            Tuple of (success: bool, message: str, data: Any)
+        """
+        return (self.success, self.get_message(), self.data)
