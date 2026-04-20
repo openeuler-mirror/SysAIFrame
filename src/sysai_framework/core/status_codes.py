@@ -153,3 +153,8 @@ CONFIG_INVALID = StatusCode(
     3002, "CONFIG_INVALID", "Invalid configuration: {details}",
     StatusLevel.ERROR, 400, 3
 )
+
+CONFIG_PERMISSION_DENIED = StatusCode(
+    3003, "CONFIG_PERMISSION_DENIED", "Permission denied: {path}",
+    StatusLevel.ERROR, 403, 2
+)
