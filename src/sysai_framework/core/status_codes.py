@@ -463,3 +463,21 @@ def get_status_by_name(name: str) -> Optional[StatusCode]:
         pass
 
     return None
+
+def list_all_status_codes() -> Dict[int, StatusCode]:
+    """
+    List all defined status codes
+
+    Returns:
+        Dictionary with status code numbers as keys and StatusCode objects as values
+    """
+    import sys
+    current_module = sys.modules[__name__]
+
+    result = {}
+    for name in dir(current_module):
+        obj = getattr(current_module, name)
+        if isinstance(obj, StatusCode):
+            result[obj.code] = obj
+
+    return result
