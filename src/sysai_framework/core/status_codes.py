@@ -197,3 +197,8 @@ CONNECTION_ERROR = StatusCode(
     5001, "CONNECTION_ERROR", "Connection error: {details}",
     StatusLevel.ERROR, 503, 5
 )
+
+TIMEOUT_ERROR = StatusCode(
+    5002, "TIMEOUT_ERROR", "Request timeout: {details}",
+    StatusLevel.ERROR, 504, 6
+)
