@@ -307,3 +307,8 @@ class OperationResult:
     def has_warning(self) -> bool:
         """Whether there is a warning"""
         return self.status.is_warning
+
+    @property
+    def has_info(self) -> bool:
+        """Whether this is an info status"""
+        return self.status.is_info
