@@ -94,4 +94,16 @@ class DuringCallHook(BaseHook):
     - Async notifications
     """
 
-    pass
+    async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute during-call hook (runs in parallel with main request)
+
+        Available context:
+        - data: Request data
+        - request_id: Unique request ID
+        - model: Model name
+        - user_id: User ID
+        """
+        logger.debug(f"[{context.get('request_id')}] Executing during-call hook: {self.name}")
+
+        return context
