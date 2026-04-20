@@ -107,3 +107,15 @@ class DuringCallHook(BaseHook):
         logger.debug(f"[{context.get('request_id')}] Executing during-call hook: {self.name}")
 
         return context
+
+    async def _check_content_safety(self, content: str) -> bool:
+        """
+        Check content safety (placeholder)
+
+        Args:
+            content: Text content to check
+
+        Returns:
+            True if content passes safety check, False otherwise
+        """
+        return True
