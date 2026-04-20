@@ -309,3 +309,10 @@ async def handle_exception_with_logging(
     elif isinstance(e, KeyError):
         error_msg = f"Missing required field: {str(e)}"
         return InvalidRequestError(error_msg, param=str(e))
+
+    error_str = str(e).lower()
+    error_type_str = type(e).__name__.lower()
+
+    if isinstance(e, (asyncio.TimeoutError, TimeoutError)) or "timeout" in error_str:
+        error_msg = str(e) if str(e) else "Connection timeout"
+        return TimeoutError(error_msg)
