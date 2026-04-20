@@ -109,3 +109,8 @@ PARTIAL_SUCCESS = StatusCode(
     1002, "PARTIAL_SUCCESS", "Partial success: {details}",
     StatusLevel.INFO, 207, 0
 )
+
+NO_CHANGE = StatusCode(
+    1003, "NO_CHANGE", "No changes needed",
+    StatusLevel.INFO, 200, 0
+)
