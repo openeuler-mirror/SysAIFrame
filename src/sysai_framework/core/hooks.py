@@ -164,3 +164,17 @@ class PostCallHook(BaseHook):
             f"completion={usage.get('completion_tokens', 0)}, "
             f"total={usage.get('total_tokens', 0)}"
         )
+
+
+class FailureHook(BaseHook):
+    """
+    Failure hook - executed when request fails
+
+    Use cases:
+    - Error logging
+    - Alert notifications
+    - Fallback logic
+    - Error metrics
+    """
+
+    pass
