@@ -149,3 +149,18 @@ class PostCallHook(BaseHook):
         logger.debug(f"[{context.get('request_id')}] Executing post-call hook: {self.name}")
 
         return context
+
+    async def _log_token_usage(self, request_id: str, usage: dict):
+        """
+        Log token usage (placeholder)
+
+        Args:
+            request_id: Request ID
+            usage: Token usage dictionary
+        """
+        logger.info(
+            f"[{request_id}] Token usage: "
+            f"prompt={usage.get('prompt_tokens', 0)}, "
+            f"completion={usage.get('completion_tokens', 0)}, "
+            f"total={usage.get('total_tokens', 0)}"
+        )
