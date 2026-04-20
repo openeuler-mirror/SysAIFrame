@@ -175,3 +175,8 @@ MODEL_NOT_FOUND = StatusCode(
     4001, "MODEL_NOT_FOUND", "Model not found: {model}",
     StatusLevel.ERROR, 404, 3
 )
+
+MODEL_ALREADY_EXISTS = StatusCode(
+    4002, "MODEL_ALREADY_EXISTS", "Model already exists: {instance_id}",
+    StatusLevel.ERROR, 409, 4
+)
