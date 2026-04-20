@@ -136,3 +136,8 @@ SERVICE_DEGRADED = StatusCode(
     2004, "SERVICE_DEGRADED", "Service running in degraded mode: {reason}",
     StatusLevel.WARNING, 503, 0
 )
+
+FORCE_OVERWRITE = StatusCode(
+    2005, "FORCE_OVERWRITE", "Force overwriting existing resource",
+    StatusLevel.WARNING, 200, 0
+)
