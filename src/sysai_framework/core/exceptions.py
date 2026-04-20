@@ -139,3 +139,19 @@ class CompatibleException(HTTPException):
             detail["error"]["code_name"] = status_obj.name
 
         super().__init__(status_code=http_status, detail=detail)
+
+    @staticmethod
+    def _get_error_code(status_code: int) -> str:
+        """Get error code from HTTP status code (legacy support)"""
+        code_map = {
+            400: "invalid_request",
+            401: "unauthorized",
+            403: "forbidden",
+            404: "not_found",
+            429: "rate_limit_exceeded",
+            500: "internal_error",
+            502: "bad_gateway",
+            503: "service_unavailable",
+            504: "gateway_timeout"
+        }
+        return code_map.get(status_code, "unknown_error")
