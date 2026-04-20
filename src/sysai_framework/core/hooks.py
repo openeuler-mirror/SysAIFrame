@@ -119,3 +119,19 @@ class DuringCallHook(BaseHook):
             True if content passes safety check, False otherwise
         """
         return True
+
+
+class PostCallHook(BaseHook):
+    """
+    Post-call hook - executed after receiving response from backend
+
+    Use cases:
+    - Response filtering/modification
+    - Logging and auditing
+    - Billing/cost calculation
+    - Caching response
+    - Metrics collection
+    - Success notifications
+    """
+
+    pass
