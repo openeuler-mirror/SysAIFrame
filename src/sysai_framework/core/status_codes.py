@@ -505,3 +505,17 @@ def parse_status_from_message(message: str) -> tuple[Optional[StatusCode], str]:
         return (status, pure_message)
 
     return (None, message)
+
+
+def encode_status_in_message(status: StatusCode, message: str) -> str:
+    """
+    Encode status code in message string (for DBus and other scenarios requiring string passing)
+
+    Args:
+        status: Status code object
+        message: Message content
+
+    Returns:
+        Encoded message string in format "[STATUS:code] message"
+    """
+    return f"[STATUS:{status.code}] {message}"
