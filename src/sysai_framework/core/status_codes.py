@@ -302,3 +302,8 @@ class OperationResult:
     def failed(self) -> bool:
         """Whether the operation failed (error or critical error)"""
         return self.status.is_error
+
+    @property
+    def has_warning(self) -> bool:
+        """Whether there is a warning"""
+        return self.status.is_warning
