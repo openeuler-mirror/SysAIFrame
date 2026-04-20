@@ -190,3 +190,14 @@ class FailureHook(BaseHook):
         logger.debug(f"[{context.get('request_id')}] Executing failure hook: {self.name}")
 
         return context
+
+
+class HookManager:
+    """
+    Hook manager - manages and executes all hooks
+
+    This is the central component for the hook system, allowing
+    registration and execution of hooks at different lifecycle stages.
+    """
+
+    pass
