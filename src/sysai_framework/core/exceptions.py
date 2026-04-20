@@ -203,3 +203,15 @@ class InvalidRequestError(CompatibleException, NonRetriableError):
             message=message,
             param=param
         )
+
+
+class AuthenticationError(CompatibleException, NonRetriableError):
+    """Authentication error - non-retriable"""
+
+    def __init__(self, message: str = "Invalid authentication credentials"):
+        CompatibleException.__init__(
+            self,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            message=message,
+            error_type="authentication_error"
+        )
