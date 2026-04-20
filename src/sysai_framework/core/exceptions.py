@@ -114,3 +114,14 @@ class CompatibleException(HTTPException):
             status_obj: StatusCode object (new recommended way)
         """
         self.status_obj = status_obj
+
+        if status_obj:
+            http_status = status_obj.http_status
+            error_message = message or status_obj.message_template
+            error_code = code or status_obj.code
+            error_type_value = self._get_error_type_from_status_code(status_obj)
+        else:
+            http_status = status_code or 500
+            error_message = message or "An error occurred"
+            error_code = code or self._get_error_code(http_status)
+            error_type_value = error_type
