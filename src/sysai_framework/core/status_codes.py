@@ -224,3 +224,8 @@ SERVICE_NOT_RUNNING = StatusCode(
     6002, "SERVICE_NOT_RUNNING", "Service not running",
     StatusLevel.ERROR, 503, 1
 )
+
+DBUS_CALL_FAILED = StatusCode(
+    6003, "DBUS_CALL_FAILED", "D-Bus call failed: {details}",
+    StatusLevel.ERROR, 500, 5
+)
