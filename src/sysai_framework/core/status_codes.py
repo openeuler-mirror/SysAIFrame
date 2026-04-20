@@ -190,3 +190,10 @@ MODEL_UNAVAILABLE = StatusCode(
     4004, "MODEL_UNAVAILABLE", "Model unavailable: {model}",
     StatusLevel.ERROR, 503, 5
 )
+
+
+# ========== Connection and Network Errors (5000-5999) ==========
+CONNECTION_ERROR = StatusCode(
+    5001, "CONNECTION_ERROR", "Connection error: {details}",
+    StatusLevel.ERROR, 503, 5
+)
