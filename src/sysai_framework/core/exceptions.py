@@ -125,3 +125,17 @@ class CompatibleException(HTTPException):
             error_message = message or "An error occurred"
             error_code = code or self._get_error_code(http_status)
             error_type_value = error_type
+
+        detail = {
+            "error": {
+                "message": error_message,
+                "type": error_type_value,
+                "param": param,
+                "code": error_code
+            }
+        }
+
+        if status_obj:
+            detail["error"]["code_name"] = status_obj.name
+
+        super().__init__(status_code=http_status, detail=detail)
