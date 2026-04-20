@@ -26,3 +26,8 @@ class ModelError(Exception):
 class RetriableError(ModelError):
     """Retriable error - can retry the operation"""
     pass
+
+
+class NonRetriableError(ModelError):
+    """Non-retriable error - should not retry"""
+    pass
