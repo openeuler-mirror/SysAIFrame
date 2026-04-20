@@ -275,3 +275,22 @@ UNKNOWN_ERROR = StatusCode(
     9999, "UNKNOWN_ERROR", "Unknown error: {details}",
     StatusLevel.CRITICAL, 500, 1
 )
+
+
+@dataclass
+class OperationResult:
+    """
+    Operation result wrapper class - unified wrapper for all operation results
+
+    Used to replace traditional (bool, str, data) tuple return values, providing clearer semantics and type safety.
+
+    Attributes:
+        status: Status code object
+        data: Return data (result on success, e.g., ModelConfig object)
+        details: Details dictionary (parameters for message formatting)
+    """
+    status: StatusCode
+    data: Optional[Any] = None
+    details: Optional[Dict[str, Any]] = None
+
+    pass
