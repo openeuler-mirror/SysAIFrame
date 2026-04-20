@@ -134,4 +134,18 @@ class PostCallHook(BaseHook):
     - Success notifications
     """
 
-    pass
+    async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute post-call hook
+
+        Available context:
+        - data: Original request data
+        - response: Backend response
+        - request_id: Unique request ID
+        - duration_ms: Request duration
+        - model: Model name
+        - user_id: User ID
+        """
+        logger.debug(f"[{context.get('request_id')}] Executing post-call hook: {self.name}")
+
+        return context
