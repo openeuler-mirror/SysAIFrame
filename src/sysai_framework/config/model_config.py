@@ -49,3 +49,9 @@ class UnhealthyReason(Enum):
     NONE = "none"                          # Healthy status
     LIGHTWEIGHT_CHECK_FAILED = "lightweight"  # Lightweight check failed
     ACTUAL_REQUEST_FAILED = "actual_request"  # Actual request failed
+
+
+@dataclass
+class ValidationMessage:
+    """Validation message with level (error or warning)"""
+    pass
