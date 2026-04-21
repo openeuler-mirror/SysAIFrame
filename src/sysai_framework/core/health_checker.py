@@ -665,7 +665,30 @@ class HealthChecker:
 
         This method runs in a separate thread and performs periodic lightweight health checks.
         """
-        pass
+        logger.debug("Background lightweight health check loop started")
+
+        while self._lightweight_running:
+            try:
+                # Get current configuration interval
+                lightweight_interval = self._get_lightweight_interval()
+
+                # Execute lightweight checks
+                if self._is_lightweight_enabled():
+                    self._check_all_models_lightweight()
+
+                # Interruptible sleep (supports config hot updates)
+                if self._lightweight_config_event.wait(timeout=lightweight_interval):
+                    # Config has been updated, immediately use new config
+                    self._lightweight_config_event.clear()
+                    logger.debug("Lightweight health check config updated, applying new settings")
+
+            except Exception as e:
+                logger.error(f"Error in lightweight background health check loop: {e}", exc_info=True)
+                # Sleep briefly before retrying
+                time.sleep(5)
+
+        logger.debug("Background lightweight health check loop stopped")
+
 
 
 
