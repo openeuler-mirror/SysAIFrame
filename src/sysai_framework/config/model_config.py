@@ -139,3 +139,6 @@ class ModelConfig:
     consecutive_successes: int = 0
     health_check_enabled: bool = True
     unhealthy_reason: UnhealthyReason = field(default=UnhealthyReason.NONE)
+
+    # Fine-grained lock for thread safety
+    _health_lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
