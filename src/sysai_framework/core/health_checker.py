@@ -389,7 +389,32 @@ class HealthChecker:
             model_config: Model configuration
             reason: Unhealthy reason
         """
-        pass
+        model_config.is_healthy = False
+        model_config.unhealthy_reason = reason
+
+        # Ensure connection_health=False when reason is LIGHTWEIGHT_CHECK_FAILED
+        if reason == UnhealthyReason.LIGHTWEIGHT_CHECK_FAILED:
+            model_config.connection_health = False
+
+        # Update Prometheus metrics
+        if METRICS_AVAILABLE:
+            model_healthy_status.labels(
+                model=model_config.name,
+                instance_id=model_config.instance_id
+            ).set(0)
+
+            # Encode unhealthy reason as number
+            reason_code = 0
+            if reason == UnhealthyReason.LIGHTWEIGHT_CHECK_FAILED:
+                reason_code = 1
+            elif reason == UnhealthyReason.ACTUAL_REQUEST_FAILED:
+                reason_code = 2
+
+            model_unhealthy_reason.labels(
+                model=model_config.name,
+                instance_id=model_config.instance_id
+            ).set(reason_code)
+
 
 
 
