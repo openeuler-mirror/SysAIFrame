@@ -367,3 +367,19 @@ class HookManager:
             "post_call": len([h for h in self.post_call_hooks if h.enabled]),
             "failure": len([h for h in self.failure_hooks if h.enabled]),
         }
+
+# Singleton instance for global hook manager
+_global_hook_manager: Optional[HookManager] = None
+
+
+def get_hook_manager() -> HookManager:
+    """
+    Get the global hook manager instance
+
+    Returns:
+        Global HookManager singleton
+    """
+    global _global_hook_manager
+    if _global_hook_manager is None:
+        _global_hook_manager = HookManager()
+    return _global_hook_manager
