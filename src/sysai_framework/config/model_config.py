@@ -99,3 +99,10 @@ class LoadBalanceConfig:
 class RuntimeConfig:
     """Runtime mode configuration"""
     mode: str = "default"  # default | load-balance
+    load_balance: LoadBalanceConfig = field(default_factory=LoadBalanceConfig)
+
+
+@dataclass
+class RoutingConfig:
+    """Routing configuration"""
+    pass
