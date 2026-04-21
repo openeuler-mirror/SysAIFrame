@@ -68,3 +68,4 @@ class HealthCheckConfig:
     lightweight_interval: int = 300  # seconds
     actual_request_enabled: bool = False  # Default disabled to avoid API costs
     actual_request_interval: int = 1200  # seconds
+    timeout: int = 10  # seconds
