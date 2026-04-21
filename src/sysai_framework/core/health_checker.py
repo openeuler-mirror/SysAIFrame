@@ -175,4 +175,78 @@ class HealthChecker:
             error_msg: Error message
             check_type: Check type ("lightweight" or "actual_request")
         """
-        pass
+        # Update metrics
+        if METRICS_AVAILABLE:
+            health_check_failure.labels(model=model_config.name, check_type=check_type).inc()
+
+        emit_signal: Optional[Tuple[str, str, bool, str]] = None
+        model_name = model_config.name
+        instance_id = str(model_config.instance_id)
+
+        with model_config._health_lock:
+            model_config.consecutive_failures += 1
+            model_config.consecutive_successes = 0  # Reset success count
+            model_config.last_health_check = datetime.now()
+
+            # Update Prometheus gauges
+            if METRICS_AVAILABLE:
+                model_consecutive_failures.labels(
+                    model=model_config.name,
+                    instance_id=model_config.instance_id
+                ).set(model_config.consecutive_failures)
+                model_consecutive_successes.labels(
+                    model=model_config.name,
+                    instance_id=model_config.instance_id
+                ).set(model_config.consecutive_successes)
+
+            # Handle failure based on check type
+            if check_type == "lightweight":
+                # If lightweight check is disabled, don't update connection_health
+                if not self._is_lightweight_enabled():
+                    logger.debug(
+                        f"Lightweight check failed for {model_config.name}, "
+                        f"but lightweight check is disabled, skipping connection_health update"
+                    )
+                    return
+
+                # Lightweight check failure: use threshold before marking unhealthy
+                if model_config.consecutive_failures >= LIGHTWEIGHT_FAILURE_THRESHOLD:
+                    # Mark connection_health as False, which forces is_healthy=False
+                    model_config.connection_health = False
+                    if model_config.is_healthy:
+                        reason = UnhealthyReason.LIGHTWEIGHT_CHECK_FAILED
+                        self._mark_unhealthy_internal(model_config, reason)
+                        logger.error(
+                            f"Model {model_config.name} marked as unhealthy "
+                            f"(check_type={check_type}, reason={reason.value}, error={error_msg})"
+                        )
+                        emit_signal = (model_name, instance_id, False, reason.value)
+                    else:
+                        # Already unhealthy, but update reason if needed
+                        if model_config.unhealthy_reason != UnhealthyReason.LIGHTWEIGHT_CHECK_FAILED:
+                            model_config.unhealthy_reason = UnhealthyReason.LIGHTWEIGHT_CHECK_FAILED
+                else:
+                    # Not enough failures yet, just log
+                    logger.debug(
+                        f"Model {model_config.name} lightweight check failed "
+                        f"({model_config.consecutive_failures}/{LIGHTWEIGHT_FAILURE_THRESHOLD}), "
+                        f"not marking unhealthy yet"
+                    )
+            else:
+                # Actual request failure: mark unhealthy immediately (if was healthy)
+                if model_config.is_healthy and model_config.connection_health:
+                    reason = UnhealthyReason.ACTUAL_REQUEST_FAILED
+                    self._mark_unhealthy_internal(model_config, reason)
+                    logger.error(
+                        f"Model {model_config.name} marked as unhealthy "
+                        f"(check_type={check_type}, reason={reason.value}, error={error_msg})"
+                    )
+                    emit_signal = (model_name, instance_id, False, reason.value)
+                elif not model_config.connection_health:
+                    # Connection health is False, so is_healthy should already be False
+                    pass
+
+        # Emit outside lock to avoid blocking health state updates / API reads
+        if emit_signal:
+            self._enqueue_health_changed_signal(*emit_signal)
+
