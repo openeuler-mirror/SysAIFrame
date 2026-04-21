@@ -63,4 +63,11 @@ class HealthChecker:
     - Dual health flags: connection_health (connection layer) and is_healthy (overall)
     """
 
-    pass
+    def __init__(self, config_manager: 'ModelConfigManager'):
+        """
+        Initialize health checker
+
+        Args:
+            config_manager: Model configuration manager instance
+        """
+        self.config_manager = config_manager
