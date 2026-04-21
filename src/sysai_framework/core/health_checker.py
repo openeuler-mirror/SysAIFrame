@@ -341,6 +341,24 @@ class HealthChecker:
             reason
         )
 
+    def _enqueue_health_changed_signal(
+        self,
+        model_name: str,
+        instance_id: str,
+        is_healthy: bool,
+        reason: str
+    ) -> None:
+        """Enqueue health-changed signal for async dispatch (drop if queue is full)."""
+        try:
+            self._signal_queue.put_nowait((model_name, instance_id, is_healthy, reason))
+        except queue.Full:
+            logger.debug(
+                "Health signal queue full, dropping signal: "
+                f"model={model_name}, instance_id={instance_id}, healthy={is_healthy}, reason={reason}"
+            )
+        except Exception as e:
+            logger.debug(f"Failed to enqueue health changed signal: {e}")
+
 
 
 
