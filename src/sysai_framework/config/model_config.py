@@ -130,3 +130,4 @@ class ModelConfig:
     supports_streaming: bool = True
     timeout: int = 30
     max_retries: int = 3
+    is_healthy: bool = True
