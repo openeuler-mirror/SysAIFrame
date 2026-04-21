@@ -275,4 +275,13 @@ class HealthChecker:
                 reason.value
             )
 
+    def mark_healthy(self, model_config: 'ModelConfig'):
+        """
+        Immediately mark as healthy (recovery)
+
+        Args:
+            model_config: Model configuration
+        """
+        pass
+
 
