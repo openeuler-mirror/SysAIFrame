@@ -149,3 +149,6 @@ class ModelConfig:
         # Support legacy 'endpoint' field by mapping it to 'api_base'
         if self.endpoint and not self.api_base:
             self.api_base = self.endpoint
+        # Generate instance_id if not provided
+        if not self.instance_id:
+            self.instance_id = self._generate_instance_id()
