@@ -259,5 +259,20 @@ class HealthChecker:
             model_config: Model configuration
             reason: Unhealthy reason
         """
-        pass
+        with model_config._health_lock:
+            was_healthy = model_config.is_healthy
+            # If reason is LIGHTWEIGHT_CHECK_FAILED, also set connection_health=False
+            if reason == UnhealthyReason.LIGHTWEIGHT_CHECK_FAILED:
+                model_config.connection_health = False
+            self._mark_unhealthy_internal(model_config, reason)
+
+        # Emit D-Bus signal outside lock if status changed
+        if was_healthy:
+            self._enqueue_health_changed_signal(
+                model_config.name,
+                str(model_config.instance_id),
+                False,
+                reason.value
+            )
+
 
