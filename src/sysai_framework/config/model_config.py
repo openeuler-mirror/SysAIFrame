@@ -131,3 +131,6 @@ class ModelConfig:
     timeout: int = 30
     max_retries: int = 3
     is_healthy: bool = True
+
+    # Health status fields (managed by HealthChecker)
+    connection_health: bool = True  # Lightweight check (HTTP HEAD) health status
