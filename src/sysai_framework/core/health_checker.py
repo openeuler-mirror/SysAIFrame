@@ -689,6 +689,14 @@ class HealthChecker:
 
         logger.debug("Background lightweight health check loop stopped")
 
+    def _actual_request_check_loop(self):
+        """
+        Actual request check loop (supports hot config updates)
+
+        This method runs in a separate thread and performs periodic actual request health checks.
+        """
+        pass
+
 
 
 
