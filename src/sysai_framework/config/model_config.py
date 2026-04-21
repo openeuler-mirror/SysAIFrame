@@ -146,3 +146,6 @@ class ModelConfig:
     def __post_init__(self):
         if self.capabilities is None:
             self.capabilities = [CAPABILITY_GENERAL]  # Default to general capability
+        # Support legacy 'endpoint' field by mapping it to 'api_base'
+        if self.endpoint and not self.api_base:
+            self.api_base = self.endpoint
