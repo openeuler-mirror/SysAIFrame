@@ -216,3 +216,5 @@ class HookManager:
         Args:
             hook: PreCallHook instance
         """
+        self.pre_call_hooks.append(hook)
+        logger.debug(f"Registered pre-call hook: {hook.name}")
