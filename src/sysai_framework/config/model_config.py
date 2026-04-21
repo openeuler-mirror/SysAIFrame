@@ -125,3 +125,4 @@ class ModelConfig:
     api_key: Optional[str] = None   # API key
     endpoint: Optional[str] = None  # Legacy field, use api_base instead
     priority: int = 1
+    weight: int = 1  # Load balance weight (used in weighted strategy)
