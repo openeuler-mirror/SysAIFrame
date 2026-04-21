@@ -162,3 +162,7 @@ class ModelConfig:
         This ensures the same configuration always generates the same instance_id
         """
         parts = [self.name]
+        if self.api_base:
+            parts.append(self.api_base)
+        if self.api_key:
+            parts.append(self.api_key)
