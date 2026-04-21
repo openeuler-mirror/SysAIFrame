@@ -107,3 +107,4 @@ class RoutingConfig:
     """Routing configuration"""
     default_model: Optional[str] = None
     default_model_instance_id: Optional[str] = None
+    health_check: HealthCheckConfig = field(default_factory=HealthCheckConfig)
