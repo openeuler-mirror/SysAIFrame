@@ -839,6 +839,40 @@ class HealthChecker:
 
         logger.debug("Health check config updated and applied")
 
+    # === Configuration query helper methods ===
+
+    def _is_actual_request_enabled_globally(self) -> bool:
+        """Check if actual request validation is globally enabled"""
+        return self.config_manager.routing_config.health_check.actual_request_enabled
+
+    def _get_timeout(self) -> int:
+        """Get health check timeout"""
+        return self.config_manager.routing_config.health_check.timeout
+
+    def _get_lightweight_interval(self) -> int:
+        """Get lightweight check interval"""
+        return self.config_manager.routing_config.health_check.lightweight_interval
+
+    def _get_actual_request_interval(self) -> int:
+        """Get actual request check interval"""
+        return self.config_manager.routing_config.health_check.actual_request_interval
+
+    def _is_lightweight_enabled(self) -> bool:
+        """Check if lightweight checks are enabled"""
+        return self.config_manager.routing_config.health_check.lightweight_enabled
+
+    def _should_mark_unhealthy_on_user_request_failure(self, model_config: 'ModelConfig') -> bool:
+        """
+        Check if user request failure should mark model as unhealthy
+
+        Args:
+            model_config: Model configuration
+
+        Returns:
+            True if actual_request check is enabled globally, False otherwise
+        """
+        return self._is_actual_request_enabled_globally()
+
 
 
 
