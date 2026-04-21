@@ -155,3 +155,9 @@ class ModelConfig:
         # Ensure unhealthy_reason is proper enum
         if not isinstance(self.unhealthy_reason, UnhealthyReason):
             self.unhealthy_reason = UnhealthyReason.NONE
+
+    def _generate_instance_id(self) -> str:
+        """
+        Generate instance_id based on name + api_base + api_key (similar to litellm)
+        """
+        pass
