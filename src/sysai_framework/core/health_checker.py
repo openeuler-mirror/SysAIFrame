@@ -80,3 +80,4 @@ class HealthChecker:
         self._thread_management_lock = threading.Lock()  # Protect thread start/stop operations
         self._health_stats: Dict[str, Dict[str, Any]] = {}  # Store health stats per model
         self._stats_lock = threading.Lock()  # Protect health stats access
+        self.signal_queue: queue.Queue = queue.Queue(maxsize=HEALTH_SIGNAL_QUEUE_MAXSIZE)
