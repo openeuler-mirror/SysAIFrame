@@ -316,7 +316,21 @@ class HealthChecker:
             is_healthy: Current health status
             reason: Unhealthy reason (empty string if healthy)
         """
-        pass
+        try:
+            from sysai_framework.dbus_service import get_admin_service
+
+            admin_service = get_admin_service()
+            if admin_service:
+                admin_service.emit_model_health_changed(
+                    model_name,
+                    instance_id,
+                    is_healthy,
+                    reason
+                )
+        except Exception as e:
+            # Don't let D-Bus signal failures disrupt health checking
+            logger.debug(f"Failed to emit health changed signal: {e}")
+
 
 
 
