@@ -71,3 +71,6 @@ class HealthChecker:
             config_manager: Model configuration manager instance
         """
         self.config_manager = config_manager
+        self._lightweight_running = False
+        self._lightweight_thread: Optional[threading.Thread] = None
+        self._lightweight_config_event = threading.Event()  # Signal for config updates
