@@ -208,3 +208,11 @@ class HookManager:
         self.failure_hooks: List[FailureHook] = []
 
         logger.debug("HookManager initialized")
+
+    def register_pre_call_hook(self, hook: PreCallHook):
+        """
+        Register a pre-call hook
+
+        Args:
+            hook: PreCallHook instance
+        """
