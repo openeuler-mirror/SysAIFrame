@@ -120,3 +120,4 @@ class ModelConfig:
     """
     name: str
     instance_id: Optional[str] = None  # Unique instance identifier
+    provider: Optional[str] = None  # Provider type (dashscope, moonshot, etc.)
