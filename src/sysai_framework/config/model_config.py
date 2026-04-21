@@ -59,3 +59,9 @@ class ValidationMessage:
 
     def __str__(self) -> str:
         return self.message
+
+
+@dataclass
+class HealthCheckConfig:
+    """Health check configuration"""
+    pass
