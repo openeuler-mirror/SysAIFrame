@@ -300,5 +300,23 @@ class HealthChecker:
                     instance_id=model_config.instance_id
                 ).set(0)
 
+    def _emit_health_changed_signal_by_fields(
+        self,
+        model_name: str,
+        instance_id: str,
+        is_healthy: bool,
+        reason: str
+    ):
+        """
+        Emit D-Bus signal when model health status changes.
+
+        Args:
+            model_name: Model name
+            instance_id: Model instance id
+            is_healthy: Current health status
+            reason: Unhealthy reason (empty string if healthy)
+        """
+        pass
+
 
 
