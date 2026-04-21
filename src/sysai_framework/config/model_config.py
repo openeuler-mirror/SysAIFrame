@@ -105,4 +105,4 @@ class RuntimeConfig:
 @dataclass
 class RoutingConfig:
     """Routing configuration"""
-    pass
+    default_model: Optional[str] = None
