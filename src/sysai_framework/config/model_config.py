@@ -75,3 +75,4 @@ class HealthCheckConfig:
 class RetryPolicyConfig:
     """Retry policy configuration"""
     max_attempts: int = 3
+    backoff_factor: int = 2
