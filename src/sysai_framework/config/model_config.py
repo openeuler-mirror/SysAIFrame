@@ -98,4 +98,4 @@ class LoadBalanceConfig:
 @dataclass
 class RuntimeConfig:
     """Runtime mode configuration"""
-    pass
+    mode: str = "default"  # default | load-balance
