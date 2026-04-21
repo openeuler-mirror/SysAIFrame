@@ -236,3 +236,5 @@ class HookManager:
         Args:
             hook: PostCallHook instance
         """
+        self.post_call_hooks.append(hook)
+        logger.debug(f"Registered post-call hook: {hook.name}")
