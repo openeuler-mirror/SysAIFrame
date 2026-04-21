@@ -331,6 +331,16 @@ class HealthChecker:
             # Don't let D-Bus signal failures disrupt health checking
             logger.debug(f"Failed to emit health changed signal: {e}")
 
+    def _emit_health_changed_signal(self, model_config: 'ModelConfig',
+                                    is_healthy: bool, reason: str):
+        """Backward-compatible wrapper (kept for internal callers)."""
+        self._emit_health_changed_signal_by_fields(
+            model_config.name,
+            str(model_config.instance_id),
+            is_healthy,
+            reason
+        )
+
 
 
 
