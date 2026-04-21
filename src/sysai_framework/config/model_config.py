@@ -152,3 +152,6 @@ class ModelConfig:
         # Generate instance_id if not provided
         if not self.instance_id:
             self.instance_id = self._generate_instance_id()
+        # Ensure unhealthy_reason is proper enum
+        if not isinstance(self.unhealthy_reason, UnhealthyReason):
+            self.unhealthy_reason = UnhealthyReason.NONE
