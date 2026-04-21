@@ -166,3 +166,7 @@ class ModelConfig:
             parts.append(self.api_base)
         if self.api_key:
             parts.append(self.api_key)
+
+        concat_str = "".join(parts)
+        hash_object = hashlib.sha256(concat_str.encode())
+        return hash_object.hexdigest()[:16]  # Use first 16 chars for readability
