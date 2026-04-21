@@ -743,6 +743,61 @@ class HealthChecker:
                         exc_info=True
                     )
 
+    # === Config hot update ===
+
+    def _reset_connection_health_for_all_models(self):
+        """
+        Reset connection_health for all models when lightweight check is disabled.
+        This allows models that were marked as connection_health=False to be checked
+        by actual request check and potentially recover.
+        """
+        reset_count = 0
+        recovered_models = []
+
+        for model_config in self.config_manager.models.values():
+            if not model_config.health_check_enabled:
+                continue
+
+            with model_config._health_lock:
+                was_unhealthy = not model_config.is_healthy
+                was_lightweight_failure = (
+                    model_config.unhealthy_reason == UnhealthyReason.LIGHTWEIGHT_CHECK_FAILED
+                )
+
+                # Reset connection_health
+                if not model_config.connection_health:
+                    model_config.connection_health = True
+                    reset_count += 1
+
+                # If model was unhealthy due to lightweight check failure, mark for recovery
+                if was_unhealthy and was_lightweight_failure:
+                    recovered_models.append(model_config)
+
+        # Recover models outside the lock (mark_healthy acquires its own lock)
+        for model_config in recovered_models:
+            self.mark_healthy(model_config)
+            self._enqueue_health_changed_signal(
+                model_config.name,
+                str(model_config.instance_id),
+                True,
+                ""
+            )
+
+        if reset_count > 0 or recovered_models:
+            logger.info(
+                f"Lightweight check disabled: reset connection_health for {reset_count} models, "
+                f"recovered {len(recovered_models)} models from LIGHTWEIGHT_CHECK_FAILED"
+            )
+
+    def update_config(self, new_config: Dict[str, Any]):
+        """
+        Update health check configuration (hot update)
+
+        Args:
+            new_config: New health check configuration dict
+        """
+        pass
+
 
 
 
