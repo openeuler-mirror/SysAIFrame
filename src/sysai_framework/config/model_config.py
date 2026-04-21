@@ -42,3 +42,8 @@ CAPABILITY_PREFIX = "capability-"
 # Special model names
 SPECIAL_MODEL_DEFAULT = "default"  # Use default model
 SPECIAL_MODEL_MOCK = "mock"        # Use built-in Mock model
+
+
+class UnhealthyReason(Enum):
+    """Model unhealthy reason enumeration"""
+    pass
