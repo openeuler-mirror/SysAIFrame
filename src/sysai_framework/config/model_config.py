@@ -64,4 +64,4 @@ class ValidationMessage:
 @dataclass
 class HealthCheckConfig:
     """Health check configuration"""
-    pass
+    lightweight_enabled: bool = True
