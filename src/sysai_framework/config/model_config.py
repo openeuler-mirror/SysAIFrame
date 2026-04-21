@@ -47,3 +47,4 @@ SPECIAL_MODEL_MOCK = "mock"        # Use built-in Mock model
 class UnhealthyReason(Enum):
     """Model unhealthy reason enumeration"""
     NONE = "none"                          # Healthy status
+    LIGHTWEIGHT_CHECK_FAILED = "lightweight"  # Lightweight check failed
