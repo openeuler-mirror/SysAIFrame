@@ -74,3 +74,7 @@ class HealthChecker:
         self._lightweight_running = False
         self._lightweight_thread: Optional[threading.Thread] = None
         self._lightweight_config_event = threading.Event()  # Signal for config updates
+        self._actual_request_running = False
+        self._actual_request_thread: Optional[threading.Thread] = None
+        self._actual_request_config_event = threading.Event()  # Signal for config updates
+        self._thread_management_lock = threading.Lock()  # Protect thread start/stop operations
