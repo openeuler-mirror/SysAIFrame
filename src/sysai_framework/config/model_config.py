@@ -108,3 +108,4 @@ class RoutingConfig:
     default_model: Optional[str] = None
     default_model_instance_id: Optional[str] = None
     health_check: HealthCheckConfig = field(default_factory=HealthCheckConfig)
+    retry_policy: RetryPolicyConfig = field(default_factory=RetryPolicyConfig)
