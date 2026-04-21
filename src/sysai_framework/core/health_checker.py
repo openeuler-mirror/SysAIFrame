@@ -164,3 +164,15 @@ class HealthChecker:
                 f"(check_type={check_type}, was {was_unhealthy_reason})"
             )
             self._enqueue_health_changed_signal(model_name, instance_id, True, "")
+
+    def record_failure(self, model_config: 'ModelConfig', error_msg: Optional[str] = None,
+                      check_type: str = "lightweight"):
+        """
+        Record failed health check (atomic operation) - fail once -> immediately unhealthy
+
+        Args:
+            model_config: Model configuration
+            error_msg: Error message
+            check_type: Check type ("lightweight" or "actual_request")
+        """
+        pass
