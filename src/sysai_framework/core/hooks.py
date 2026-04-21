@@ -246,3 +246,5 @@ class HookManager:
         Args:
             hook: FailureHook instance
         """
+        self.failure_hooks.append(hook)
+        logger.debug(f"Registered failure hook: {hook.name}")
