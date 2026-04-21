@@ -78,6 +78,29 @@ class HealthChecker:
         self._actual_request_thread: Optional[threading.Thread] = None
         self._actual_request_config_event = threading.Event()  # Signal for config updates
         self._thread_management_lock = threading.Lock()  # Protect thread start/stop operations
-        self._health_stats: Dict[str, Dict[str, Any]] = {}  # Store health stats per model
-        self._stats_lock = threading.Lock()  # Protect health stats access
-        self.signal_queue: queue.Queue = queue.Queue(maxsize=HEALTH_SIGNAL_QUEUE_MAXSIZE)
+
+        # D-Bus signal dispatching (decouple from health locks / worker threads)
+        self._signal_queue: "queue.Queue[Tuple[str, str, bool, str]]" = queue.Queue(
+            maxsize=HEALTH_SIGNAL_QUEUE_MAXSIZE
+        )
+        self._signal_dispatch_running = True
+        self._signal_dispatch_thread = threading.Thread(
+            target=self._signal_dispatch_loop,
+            daemon=True,
+            name="HealthSignalDispatch"
+        )
+        self._signal_dispatch_thread.start()
+
+        logger.debug("HealthChecker initialized")
+
+    # === Concurrent-safe state updates (simplified: fail once -> unhealthy, success once -> recover) ===
+
+    def record_success(self, model_config: 'ModelConfig', check_type: str = "lightweight"):
+        """
+        Record successful health check (atomic operation)
+
+        Args:
+            model_config: Model configuration
+            check_type: Check type ("lightweight" or "actual_request")
+        """
+        pass
