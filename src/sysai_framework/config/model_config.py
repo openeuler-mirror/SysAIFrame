@@ -34,3 +34,4 @@ logger = logging.getLogger(__name__)
 CAPABILITY_GENERAL = "general"      # General chat capability
 CAPABILITY_CODE = "code"           # Code-related capability
 CAPABILITY_ANALYSIS = "analysis"   # Analysis task capability
+CAPABILITY_CREATIVE = "creative"   # Creative writing capability
