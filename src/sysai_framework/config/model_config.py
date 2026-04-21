@@ -142,3 +142,6 @@ class ModelConfig:
 
     # Fine-grained lock for thread safety
     _health_lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
+
+    def __post_init__(self):
+        pass
