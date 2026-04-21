@@ -226,3 +226,5 @@ class HookManager:
         Args:
             hook: DuringCallHook instance
         """
+        self.during_call_hooks.append(hook)
+        logger.debug(f"Registered during-call hook: {hook.name}")
