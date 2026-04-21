@@ -259,3 +259,13 @@ class HookManager:
         Returns:
             Modified context after all hooks
         """
+        for hook in self.pre_call_hooks:
+            if hook.enabled:
+                try:
+                    context = await hook.execute(context)
+                except Exception as e:
+                    logger.error(
+                        f"[{context.get('request_id')}] Pre-call hook {hook.name} failed: {e}",
+                        exc_info=True
+                    )
+        return context
