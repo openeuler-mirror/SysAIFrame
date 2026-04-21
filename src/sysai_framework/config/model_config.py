@@ -74,4 +74,4 @@ class HealthCheckConfig:
 @dataclass
 class RetryPolicyConfig:
     """Retry policy configuration"""
-    pass
+    max_attempts: int = 3
