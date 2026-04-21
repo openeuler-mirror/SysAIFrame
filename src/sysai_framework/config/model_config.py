@@ -56,3 +56,6 @@ class ValidationMessage:
     """Validation message with level (error or warning)"""
     level: str  # "error" or "warning"
     message: str
+
+    def __str__(self) -> str:
+        return self.message
