@@ -122,3 +122,4 @@ class ModelConfig:
     instance_id: Optional[str] = None  # Unique instance identifier
     provider: Optional[str] = None  # Provider type (dashscope, moonshot, etc.)
     api_base: Optional[str] = None  # API base URL
+    api_key: Optional[str] = None   # API key
