@@ -129,3 +129,4 @@ class ModelConfig:
     capabilities: List[str] = None
     supports_streaming: bool = True
     timeout: int = 30
+    max_retries: int = 3
