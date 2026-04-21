@@ -127,3 +127,4 @@ class ModelConfig:
     priority: int = 1
     weight: int = 1  # Load balance weight (used in weighted strategy)
     capabilities: List[str] = None
+    supports_streaming: bool = True
