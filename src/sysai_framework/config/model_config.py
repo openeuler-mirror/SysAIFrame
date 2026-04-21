@@ -93,3 +93,9 @@ class LoadBalanceConfig:
     """Load balance configuration"""
     strategy: str = "weighted"  # round-robin | weighted | least-busy | lowest-latency | usage-based
     options: LoadBalanceOptionsConfig = field(default_factory=LoadBalanceOptionsConfig)
+
+
+@dataclass
+class RuntimeConfig:
+    """Runtime mode configuration"""
+    pass
