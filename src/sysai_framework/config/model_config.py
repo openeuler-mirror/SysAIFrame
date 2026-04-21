@@ -137,3 +137,4 @@ class ModelConfig:
     last_health_check: Optional[datetime] = None
     consecutive_failures: int = 0
     consecutive_successes: int = 0
+    health_check_enabled: bool = True
