@@ -284,6 +284,14 @@ class ModelConfigManager:
             return next(iter(self.models.values()))
         return None
 
+    def add_model(self, model_config: ModelConfig) -> bool:
+        """Add a model"""
+        if model_config.instance_id in self.models:
+            logger.warning(f"Model already exists: {model_config.instance_id}")
+            return False
+        self.models[model_config.instance_id] = model_config
+        return True
+
     @property
     def runtime_config(self) -> RuntimeConfig:
         """Get runtime configuration"""
