@@ -260,6 +260,15 @@ class ModelConfigManager:
             timeout=routing_dict.get('timeout', 180)
         )
 
+    def get_model(self, model_name_or_instance_id: str) -> Optional[ModelConfig]:
+        """Get model by name or instance_id"""
+        if model_name_or_instance_id in self.models:
+            return self.models[model_name_or_instance_id]
+        for model in self.models.values():
+            if model.name == model_name_or_instance_id:
+                return model
+        return None
+
     @property
     def runtime_config(self) -> RuntimeConfig:
         """Get runtime configuration"""
