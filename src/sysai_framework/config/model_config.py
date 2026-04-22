@@ -215,6 +215,18 @@ class ModelConfigManager:
             self._last_modified = current_mtime
             self._loaded = True
 
+    def _get_default_config(self) -> Dict[str, Any]:
+        """Get default configuration dictionary"""
+        pass
+
+    def _process_models_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, ModelConfig], Dict[str, List[str]], List[Dict[str, Any]]]:
+        """Process models configuration"""
+        pass
+
+    def _parse_routing_config(self, routing_dict: Dict[str, Any]) -> RoutingConfig:
+        """Parse routing configuration"""
+        pass
+
     @property
     def runtime_config(self) -> RuntimeConfig:
         """Get runtime configuration"""
