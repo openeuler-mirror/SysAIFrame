@@ -197,6 +197,10 @@ class ModelConfigManager:
                 logger.warning(f"Config file not found: {self.config_path}")
                 return
 
+        current_mtime = os.path.getmtime(self.config_path)
+        if current_mtime == self._last_modified and self._loaded:
+            return
+
     @property
     def runtime_config(self) -> RuntimeConfig:
         """Get runtime configuration"""
