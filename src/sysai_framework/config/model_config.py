@@ -292,6 +292,13 @@ class ModelConfigManager:
         self.models[model_config.instance_id] = model_config
         return True
 
+    def delete_model(self, instance_id: str) -> bool:
+        """Delete a model by instance_id"""
+        if instance_id in self.models:
+            del self.models[instance_id]
+            return True
+        return False
+
     @property
     def runtime_config(self) -> RuntimeConfig:
         """Get runtime configuration"""
