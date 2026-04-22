@@ -22,8 +22,16 @@ logger = logging.getLogger(__name__)
 
 
 class RequestContext:
-    """Request context - carries information throughout request lifecycle"""
-    pass
+    """
+    Request context - carries information throughout request lifecycle
+
+    This object is passed through all hooks and processing stages,
+    allowing hooks to read and modify request/response data.
+    """
+
+    def __init__(self):
+        """Initialize request context with default values"""
+        pass
 
 
 class RequestProcessor:
