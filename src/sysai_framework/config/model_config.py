@@ -275,6 +275,15 @@ class ModelConfigManager:
             return [m for m in self.models.values() if m.name == model_name]
         return list(self.models.values())
 
+    def get_default_model(self) -> Optional[ModelConfig]:
+        """Get default model"""
+        default_name = self._routing_config.default_model
+        if default_name:
+            return self.get_model(default_name)
+        if self.models:
+            return next(iter(self.models.values()))
+        return None
+
     @property
     def runtime_config(self) -> RuntimeConfig:
         """Get runtime configuration"""
