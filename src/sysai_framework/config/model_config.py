@@ -299,6 +299,13 @@ class ModelConfigManager:
             return True
         return False
 
+    def update_model(self, model_config: ModelConfig) -> bool:
+        """Update an existing model"""
+        if model_config.instance_id not in self.models:
+            return False
+        self.models[model_config.instance_id] = model_config
+        return True
+
     @property
     def runtime_config(self) -> RuntimeConfig:
         """Get runtime configuration"""
