@@ -33,6 +33,7 @@ class RequestContext:
         """Initialize request context with default values"""
         self.request_id: Optional[str] = None
         self.start_time: Optional[datetime] = None
+        self.model: Optional[str] = None
 
 
 class RequestProcessor:
