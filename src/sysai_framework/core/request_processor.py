@@ -32,6 +32,7 @@ class RequestContext:
     def __init__(self):
         """Initialize request context with default values"""
         self.request_id: Optional[str] = None
+        self.start_time: Optional[datetime] = None
 
 
 class RequestProcessor:
