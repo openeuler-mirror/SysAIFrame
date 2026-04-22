@@ -185,3 +185,8 @@ class ModelConfigManager:
         self._loaded = False
         if allow_create_default or os.path.exists(config_path):
             self.load_config()
+
+    @property
+    def runtime_config(self) -> RuntimeConfig:
+        """Get runtime configuration"""
+        pass
