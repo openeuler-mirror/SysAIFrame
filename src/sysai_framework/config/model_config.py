@@ -224,11 +224,41 @@ class ModelConfigManager:
 
     def _process_models_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, ModelConfig], Dict[str, List[str]], List[Dict[str, Any]]]:
         """Process models configuration"""
-        pass
+        models_config = config.get('models', [])
+        models: Dict[str, ModelConfig] = {}
+        name_to_instances: Dict[str, List[str]] = {}
+        models_to_write_back: List[Dict[str, Any]] = []
+
+        for model_dict in models_config:
+            model_config = self._parse_model_config(model_dict)
+            if model_config:
+                models[model_config.instance_id] = model_config
+                if model_config.name not in name_to_instances:
+                    name_to_instances[model_config.name] = []
+                name_to_instances[model_config.name].append(model_config.instance_id)
+                models_to_write_back.append(model_dict)
+
+        return models, name_to_instances, models_to_write_back
+
+    def _parse_model_config(self, model_dict: Dict[str, Any]) -> Optional[ModelConfig]:
+        """Parse single model configuration"""
+        try:
+            name = model_dict.get('name')
+            if not name:
+                logger.warning("Model config missing 'name' field")
+                return None
+            return ModelConfig(**model_dict)
+        except Exception as e:
+            logger.error(f"Failed to parse model config: {e}")
+            return None
 
     def _parse_routing_config(self, routing_dict: Dict[str, Any]) -> RoutingConfig:
         """Parse routing configuration"""
-        pass
+        return RoutingConfig(
+            default_model=routing_dict.get('default_model'),
+            default_model_instance_id=routing_dict.get('default_model_instance_id'),
+            timeout=routing_dict.get('timeout', 180)
+        )
 
     @property
     def runtime_config(self) -> RuntimeConfig:
