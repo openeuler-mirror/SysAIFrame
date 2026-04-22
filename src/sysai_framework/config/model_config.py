@@ -179,3 +179,4 @@ class ModelConfigManager:
         self.config_path = config_path
         self.allow_create_default = allow_create_default
         self.models: Dict[str, ModelConfig] = {}
+        self._lock = threading.RLock()
