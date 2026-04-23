@@ -20,7 +20,21 @@ async def create_streaming_response(
     headers: Optional[Dict[str, str]] = None,
     default_status_code: int = 200
 ) -> StreamingResponse:
-    """Create a safe streaming response with first-chunk error detection"""
+    """
+    Create a safe streaming response with first-chunk error detection
+
+    Inspects the first chunk for errors and sets the HTTP status code accordingly.
+    The entire original generator content is streamed, but the HTTP status code
+    is set based on the first chunk if it's a recognized error.
+
+    Args:
+        generator: Async generator that yields chunks
+        headers: Custom response headers
+        default_status_code: Default HTTP status code
+
+    Returns:
+        StreamingResponse with appropriate status code
+    """
     pass
 
 
