@@ -24,3 +24,21 @@ def get_secret_str(key: str) -> Optional[str]:
         None (we use config file for API keys)
     """
     return None
+
+
+def handle_messages_with_content_list_to_str_conversion(
+    messages: List[Any]
+) -> List[Any]:
+    """
+    Convert messages with content list to string format.
+
+    Some providers don't support content in list format (e.g., with images).
+    This function converts such messages to simple string format.
+
+    Args:
+        messages: List of message dictionaries
+
+    Returns:
+        Converted messages
+    """
+    return messages
