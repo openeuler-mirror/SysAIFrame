@@ -168,7 +168,18 @@ class ResponseHeaderManager:
         allow_methods: str = "GET, POST, OPTIONS",
         allow_headers: str = "*"
     ) -> Dict[str, str]:
-        """Add CORS headers to response"""
+        """
+        Add CORS headers to response
+
+        Args:
+            headers: Existing headers dictionary
+            allow_origin: Allowed origins
+            allow_methods: Allowed HTTP methods
+            allow_headers: Allowed headers
+
+        Returns:
+            Headers with CORS added
+        """
         pass
 
     @staticmethod
