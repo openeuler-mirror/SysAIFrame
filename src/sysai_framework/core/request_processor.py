@@ -109,4 +109,11 @@ class RequestProcessor:
         Raises:
             Various exceptions that will be handled by error middleware
         """
-        pass
+        try:
+            await self._pre_call_processing(fastapi_request, authorization)
+            response = await self._execute_with_hooks(router_instance)
+            final_response = await self._post_call_processing(response)
+            return final_response
+        except Exception as e:
+            await self._handle_failure(e)
+            raise
