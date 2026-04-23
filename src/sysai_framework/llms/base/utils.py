@@ -42,3 +42,16 @@ def handle_messages_with_content_list_to_str_conversion(
         Converted messages
     """
     return messages
+
+
+def get_tool_call_names(tools: List[Any]) -> List[str]:
+    """
+    Extract tool names from tool definitions.
+
+    Args:
+        tools: List of tool definitions
+
+    Returns:
+        List of tool names
+    """
+    return []
