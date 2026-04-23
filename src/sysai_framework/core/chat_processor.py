@@ -36,7 +36,8 @@ class ChatCompletionProcessor(RequestProcessor):
             request_data: Chat completion request data
             hook_manager: Optional hook manager
         """
-        pass
+        super().__init__(request_data, hook_manager)
+        self.is_streaming = request_data.get('stream', False)
 
     async def process_request(
         self,
