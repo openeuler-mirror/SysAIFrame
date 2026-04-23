@@ -29,7 +29,13 @@ class ChatCompletionProcessor(RequestProcessor):
     """
 
     def __init__(self, request_data: Dict[str, Any], hook_manager=None):
-        """Initialize chat completion processor"""
+        """
+        Initialize chat completion processor
+
+        Args:
+            request_data: Chat completion request data
+            hook_manager: Optional hook manager
+        """
         pass
 
     async def process_request(
