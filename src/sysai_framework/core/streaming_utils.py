@@ -298,4 +298,4 @@ def format_sse_done() -> str:
     Returns:
         Formatted SSE done string
     """
-    pass
+    return "data: [DONE]\n\n"
