@@ -174,8 +174,20 @@ class ImageGenerationProcessor(RequestProcessor):
         self.is_streaming = request_data.get('stream', False)
 
     def _extract_route_params(self) -> dict:
-        """Extract image generation parameters"""
-        pass
+        """
+        Extract image generation parameters
+
+        Returns:
+            Dictionary of parameters for image generation
+        """
+        params = {'model': self.data.get('model')}
+        if 'prompt' in self.data:
+            params['prompt'] = self.data['prompt']
+        optional_params = ['size', 'n', 'quality', 'style', 'response_format']
+        for param in optional_params:
+            if param in self.data:
+                params[param] = self.data[param]
+        return params
 
     async def _route_streaming(self, router_instance, params: dict):
         """Image generation typically doesn't support streaming"""
