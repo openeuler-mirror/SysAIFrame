@@ -65,3 +65,28 @@ class BaseConfig(ABC):
 
     def __init__(self):
         pass
+
+    @classmethod
+    def get_config(cls):
+        """
+        Get configuration dict from class attributes.
+        Filters out methods and special attributes.
+        """
+        return {
+            k: v
+            for k, v in cls.__dict__.items()
+            if not k.startswith("__")
+            and not k.startswith("_abc")
+            and not k.startswith("_is_base_class")
+            and not isinstance(
+                v,
+                (
+                    types.FunctionType,
+                    types.BuiltinFunctionType,
+                    classmethod,
+                    staticmethod,
+                    property,
+                ),
+            )
+            and v is not None
+        }
