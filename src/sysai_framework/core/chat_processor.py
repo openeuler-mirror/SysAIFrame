@@ -203,8 +203,17 @@ class ImageGenerationProcessor(RequestProcessor):
         return await self._route_non_streaming(router_instance, params)
 
     async def _route_non_streaming(self, router_instance, params: dict):
-        """Route image generation request"""
-        pass
+        """
+        Route image generation request
+
+        Args:
+            router_instance: Router instance
+            params: Request parameters
+
+        Returns:
+            Image generation response
+        """
+        return await router_instance.route_image_generation(**params)
 
 
 class EmbeddingProcessor(RequestProcessor):
