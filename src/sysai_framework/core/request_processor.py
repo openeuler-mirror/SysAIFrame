@@ -123,8 +123,48 @@ class RequestProcessor:
         fastapi_request: Request,
         authorization: Optional[str] = None
     ):
-        """Pre-call processing stage"""
-        pass
+        """
+        Pre-call processing stage
+
+        Performs:
+        - User authentication
+        - Request validation
+        - Metadata injection
+        - Pre-call hooks execution
+
+        Args:
+            fastapi_request: Original FastAPI request
+            authorization: Authorization header
+        """
+        logger.debug(f"[{self.context.request_id}] Starting pre-call processing")
+
+        # 1. Extract user information
+        if authorization:
+            self.context.user_id = await self._extract_user_id(authorization)
+
+        # 2. Add metadata to request
+        self.data['metadata'] = {
+            'request_id': self.context.request_id,
+            'user_id': self.context.user_id,
+            'timestamp': self.context.start_time.isoformat(),
+        }
+
+        # 3. Build hook context
+        hook_context = {
+            'data': self.data,
+            'request_id': self.context.request_id,
+            'fastapi_request': fastapi_request,
+            'user_id': self.context.user_id,
+            'model': self.context.model,
+        }
+
+        # 4. Execute pre-call hooks
+        hook_context = await self.hook_manager.execute_pre_call_hooks(hook_context)
+
+        # 5. Update data from hooks (hooks may have modified it)
+        self.data = hook_context['data']
+
+        logger.debug(f"[{self.context.request_id}] Pre-call processing completed")
 
     async def _execute_with_hooks(self, router_instance):
         """Execute request with parallel during-call hooks"""
