@@ -335,5 +335,10 @@ class RequestProcessor:
         return self.context
 
     def get_custom_headers(self) -> Dict[str, str]:
-        """Get custom headers for response"""
+        """
+        Get custom headers for response
+
+        Returns:
+            Dictionary of custom headers
+        """
         return self.context.custom_headers
