@@ -237,7 +237,18 @@ async def wrap_generator_with_error_handling(
     generator: AsyncGenerator,
     request_id: Optional[str] = None
 ) -> AsyncGenerator:
-    """Wrap an async generator with error handling"""
+    """
+    Wrap an async generator with error handling
+
+    Catches exceptions and yields error chunks instead of crashing
+
+    Args:
+        generator: Original generator
+        request_id: Request ID for logging
+
+    Yields:
+        Chunks from original generator, or error chunks on failure
+    """
     pass
 
 
