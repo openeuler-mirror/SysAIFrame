@@ -309,8 +309,21 @@ class RequestProcessor:
             )
 
     async def _extract_user_id(self, authorization: str) -> Optional[str]:
-        """Extract user ID from authorization header"""
-        pass
+        """
+        Extract user ID from authorization header
+
+        Placeholder implementation. Should validate JWT token,
+        query user database, and check permissions in production.
+
+        Args:
+            authorization: Authorization header value
+
+        Returns:
+            User ID or None
+        """
+        if authorization and authorization.startswith("Bearer "):
+            return "user-123"  # Placeholder
+        return None
 
     def get_context(self) -> RequestContext:
         """Get the request context"""
