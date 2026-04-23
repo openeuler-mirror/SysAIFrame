@@ -288,7 +288,7 @@ def format_sse_chunk(data: Dict[str, Any]) -> str:
     Returns:
         Formatted SSE string
     """
-    pass
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 def format_sse_done() -> str:
