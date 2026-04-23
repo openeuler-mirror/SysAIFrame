@@ -90,5 +90,23 @@ class RequestProcessor:
         router_instance,
         authorization: Optional[str] = None
     ):
-        """Main request processing entry point"""
+        """
+        Main request processing entry point
+
+        Executes the complete request lifecycle:
+        1. Pre-call processing and hooks
+        2. Parallel execution: during-call hooks + actual request
+        3. Post-call processing and hooks
+
+        Args:
+            fastapi_request: Original FastAPI request object
+            router_instance: Model router instance
+            authorization: Authorization header (optional)
+
+        Returns:
+            Response from backend (or error)
+
+        Raises:
+            Various exceptions that will be handled by error middleware
+        """
         pass
