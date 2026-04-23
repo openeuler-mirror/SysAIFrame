@@ -65,7 +65,66 @@ class ResponseHeaderManager:
         Returns:
             Dictionary of custom headers
         """
-        pass
+        headers = {
+            # Basic information
+            "X-Request-ID": request_id,
+            "X-Model-Name": model_name,
+            "X-Model-ID": model_id,
+            "X-Model-Provider": provider,
+            "X-Model-Region": model_region,
+            "X-Deployment-ID": deployment_id,
+            "X-API-Version": api_version,
+            "X-Gateway": "SysAIFrame",
+
+            # Performance metrics
+            "X-Response-Duration-MS": str(int(duration_ms)) if duration_ms else None,
+            "X-Backend-Duration-MS": str(int(backend_duration_ms)) if backend_duration_ms else None,
+            "X-Overhead-Duration-MS": str(int(overhead_ms)) if overhead_ms else None,
+
+            # Cache information
+            "X-Cache-Hit": str(cache_hit).lower(),
+            "X-Cache-Key": cache_key,
+
+            # Cost information
+            "X-Response-Cost": f"{response_cost:.6f}" if response_cost is not None else None,
+            "X-Response-Cost-Original": f"{original_cost:.6f}" if original_cost is not None else None,
+            "X-Response-Cost-Discount": f"{discount_amount:.6f}" if discount_amount is not None else None,
+        }
+
+        # Token usage information
+        if token_usage:
+            headers.update({
+                "X-Prompt-Tokens": str(token_usage.get("prompt_tokens", 0)),
+                "X-Completion-Tokens": str(token_usage.get("completion_tokens", 0)),
+                "X-Total-Tokens": str(token_usage.get("total_tokens", 0)),
+            })
+
+        # Rate limiting information
+        if rate_limit_info:
+            headers.update({
+                "X-RateLimit-Limit-Requests": str(rate_limit_info.get("limit_requests", "")),
+                "X-RateLimit-Limit-Tokens": str(rate_limit_info.get("limit_tokens", "")),
+                "X-RateLimit-Remaining-Requests": str(rate_limit_info.get("remaining_requests", "")),
+                "X-RateLimit-Remaining-Tokens": str(rate_limit_info.get("remaining_tokens", "")),
+                "X-RateLimit-Reset": str(rate_limit_info.get("reset_time", "")),
+            })
+
+        # User limits information
+        if user_limits:
+            headers.update({
+                "X-User-TPM-Limit": str(user_limits.get("tpm_limit", "")),
+                "X-User-RPM-Limit": str(user_limits.get("rpm_limit", "")),
+                "X-User-Max-Budget": str(user_limits.get("max_budget", "")),
+                "X-User-Current-Spend": f"{user_limits.get('current_spend', 0):.6f}" if user_limits.get('current_spend') is not None else "",
+            })
+
+        # Additional custom headers
+        for key, value in kwargs.items():
+            if key.startswith("X-") or key.startswith("x-"):
+                headers[key] = str(value) if value is not None else None
+
+        # Filter out None and empty values
+        return {k: v for k, v in headers.items() if v not in [None, "", "None"]}
 
     @staticmethod
     def get_streaming_headers(
