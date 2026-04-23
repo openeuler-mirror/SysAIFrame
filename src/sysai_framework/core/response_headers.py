@@ -132,7 +132,17 @@ class ResponseHeaderManager:
         model_name: Optional[str] = None,
         **kwargs
     ) -> Dict[str, str]:
-        """Get headers specific for streaming responses"""
+        """
+        Get headers specific for streaming responses
+
+        Args:
+            request_id: Unique request identifier
+            model_name: Name of the model used
+            **kwargs: Additional headers
+
+        Returns:
+            Dictionary of streaming-specific headers
+        """
         pass
 
     @staticmethod
