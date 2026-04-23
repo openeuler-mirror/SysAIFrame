@@ -190,8 +190,17 @@ class ImageGenerationProcessor(RequestProcessor):
         return params
 
     async def _route_streaming(self, router_instance, params: dict):
-        """Image generation typically doesn't support streaming"""
-        pass
+        """
+        Image generation typically doesn't support streaming
+
+        Args:
+            router_instance: Router instance
+            params: Request parameters
+
+        Returns:
+            Non-streaming response
+        """
+        return await self._route_non_streaming(router_instance, params)
 
     async def _route_non_streaming(self, router_instance, params: dict):
         """Route image generation request"""
