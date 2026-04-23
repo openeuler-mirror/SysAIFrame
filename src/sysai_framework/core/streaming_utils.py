@@ -249,7 +249,33 @@ async def wrap_generator_with_error_handling(
     Yields:
         Chunks from original generator, or error chunks on failure
     """
-    pass
+    try:
+        async for chunk in generator:
+            yield chunk
+
+    except Exception as e:
+        logger.error(
+            f"Error in generator: {e}",
+            exc_info=True,
+            extra={"request_id": request_id}
+        )
+
+        # Use StatusCode system
+        from sysai_framework.core.status_codes import STREAM_ERROR
+
+        error_message = STREAM_ERROR.message_template.format(details=str(e))
+
+        # Yield error chunk
+        error_chunk = {
+            "error": {
+                "message": error_message,
+                "type": STREAM_ERROR.level.value,
+                "code": STREAM_ERROR.code,
+                "code_name": STREAM_ERROR.name
+            }
+        }
+        yield f"data: {json.dumps(error_chunk)}\n\n"
+        yield "data: [DONE]\n\n"
 
 
 def format_sse_chunk(data: Dict[str, Any]) -> str:
