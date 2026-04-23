@@ -326,7 +326,12 @@ class RequestProcessor:
         return None
 
     def get_context(self) -> RequestContext:
-        """Get the request context"""
+        """
+        Get the request context
+
+        Returns:
+            Current request context
+        """
         return self.context
 
     def get_custom_headers(self) -> Dict[str, str]:
