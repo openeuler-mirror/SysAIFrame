@@ -62,7 +62,52 @@ class ChatCompletionProcessor(RequestProcessor):
         Returns:
             StreamingResponse for streaming, dict for non-streaming
         """
-        pass
+        try:
+            # Stage 1: Pre-call processing
+            await self._pre_call_processing(fastapi_request, authorization)
+
+            # Stage 2: Execute request with parallel during-call hooks
+            logger.debug(f"[{self.context.request_id}] Starting request execution")
+
+            # Build hook context
+            hook_context = {
+                'data': self.data,
+                'request_id': self.context.request_id,
+                'model': self.context.model,
+                'user_id': self.context.user_id,
+            }
+
+            # Extract parameters (includes stream flag)
+            params = self._extract_route_params()
+
+            # Execute in parallel: during-call hooks + actual request
+            results = await asyncio.gather(
+                self.hook_manager.execute_during_call_hooks(hook_context),
+                router_instance.route_chat_acompletion(**params),
+                return_exceptions=True
+            )
+
+            # Check for errors in main request (results[1])
+            response = results[1]
+            if isinstance(response, Exception):
+                raise response
+
+            logger.debug(
+                f"[{self.context.request_id}] Request execution completed, "
+                f"response type: {type(response).__name__}"
+            )
+
+            # Stage 3: Post-call processing (only for non-streaming)
+            if not self.is_streaming:
+                response = await self._post_call_processing(response)
+
+            # Stage 4: Wrap response based on streaming flag
+            return await self._wrap_response(response)
+
+        except Exception as e:
+            # Execute failure hooks
+            await self._handle_failure(e)
+            raise
 
     async def _wrap_response(self, response):
         """Wrap response based on streaming flag"""
