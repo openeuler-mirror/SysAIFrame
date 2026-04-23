@@ -41,8 +41,22 @@ class RequestContext:
         self.custom_headers: Dict[str, str] = {}
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert context to dictionary"""
-        pass
+        """
+        Convert context to dictionary
+
+        Returns:
+            Dictionary representation of context
+        """
+        return {
+            'request_id': self.request_id,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'model': self.model,
+            'user_id': self.user_id,
+            'provider': self.provider,
+            'metadata': self.metadata,
+            'metrics': self.metrics,
+            'custom_headers': self.custom_headers,
+        }
 
 
 class RequestProcessor:
