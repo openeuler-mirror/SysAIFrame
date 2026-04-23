@@ -50,3 +50,18 @@ class BaseLLMException(Exception):
 
         self.body = body
         super().__init__(self.message)
+
+
+class BaseConfig(ABC):
+    """
+    Base configuration class for all LLM providers.
+
+    Subclasses should override:
+    - get_supported_openai_params(model): Return list of supported Chat Completion API params
+    - map_openai_params(...): Map Chat Completion API params to provider-specific format
+    - get_complete_url(...): Construct complete API endpoint URL
+    - _get_openai_compatible_provider_info(...): Get provider's api_base and api_key defaults
+    """
+
+    def __init__(self):
+        pass
