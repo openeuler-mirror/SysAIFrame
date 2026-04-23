@@ -38,7 +38,33 @@ class ResponseHeaderManager:
         user_limits: Optional[Dict[str, Any]] = None,
         **kwargs
     ) -> Dict[str, str]:
-        """Generate custom response headers"""
+        """
+        Generate custom response headers
+
+        Args:
+            request_id: Unique request identifier
+            model_name: Name of the model used
+            provider: Model provider (e.g., openai, deepseek)
+            duration_ms: Total response duration in milliseconds
+            token_usage: Token usage information
+            cache_hit: Whether response was from cache
+            model_region: Model deployment region
+            api_version: API version
+            response_cost: Total cost of the response
+            original_cost: Original cost before discounts
+            discount_amount: Discount amount applied
+            rate_limit_info: Rate limit information dict
+            overhead_ms: Gateway overhead duration
+            backend_duration_ms: Backend processing duration
+            model_id: Internal model ID
+            deployment_id: Deployment identifier
+            cache_key: Cache key used
+            user_limits: User-specific limits dict
+            **kwargs: Additional custom headers
+
+        Returns:
+            Dictionary of custom headers
+        """
         pass
 
     @staticmethod
