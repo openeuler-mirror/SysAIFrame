@@ -83,3 +83,12 @@ class RequestProcessor:
         self.context.request_id = request_data.get('request_id')
         self.context.model = request_data.get('model')
         self.context.start_time = datetime.now()
+
+    async def process_request(
+        self,
+        fastapi_request: Request,
+        router_instance,
+        authorization: Optional[str] = None
+    ):
+        """Main request processing entry point"""
+        pass
