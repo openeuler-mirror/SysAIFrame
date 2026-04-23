@@ -234,8 +234,20 @@ class EmbeddingProcessor(RequestProcessor):
         super().__init__(request_data, hook_manager)
 
     def _extract_route_params(self) -> dict:
-        """Extract embedding parameters"""
-        pass
+        """
+        Extract embedding parameters
+
+        Returns:
+            Dictionary of parameters for embedding request
+        """
+        params = {'model': self.data.get('model')}
+        if 'input' in self.data:
+            params['input'] = self.data['input']
+        optional_params = ['encoding_format', 'user']
+        for param in optional_params:
+            if param in self.data:
+                params[param] = self.data[param]
+        return params
 
     async def _route_streaming(self, router_instance, params: dict):
         """Embeddings don't support streaming"""
