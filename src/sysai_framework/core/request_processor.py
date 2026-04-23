@@ -38,6 +38,7 @@ class RequestContext:
         self.provider: Optional[str] = None
         self.metadata: Dict[str, Any] = {}
         self.metrics: Dict[str, Any] = {}
+        self.custom_headers: Dict[str, str] = {}
 
 
 class RequestProcessor:
