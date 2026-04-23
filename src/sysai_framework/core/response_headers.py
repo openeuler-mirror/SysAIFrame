@@ -143,7 +143,23 @@ class ResponseHeaderManager:
         Returns:
             Dictionary of streaming-specific headers
         """
-        pass
+        base_headers = {
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+            "Content-Type": "text/event-stream",
+        }
+
+        # Add custom headers
+        custom_headers = ResponseHeaderManager.get_custom_headers(
+            request_id=request_id,
+            model_name=model_name,
+            **kwargs
+        )
+
+        # Merge headers
+        base_headers.update(custom_headers)
+        return base_headers
 
     @staticmethod
     def add_cors_headers(
