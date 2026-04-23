@@ -156,7 +156,22 @@ class ChatCompletionProcessor(RequestProcessor):
 
 
 class ImageGenerationProcessor(RequestProcessor):
-    """Image generation processor (example for future extension)"""
+    """
+    Image generation processor (example for future extension)
+
+    This processor handles image generation requests.
+    """
+
+    def __init__(self, request_data: Dict[str, Any], hook_manager=None):
+        """
+        Initialize image generation processor
+
+        Args:
+            request_data: Image generation request data
+            hook_manager: Optional hook manager
+        """
+        super().__init__(request_data, hook_manager)
+        self.is_streaming = request_data.get('stream', False)
 
     def _extract_route_params(self) -> dict:
         """Extract image generation parameters"""
