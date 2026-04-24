@@ -284,3 +284,13 @@ class LLMHTTPHandler:
             asyncio.create_task(self.async_client.aclose())
 
 
+# Global singleton
+_http_handler: Optional[LLMHTTPHandler] = None
+
+
+def get_http_handler() -> LLMHTTPHandler:
+    """Get HTTP handler singleton instance"""
+    global _http_handler
+    if _http_handler is None:
+        _http_handler = LLMHTTPHandler()
+    return _http_handler
