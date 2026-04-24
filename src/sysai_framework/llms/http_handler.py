@@ -38,3 +38,5 @@ def _convert_http_status_to_exception(status_code: int, error_msg: str) -> Excep
         return RateLimitError(f"Rate limit exceeded: {error_msg}")
     elif status_code == 500:
         return ServiceUnavailableError(f"Internal server error: {error_msg}")
+    elif status_code == 502:
+        return ServiceUnavailableError(f"Bad gateway: {error_msg}")
