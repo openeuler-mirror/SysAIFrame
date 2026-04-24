@@ -74,3 +74,71 @@ class LLMHTTPHandler:
                 follow_redirects=True
             )
         return self.async_client
+
+    def completion(
+        self,
+        provider_config: BaseConfig,
+        model: str,
+        messages: List[Dict[str, Any]],
+        api_base: str,
+        api_key: str,
+        optional_params: Dict[str, Any],
+        stream: bool = False,
+        timeout: float = 300.0,
+        **kwargs
+    ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
+        """
+        Unified completion call interface
+        """
+        try:
+            headers = provider_config.validate_environment(
+                api_key=api_key,
+                headers={},
+                model=model,
+                messages=messages,
+                optional_params=optional_params,
+                litellm_params={},
+                api_base=api_base
+            )
+            complete_url = provider_config.get_complete_url(
+                api_base=api_base,
+                api_key=api_key,
+                model=model,
+                optional_params=optional_params,
+                litellm_params={},
+                stream=stream
+            )
+            if stream:
+                optional_params["stream"] = True
+            request_data = provider_config.transform_request(
+                model=model,
+                messages=messages,
+                optional_params=optional_params,
+                litellm_params={},
+                headers=headers
+            )
+            if stream:
+                return self._stream_call(
+                    provider_config=provider_config,
+                    url=complete_url,
+                    headers=headers,
+                    data=request_data,
+                    timeout=timeout,
+                    model=model,
+                    messages=messages,
+                    optional_params=optional_params
+                )
+            else:
+                return self._sync_call(
+                    provider_config=provider_config,
+                    url=complete_url,
+                    headers=headers,
+                    data=request_data,
+                    timeout=timeout,
+                    model=model,
+                    messages=messages,
+                    optional_params=optional_params
+                )
+        except Exception as e:
+            logger.error(f"Error in completion: {e}", exc_info=True)
+            raise
