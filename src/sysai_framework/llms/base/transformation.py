@@ -111,3 +111,23 @@ class BaseConfig(ABC):
             "response_format",
             "seed",
         ]
+
+    def map_openai_params(
+        self,
+        non_default_params: dict,
+        optional_params: dict,
+        model: str,
+        drop_params: bool = False,
+    ) -> dict:
+        """
+        Map Chat Completion API params to provider-specific format.
+        """
+        supported_params = self.get_supported_openai_params(model)
+
+        for param, value in non_default_params.items():
+            if param in supported_params:
+                optional_params[param] = value
+            elif not drop_params:
+                optional_params[param] = value
+
+        return optional_params
