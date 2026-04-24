@@ -46,3 +46,13 @@ def _convert_http_status_to_exception(status_code: int, error_msg: str) -> Excep
         return TimeoutError(f"Gateway timeout: {error_msg}")
     else:
         return NonRetriableError(f"HTTP {status_code}: {error_msg}")
+
+
+class LLMHTTPHandler:
+    """
+    LLM HTTP Handler
+    """
+
+    def __init__(self):
+        self.sync_client: Optional[httpx.Client] = None
+        self.async_client: Optional[httpx.AsyncClient] = None
