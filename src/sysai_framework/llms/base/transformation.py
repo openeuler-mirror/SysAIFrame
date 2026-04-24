@@ -152,3 +152,13 @@ class BaseConfig(ABC):
             api_base = f"{api_base}/chat/completions"
 
         return api_base or "https://api.openai.com/v1/chat/completions"
+
+    def _get_openai_compatible_provider_info(
+        self,
+        api_base: Optional[str],
+        api_key: Optional[str],
+    ) -> tuple[Optional[str], Optional[str]]:
+        """
+        Get default api_base and api_key for Chat Completion API compatible providers.
+        """
+        return api_base, api_key
