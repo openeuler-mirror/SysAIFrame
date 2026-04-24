@@ -26,3 +26,5 @@ def _convert_http_status_to_exception(status_code: int, error_msg: str) -> Excep
     """
     if status_code == 400:
         return InvalidRequestError(f"Invalid request: {error_msg}")
+    elif status_code == 401:
+        return AuthenticationError(f"Authentication failed: {error_msg}")
