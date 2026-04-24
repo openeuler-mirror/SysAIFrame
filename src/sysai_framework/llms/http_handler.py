@@ -65,3 +65,12 @@ class LLMHTTPHandler:
                 follow_redirects=True
             )
         return self.sync_client
+
+    def _get_async_client(self) -> httpx.AsyncClient:
+        """Get or create asynchronous HTTP client"""
+        if self.async_client is None:
+            self.async_client = httpx.AsyncClient(
+                timeout=httpx.Timeout(180.0, connect=10.0),
+                follow_redirects=True
+            )
+        return self.async_client
