@@ -1,0 +1,20 @@
+"""
+HTTP Handler for LLM API Calls
+
+Unified HTTP handler for provider API calls with request/response transformation.
+"""
+
+import json
+import logging
+import time
+from typing import Any, Dict, List, Optional, Union, AsyncGenerator
+import httpx
+
+from sysai_framework.llms.base.transformation import BaseConfig
+from sysai_framework.core.exceptions import (
+    RetriableError, NonRetriableError,
+    InvalidRequestError, AuthenticationError,
+    RateLimitError, ServiceUnavailableError, TimeoutError
+)
+
+logger = logging.getLogger(__name__)
