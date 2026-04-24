@@ -34,3 +34,5 @@ def _convert_http_status_to_exception(status_code: int, error_msg: str) -> Excep
         return NonRetriableError(f"Resource not found: {error_msg}")
     elif status_code == 422:
         return InvalidRequestError(f"Unprocessable entity: {error_msg}")
+    elif status_code == 429:
+        return RateLimitError(f"Rate limit exceeded: {error_msg}")
