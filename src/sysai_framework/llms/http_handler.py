@@ -274,3 +274,13 @@ class LLMHTTPHandler:
         except Exception as e:
             logger.error(f"Request to {url} failed: {e}")
             raise
+
+    def close(self):
+        """Close HTTP clients"""
+        if self.sync_client:
+            self.sync_client.close()
+        if self.async_client:
+            import asyncio
+            asyncio.create_task(self.async_client.aclose())
+
+
