@@ -30,3 +30,5 @@ def _convert_http_status_to_exception(status_code: int, error_msg: str) -> Excep
         return AuthenticationError(f"Authentication failed: {error_msg}")
     elif status_code == 403:
         return NonRetriableError(f"Forbidden: {error_msg}")
+    elif status_code == 404:
+        return NonRetriableError(f"Resource not found: {error_msg}")
