@@ -42,3 +42,7 @@ def _convert_http_status_to_exception(status_code: int, error_msg: str) -> Excep
         return ServiceUnavailableError(f"Bad gateway: {error_msg}")
     elif status_code == 503:
         return ServiceUnavailableError(f"Service unavailable: {error_msg}")
+    elif status_code == 504:
+        return TimeoutError(f"Gateway timeout: {error_msg}")
+    else:
+        return NonRetriableError(f"HTTP {status_code}: {error_msg}")
