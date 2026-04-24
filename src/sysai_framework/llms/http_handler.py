@@ -18,3 +18,10 @@ from sysai_framework.core.exceptions import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _convert_http_status_to_exception(status_code: int, error_msg: str) -> Exception:
+    """
+    Convert HTTP status code to appropriate exception type.
+    """
+    pass
