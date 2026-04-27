@@ -131,3 +131,43 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
     @classmethod
     def get_config(cls):
         return super().get_config()
+
+    def get_supported_openai_params(self, model: str) -> list:
+        base_params = [
+            "frequency_penalty",
+            "logit_bias",
+            "logprobs",
+            "top_logprobs",
+            "max_tokens",
+            "max_completion_tokens",
+            "modalities",
+            "prediction",
+            "n",
+            "presence_penalty",
+            "seed",
+            "stop",
+            "stream",
+            "stream_options",
+            "temperature",
+            "top_p",
+            "tools",
+            "tool_choice",
+            "function_call",
+            "functions",
+            "max_retries",
+            "extra_headers",
+            "parallel_tool_calls",
+            "audio",
+            "web_search_options",
+            "service_tier",
+            "safety_identifier",
+        ]
+
+        model_specific_params = []
+        if (
+            model != "gpt-3.5-turbo-16k" and model != "gpt-4"
+        ):
+            model_specific_params.append("response_format")
+
+        model_specific_params.append("user")
+        return base_params + model_specific_params
