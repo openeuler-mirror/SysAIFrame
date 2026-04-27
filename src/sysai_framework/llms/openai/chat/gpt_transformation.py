@@ -127,3 +127,7 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
                 setattr(self.__class__, key, value)
 
         self.__class__._is_base_class = False
+
+    @classmethod
+    def get_config(cls):
+        return super().get_config()
