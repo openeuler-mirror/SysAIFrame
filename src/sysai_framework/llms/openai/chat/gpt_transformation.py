@@ -59,3 +59,26 @@ from sysai_framework.llms.base.types import (
     OpenAIChatCompletionChoices,
     OpenAIMessageContentListBlock,
 )
+
+# Type stubs for LiteLLM types
+ChatCompletionMessageToolCall = dict
+Choices = dict
+Function = dict
+Message = dict
+ModelResponse = dict
+ModelResponseStream = dict
+
+def convert_to_model_response_object(*args, **kwargs):
+    """Stub for convert_to_model_response_object"""
+    return {}
+
+# OpenAIError can use BaseLLMException from base module
+from sysai_framework.llms.base.transformation import BaseLLMException as OpenAIError
+
+if TYPE_CHECKING:
+    from litellm.litellm_core_utils.litellm_logging import Logging as _LiteLLMLoggingObj
+    from sysai_framework.llms.base.types import ChatCompletionToolParam
+
+    LiteLLMLoggingObj = _LiteLLMLoggingObj
+else:
+    LiteLLMLoggingObj = Any
