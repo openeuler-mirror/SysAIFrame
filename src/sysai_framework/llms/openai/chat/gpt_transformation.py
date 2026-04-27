@@ -82,3 +82,13 @@ if TYPE_CHECKING:
     LiteLLMLoggingObj = _LiteLLMLoggingObj
 else:
     LiteLLMLoggingObj = Any
+
+
+class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
+    """
+    Reference: https://platform.openai.com/docs/api-reference/chat/create
+    (Chat Completion API specification reference)
+
+    The class `OpenAIConfig` provides configuration for the Chat Completion API interface.
+    """
+    pass
