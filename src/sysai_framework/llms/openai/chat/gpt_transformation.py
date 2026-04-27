@@ -171,3 +171,19 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
 
         model_specific_params.append("user")
         return base_params + model_specific_params
+
+    def _map_openai_params(
+        self,
+        non_default_params: dict,
+        optional_params: dict,
+        model: str,
+        drop_params: bool,
+    ) -> dict:
+        """
+        If any supported Chat Completion API params are in non_default_params, add them to optional_params
+        """
+        supported_openai_params = self.get_supported_openai_params(model)
+        for param, value in non_default_params.items():
+            if param in supported_openai_params:
+                optional_params[param] = value
+        return optional_params
