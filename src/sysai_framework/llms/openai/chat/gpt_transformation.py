@@ -187,3 +187,17 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             if param in supported_openai_params:
                 optional_params[param] = value
         return optional_params
+
+    def map_openai_params(
+        self,
+        non_default_params: dict,
+        optional_params: dict,
+        model: str,
+        drop_params: bool,
+    ) -> dict:
+        return self._map_openai_params(
+            non_default_params=non_default_params,
+            optional_params=optional_params,
+            model=model,
+            drop_params=drop_params,
+        )
