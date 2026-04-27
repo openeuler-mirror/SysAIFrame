@@ -233,3 +233,12 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             content_item["filename"] = "my_file.pdf"
             content_item.pop("file_id")
         return content_item
+
+    def _common_file_data_check(
+        self, content_item: ChatCompletionFileObjectFile
+    ) -> ChatCompletionFileObjectFile:
+        file_data = content_item.get("file_data")
+        filename = content_item.get("filename")
+        if file_data is not None and filename is None:
+            content_item["filename"] = "my_file.pdf"
+        return content_item
