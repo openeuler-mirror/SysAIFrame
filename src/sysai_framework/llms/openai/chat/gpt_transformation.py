@@ -309,3 +309,68 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             content_item_typed["file"] = file_obj
             content_item = content_item_typed
         return content_item
+
+    # fmt: off
+
+    @overload
+    def _transform_messages(
+        self, messages: List[AllMessageValues], model: str, is_async: Literal[True]
+    ) -> Coroutine[Any, Any, List[AllMessageValues]]:
+        ...
+
+    @overload
+    def _transform_messages(
+        self,
+        messages: List[AllMessageValues],
+        model: str,
+        is_async: Literal[False] = False,
+    ) -> List[AllMessageValues]:
+        ...
+
+    # fmt: on
+
+    def _transform_messages(
+        self, messages: List[AllMessageValues], model: str, is_async: bool = False
+    ) -> Union[List[AllMessageValues], Coroutine[Any, Any, List[AllMessageValues]]]:
+        """OpenAI no longer supports image_url as a string, so we need to convert it to a dict"""
+
+        async def _async_transform():
+            for message in messages:
+                message_content = message.get("content")
+                message_role = message.get("role")
+
+                if (
+                    message_role == "user"
+                    and message_content
+                    and isinstance(message_content, list)
+                ):
+                    message_content_types = cast(
+                        List[OpenAIMessageContentListBlock], message_content
+                    )
+                    for i, content_item in enumerate(message_content_types):
+                        message_content_types[i] = (
+                            await self._async_transform_content_item(
+                                cast(OpenAIMessageContentListBlock, content_item),
+                            )
+                        )
+            return messages
+
+        if is_async:
+            return _async_transform()
+        else:
+            for message in messages:
+                message_content = message.get("content")
+                message_role = message.get("role")
+                if (
+                    message_role == "user"
+                    and message_content
+                    and isinstance(message_content, list)
+                ):
+                    message_content_types = cast(
+                        List[OpenAIMessageContentListBlock], message_content
+                    )
+                    for i, content_item in enumerate(message_content):
+                        message_content_types[i] = self._transform_content_item(
+                            cast(OpenAIMessageContentListBlock, content_item)
+                        )
+            return messages
