@@ -210,3 +210,15 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
         ):
             return True
         return False
+
+    def _handle_pdf_url(
+        self, content_item: ChatCompletionFileObjectFile
+    ) -> ChatCompletionFileObjectFile:
+        content_copy = content_item.copy()
+        file_id = content_copy.get("file_id")
+        if file_id is not None:
+            base64_data = convert_url_to_base64(file_id)
+            content_copy["file_data"] = base64_data
+            content_copy["filename"] = "my_file.pdf"
+            content_copy.pop("file_id")
+        return content_copy
