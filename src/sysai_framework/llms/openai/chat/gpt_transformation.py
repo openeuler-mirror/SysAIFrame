@@ -242,3 +242,37 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
         if file_data is not None and filename is None:
             content_item["filename"] = "my_file.pdf"
         return content_item
+
+    def _apply_common_transform_content_item(
+        self,
+        content_item: OpenAIMessageContentListBlock,
+    ) -> OpenAIMessageContentListBlock:
+        litellm_specific_params = {"format"}
+        if content_item.get("type") == "image_url":
+            content_item = cast(ChatCompletionImageObject, content_item)
+            if isinstance(content_item["image_url"], str):
+                content_item["image_url"] = {
+                    "url": content_item["image_url"],
+                }
+            elif isinstance(content_item["image_url"], dict):
+                new_image_url_obj = ChatCompletionImageUrlObject(
+                    **{
+                        k: v
+                        for k, v in content_item["image_url"].items()
+                        if k not in litellm_specific_params
+                    }
+                )
+                content_item["image_url"] = new_image_url_obj
+        elif content_item.get("type") == "file":
+            content_item = cast(ChatCompletionFileObject, content_item)
+            file_obj = content_item["file"]
+            new_file_obj = ChatCompletionFileObjectFile(
+                **{
+                    k: v
+                    for k, v in file_obj.items()
+                    if k not in litellm_specific_params
+                }
+            )
+            content_item["file"] = new_file_obj
+
+        return content_item
