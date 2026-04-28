@@ -648,3 +648,21 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             return api_base
 
         return f"{api_base}/{endpoint}"
+
+    def validate_environment(
+        self,
+        headers: dict,
+        model: str,
+        messages: List[AllMessageValues],
+        optional_params: dict,
+        litellm_params: dict,
+        api_key: Optional[str] = None,
+        api_base: Optional[str] = None,
+    ) -> dict:
+        if api_key is not None:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        if "content-type" not in headers and "Content-Type" not in headers:
+            headers["Content-Type"] = "application/json"
+
+        return headers
