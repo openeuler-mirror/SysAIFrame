@@ -397,3 +397,60 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
                     filter_value_from_dict(tool, "cache_control"),
                 )
         return messages, tools
+
+    def transform_request(
+        self,
+        model: str,
+        messages: List[AllMessageValues],
+        optional_params: dict,
+        litellm_params: dict,
+        headers: dict,
+    ) -> dict:
+        """
+        Transform the overall request to be sent to the API.
+        """
+        messages = self._transform_messages(messages=messages, model=model)
+        messages, tools = self.remove_cache_control_flag_from_messages_and_tools(
+            model=model, messages=messages, tools=optional_params.get("tools", [])
+        )
+        if tools is not None and len(tools) > 0:
+            optional_params["tools"] = tools
+
+        optional_params.pop("max_retries", None)
+
+        return {
+            "model": model,
+            "messages": messages,
+            **optional_params,
+        }
+
+    async def async_transform_request(
+        self,
+        model: str,
+        messages: List[AllMessageValues],
+        optional_params: dict,
+        litellm_params: dict,
+        headers: dict,
+    ) -> dict:
+        transformed_messages = await self._transform_messages(
+            messages=messages, model=model, is_async=True
+        )
+        transformed_messages, tools = (
+            self.remove_cache_control_flag_from_messages_and_tools(
+                model=model,
+                messages=transformed_messages,
+                tools=optional_params.get("tools", []),
+            )
+        )
+        if tools is not None and len(tools) > 0:
+            optional_params["tools"] = tools
+        if self.__class__._is_base_class:
+            return {
+                "model": model,
+                "messages": transformed_messages,
+                **optional_params,
+            }
+        else:
+            return self.transform_request(
+                model, messages, optional_params, litellm_params, headers
+            )
