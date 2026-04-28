@@ -571,3 +571,48 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             transformed_choices.append(translated_choice)
 
         return transformed_choices
+
+    def transform_response(
+        self,
+        model: str,
+        raw_response: httpx.Response,
+        model_response: ModelResponse,
+        logging_obj: LiteLLMLoggingObj,
+        request_data: dict,
+        messages: List[AllMessageValues],
+        optional_params: dict,
+        litellm_params: dict,
+        encoding: Any,
+        api_key: Optional[str] = None,
+        json_mode: Optional[bool] = None,
+    ) -> ModelResponse:
+        """
+        Transform the response from the API.
+        """
+        logging_obj.post_call(
+            input=messages,
+            api_key=api_key,
+            original_response=raw_response.text,
+            additional_args={"complete_input_dict": request_data},
+        )
+
+        try:
+            completion_response = raw_response.json()
+        except Exception as e:
+            response_headers = getattr(raw_response, "headers", None)
+            raise OpenAIError(
+                message="Unable to get json response - {}, Original Response: {}".format(
+                    str(e), raw_response.text
+                ),
+                status_code=raw_response.status_code,
+                headers=response_headers,
+            )
+        raw_response_headers = dict(raw_response.headers)
+        final_response_obj = convert_to_model_response_object(
+            response_object=completion_response,
+            model_response_object=model_response,
+            hidden_params={"headers": raw_response_headers},
+            _response_headers=raw_response_headers,
+        )
+
+        return cast(ModelResponse, final_response_obj)
