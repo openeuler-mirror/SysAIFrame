@@ -42,3 +42,19 @@ class BaseRoutingStrategy(ABC):
             config_manager: ModelConfigManager instance for accessing configuration
         """
         self.config_manager = config_manager
+
+    @abstractmethod
+    def select_deployment(
+        self,
+        healthy_models: List[ModelConfig]
+    ) -> Optional[ModelConfig]:
+        """
+        Select a model deployment from healthy models list
+
+        Args:
+            healthy_models: List of healthy ModelConfig instances
+
+        Returns:
+            Selected ModelConfig or None if no models available
+        """
+        pass
