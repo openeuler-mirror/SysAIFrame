@@ -16,3 +16,8 @@ from sysai_framework.router.routing_strategy import BaseRoutingStrategy
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class LowestLatencyStrategy(BaseRoutingStrategy):
+    """Lowest latency load balance strategy - selects model with lowest average latency"""
+    pass
