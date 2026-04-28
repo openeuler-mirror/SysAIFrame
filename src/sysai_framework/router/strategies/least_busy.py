@@ -24,3 +24,32 @@ class LeastBusyStrategy(BaseRoutingStrategy):
         super().__init__(config_manager)
         self._request_counts: Dict[str, int] = {}
         self._lock = threading.Lock()
+
+    def select_deployment(
+        self,
+        healthy_models: List[ModelConfig]
+    ) -> Optional[ModelConfig]:
+        """
+        Select model with fewest active requests
+
+        Args:
+            healthy_models: List of healthy ModelConfig instances
+
+        Returns:
+            Selected ModelConfig or None if no models available
+        """
+        if not healthy_models:
+            return None
+
+        with self._lock:
+            counts = [
+                (model, self._request_counts.get(model.instance_id, 0))
+                for model in healthy_models
+            ]
+            counts.sort(key=lambda x: x[1])
+            selected = counts[0][0]
+            logger.debug(
+                f"Least-busy selected: {selected.name} "
+                f"(instance_id={selected.instance_id}, active_requests={counts[0][1]})"
+            )
+            return selected
