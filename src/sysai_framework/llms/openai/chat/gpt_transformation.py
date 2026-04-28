@@ -701,3 +701,12 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             api_key
             or get_secret_str("OPENAI_API_KEY")
         )
+
+    @staticmethod
+    def get_api_base(api_base: Optional[str] = None) -> Optional[str]:
+        return (
+            api_base
+            or get_secret_str("OPENAI_BASE_URL")
+            or get_secret_str("OPENAI_API_BASE")
+            or "https://api.openai.com/v1"
+        )
