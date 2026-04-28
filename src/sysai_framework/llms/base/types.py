@@ -18,3 +18,14 @@ OpenAIChatCompletionChoices = Dict[str, Any]
 OpenAIMessageContentListBlock = Dict[str, Any]
 ChatCompletionToolParam = Dict[str, Any]
 
+
+# Base class for provider compatibility
+class BaseLLMModelInfo:
+    """
+    Base class for LLM model information
+
+    Provides a common base for provider-specific model info classes.
+    Subclasses can add provider-specific attributes as needed.
+    """
+    pass
+
