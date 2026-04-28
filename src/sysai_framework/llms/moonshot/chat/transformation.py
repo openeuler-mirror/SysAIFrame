@@ -121,3 +121,28 @@ class MoonshotChatConfig(OpenAIGPTConfig):
             if optional_params["temperature"] < 0.3 and optional_params.get("n", 1) > 1:
                 optional_params["temperature"] = 0.3
         return optional_params
+
+    def transform_request(
+        self,
+        model: str,
+        messages: List[AllMessageValues],
+        optional_params: dict,
+        litellm_params: dict,
+        headers: dict,
+    ) -> dict:
+        """
+        Transform the overall request to be sent to the API.
+        """
+        if optional_params.get("tool_choice", None) == "required":
+            messages = self._add_tool_choice_required_message(
+                messages=messages,
+                optional_params=optional_params,
+            )
+
+        return super().transform_request(
+            model=model,
+            messages=messages,
+            optional_params=optional_params,
+            litellm_params=litellm_params,
+            headers=headers,
+        )
