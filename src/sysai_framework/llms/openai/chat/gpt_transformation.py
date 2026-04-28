@@ -616,3 +616,12 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
         )
 
         return cast(ModelResponse, final_response_obj)
+
+    def get_error_class(
+        self, error_message: str, status_code: int, headers: Union[dict, httpx.Headers]
+    ) -> BaseLLMException:
+        return OpenAIError(
+            status_code=status_code,
+            message=error_message,
+            headers=cast(httpx.Headers, headers),
+        )
