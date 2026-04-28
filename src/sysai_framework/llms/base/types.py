@@ -27,5 +27,15 @@ class BaseLLMModelInfo:
     Provides a common base for provider-specific model info classes.
     Subclasses can add provider-specific attributes as needed.
     """
-    pass
+
+    def __init__(self, model_name: str, provider: str):
+        """
+        Initialize base model info.
+
+        Args:
+            model_name: Name of the model
+            provider: Provider name (e.g., openai, deepseek)
+        """
+        self.model_name = model_name
+        self.provider = provider
 
