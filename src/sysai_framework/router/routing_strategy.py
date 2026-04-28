@@ -83,3 +83,12 @@ class BaseRoutingStrategy(ABC):
             tokens_used: Number of tokens used (for usage-based strategy)
         """
         pass
+
+    def log_failure(self, model_config: ModelConfig) -> None:
+        """
+        Log failed request
+
+        Args:
+            model_config: Model configuration that failed
+        """
+        pass
