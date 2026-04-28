@@ -24,3 +24,28 @@ class RoundRobinStrategy(BaseRoutingStrategy):
         super().__init__(config_manager)
         self._index = 0
         self._lock = threading.Lock()
+
+    def select_deployment(
+        self,
+        healthy_models: List[ModelConfig]
+    ) -> Optional[ModelConfig]:
+        """
+        Select next model in round-robin fashion
+
+        Args:
+            healthy_models: List of healthy ModelConfig instances
+
+        Returns:
+            Selected ModelConfig or None if no models available
+        """
+        if not healthy_models:
+            return None
+
+        with self._lock:
+            selected = healthy_models[self._index % len(healthy_models)]
+            self._index = (self._index + 1) % len(healthy_models)
+            logger.debug(
+                f"Round-robin selected: {selected.name} "
+                f"(instance_id={selected.instance_id}, index={self._index})"
+            )
+            return selected
