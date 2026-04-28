@@ -666,3 +666,31 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             headers["Content-Type"] = "application/json"
 
         return headers
+
+    def get_models(
+        self, api_key: Optional[str] = None, api_base: Optional[str] = None
+    ) -> List[str]:
+        """
+        Calls the `/v1/models` endpoint and returns the list of models.
+        """
+
+        if api_base is None:
+            api_base = "https://api.openai.com"
+        if api_key is None:
+            api_key = get_secret_str("OPENAI_API_KEY")
+
+        parsed_url = httpx.URL(api_base)
+        base_url = f"{parsed_url.scheme}://{parsed_url.host}"
+        if parsed_url.port:
+            base_url += f":{parsed_url.port}"
+
+        response = httpx.get(
+            url=f"{base_url}/v1/models",
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+
+        if response.status_code != 200:
+            raise Exception(f"Failed to get models: {response.text}")
+
+        models = response.json()["data"]
+        return [model["id"] for model in models]
