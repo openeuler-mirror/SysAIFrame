@@ -39,3 +39,15 @@ class BaseLLMModelInfo:
         self.model_name = model_name
         self.provider = provider
 
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert to dictionary representation.
+
+        Returns:
+            Dictionary with model info
+        """
+        return {
+            'model_name': self.model_name,
+            'provider': self.provider,
+        }
+
