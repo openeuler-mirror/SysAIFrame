@@ -15,3 +15,8 @@ from sysai_framework.router.routing_strategy import BaseRoutingStrategy
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class RoundRobinStrategy(BaseRoutingStrategy):
+    """Round-robin load balance strategy - cycles through models in order"""
+    pass
