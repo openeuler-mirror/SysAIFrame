@@ -55,3 +55,23 @@ class DashScopeChatConfig(OpenAIGPTConfig):
         )
         dynamic_api_key = api_key or get_secret_str("DASHSCOPE_API_KEY")
         return api_base, dynamic_api_key
+
+    def get_complete_url(
+        self,
+        api_base: Optional[str],
+        api_key: Optional[str],
+        model: str,
+        optional_params: dict,
+        litellm_params: dict,
+        stream: Optional[bool] = None,
+    ) -> str:
+        """
+        If api_base is not provided, use the default DashScope /chat/completions endpoint.
+        """
+        if not api_base:
+            api_base = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+        if not api_base.endswith("/chat/completions"):
+            api_base = f"{api_base}/chat/completions"
+
+        return api_base
