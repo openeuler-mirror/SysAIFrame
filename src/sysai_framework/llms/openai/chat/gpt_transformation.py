@@ -625,3 +625,26 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             message=error_message,
             headers=cast(httpx.Headers, headers),
         )
+
+    def get_complete_url(
+        self,
+        api_base: Optional[str],
+        api_key: Optional[str],
+        model: str,
+        optional_params: dict,
+        litellm_params: dict,
+        stream: Optional[bool] = None,
+    ) -> str:
+        """
+        Get the complete URL for the API call.
+        """
+        if api_base is None:
+            api_base = "https://api.openai.com"
+        endpoint = "chat/completions"
+
+        api_base = api_base.rstrip("/")
+
+        if endpoint in api_base:
+            return api_base
+
+        return f"{api_base}/{endpoint}"
