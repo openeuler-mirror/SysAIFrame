@@ -15,3 +15,8 @@ from sysai_framework.router.routing_strategy import BaseRoutingStrategy
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class WeightedStrategy(BaseRoutingStrategy):
+    """Weighted random load balance strategy - selects based on weight"""
+    pass
