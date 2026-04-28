@@ -19,4 +19,8 @@ logger = logging.getLogger(__name__)
 
 class RoundRobinStrategy(BaseRoutingStrategy):
     """Round-robin load balance strategy - cycles through models in order"""
-    pass
+
+    def __init__(self, config_manager=None):
+        super().__init__(config_manager)
+        self._index = 0
+        self._lock = threading.Lock()
