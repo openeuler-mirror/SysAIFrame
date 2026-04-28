@@ -67,3 +67,19 @@ class BaseRoutingStrategy(ABC):
             model_config: Model configuration being called
         """
         pass
+
+    def log_success(
+        self,
+        model_config: ModelConfig,
+        response_time: float,
+        tokens_used: int = 0
+    ) -> None:
+        """
+        Log successful request completion
+
+        Args:
+            model_config: Model configuration that handled the request
+            response_time: Request response time in seconds
+            tokens_used: Number of tokens used (for usage-based strategy)
+        """
+        pass
