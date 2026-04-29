@@ -91,6 +91,22 @@ class ModelRouter:
 
         logger.debug("ModelRouter initialized with health management")
 
+    def _init_routing_strategy(self) -> None:
+        """Initialize routing strategy based on runtime mode configuration"""
+        runtime_config = self.config_manager.runtime_config
+        self.runtime_mode = RuntimeMode(runtime_config.mode) if runtime_config.mode else RuntimeMode.DEFAULT
+        self.lb_strategy = None
+
+        if self.runtime_mode == RuntimeMode.LOAD_BALANCE:
+            strategy_type = runtime_config.load_balance.strategy
+            try:
+                strategy_enum = LoadBalanceStrategy(strategy_type)
+                self.lb_strategy = self._create_strategy(strategy_enum)
+                logger.info(f"Initialized load balance strategy: {strategy_type}")
+            except ValueError:
+                logger.warning(f"Unknown load balance strategy: {strategy_type}, falling back to default mode")
+                self.runtime_mode = RuntimeMode.DEFAULT
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
