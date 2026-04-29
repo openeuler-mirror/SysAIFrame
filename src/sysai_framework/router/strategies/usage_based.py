@@ -113,3 +113,30 @@ class UsageBasedStrategy(BaseRoutingStrategy):
             )
             return selected
 
+    def log_success(
+        self,
+        model_config: ModelConfig,
+        response_time: float,
+        tokens_used: int = 0
+    ) -> None:
+        """Record usage on success"""
+        current_time = time.time()
+
+        with self._lock:
+            if model_config.instance_id not in self._usage_history:
+                self._usage_history[model_config.instance_id] = []
+
+            # Record tokens used
+            if tokens_used > 0:
+                self._usage_history[model_config.instance_id].append(
+                    (current_time, tokens_used, False)
+                )
+
+            # Record request
+            self._usage_history[model_config.instance_id].append(
+                (current_time, 0, True)
+            )
+
+            # Cleanup old records
+            self._cleanup_old_records(model_config.instance_id, current_time)
+
