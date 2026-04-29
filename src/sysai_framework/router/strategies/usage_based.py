@@ -45,3 +45,32 @@ class UsageBasedStrategy(BaseRoutingStrategy):
             (ts, tokens, is_req) for ts, tokens, is_req in self._usage_history[instance_id]
             if ts >= cutoff_time
         ]
+
+    def _calculate_usage(self, instance_id: str, current_time: float) -> Tuple[int, int]:
+        """
+        Calculate TPM and RPM for a model
+
+        Returns:
+            Tuple of (tpm, rpm)
+        """
+        if instance_id not in self._usage_history:
+            return (0, 0)
+
+        self._cleanup_old_records(instance_id, current_time)
+
+        history = self._usage_history[instance_id]
+        if not history:
+            return (0, 0)
+
+        # Calculate TPM (tokens per minute) and RPM (requests per minute)
+        # Scale to per-minute from usage_window
+        tokens = sum(tokens for _, tokens, _ in history)
+        requests = sum(1 for _, _, is_req in history if is_req)
+
+        # Scale to per-minute
+        scale_factor = 60.0 / self._usage_window
+        tpm = int(tokens * scale_factor)
+        rpm = int(requests * scale_factor)
+
+        return (tpm, rpm)
+
