@@ -74,3 +74,42 @@ class UsageBasedStrategy(BaseRoutingStrategy):
 
         return (tpm, rpm)
 
+    def select_deployment(
+        self,
+        healthy_models: List[ModelConfig]
+    ) -> Optional[ModelConfig]:
+        """
+        Select model with lowest usage (TPM + RPM)
+
+        Args:
+            healthy_models: List of healthy ModelConfig instances
+
+        Returns:
+            Selected ModelConfig or None if no models available
+        """
+        if not healthy_models:
+            return None
+
+        current_time = time.time()
+
+        with self._lock:
+            # Calculate usage for each model
+            usages = []
+            for model in healthy_models:
+                tpm, rpm = self._calculate_usage(model.instance_id, current_time)
+                # Combined usage score (can be customized)
+                usage_score = tpm + rpm * 100  # Weight requests more
+                usages.append((model, usage_score, tpm, rpm))
+
+            # Sort by usage score (ascending)
+            usages.sort(key=lambda x: x[1])
+
+            # Select model with minimum usage
+            selected = usages[0][0]
+
+            logger.debug(
+                f"Usage-based selected: {selected.name} "
+                f"(instance_id={selected.instance_id}, tpm={usages[0][2]}, rpm={usages[0][3]})"
+            )
+            return selected
+
