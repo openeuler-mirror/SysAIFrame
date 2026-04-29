@@ -82,3 +82,19 @@ class LowestLatencyStrategy(BaseRoutingStrategy):
                 f"(instance_id={selected.instance_id}, avg_latency={latencies[0][1]:.3f}s)"
             )
             return selected
+
+    def log_success(
+        self,
+        model_config: ModelConfig,
+        response_time: float,
+        tokens_used: int = 0
+    ) -> None:
+        """Record latency on success"""
+        with self._lock:
+            if model_config.instance_id not in self._latency_history:
+                self._latency_history[model_config.instance_id] = deque(maxlen=self._latency_window)
+
+            self._latency_history[model_config.instance_id].append(response_time)
+
+            if len(self._latency_history[model_config.instance_id]) > self._latency_window:
+                self._latency_history[model_config.instance_id].popleft()
