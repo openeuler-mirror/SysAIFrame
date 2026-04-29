@@ -33,3 +33,52 @@ class LowestLatencyStrategy(BaseRoutingStrategy):
         else:
             self._latency_window = 10
             self._latency_buffer = 0.1
+
+    def select_deployment(
+        self,
+        healthy_models: List[ModelConfig]
+    ) -> Optional[ModelConfig]:
+        """
+        Select model with lowest average latency
+
+        Args:
+            healthy_models: List of healthy ModelConfig instances
+
+        Returns:
+            Selected ModelConfig or None if no models available
+        """
+        if not healthy_models:
+            return None
+
+        with self._lock:
+            latencies = []
+            for model in healthy_models:
+                history = self._latency_history.get(model.instance_id, deque())
+                if len(history) > 0:
+                    avg_latency = sum(history) / len(history)
+                else:
+                    avg_latency = float('inf')
+                latencies.append((model, avg_latency))
+
+            latencies.sort(key=lambda x: x[1])
+
+            if not latencies:
+                return None
+
+            min_latency = latencies[0][1]
+            if min_latency == float('inf'):
+                selected = healthy_models[0]
+            else:
+                max_allowed_latency = min_latency * (1 + self._latency_buffer)
+                candidates = [
+                    (model, latency) for model, latency in latencies
+                    if latency <= max_allowed_latency
+                ]
+                import random
+                selected = random.choice(candidates)[0] if candidates else latencies[0][0]
+
+            logger.debug(
+                f"Lowest-latency selected: {selected.name} "
+                f"(instance_id={selected.instance_id}, avg_latency={latencies[0][1]:.3f}s)"
+            )
+            return selected
