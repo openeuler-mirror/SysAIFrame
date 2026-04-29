@@ -65,7 +65,31 @@ MIN_FALLBACK_TIMEOUT = 10.0   # Minimum time needed for a fallback attempt (stre
 
 class ModelRouter:
     """AI model router for SysAIFrame - focused on routing logic with health management"""
-    pass
+
+    def __init__(self, config_manager=None, start_health_checker: bool = True):
+        """
+        Initialize the model router with config manager and health checker
+
+        Args:
+            config_manager: Model configuration manager instance
+            start_health_checker: Whether to start health checker background thread
+        """
+        self.config_manager = config_manager or get_config_manager()
+
+        # Initialize health checker
+        self.health_checker = HealthChecker(self.config_manager)
+
+        # Start background health checks if requested
+        # Start health checker if any health check is enabled
+        health_check = self.config_manager.routing_config.health_check
+        if start_health_checker and (health_check.lightweight_enabled or health_check.actual_request_enabled):
+            self.health_checker.start_background_checks()
+            logger.debug("Health checker started")
+
+        # Initialize routing strategy based on runtime mode
+        self._init_routing_strategy()
+
+        logger.debug("ModelRouter initialized with health management")
 
 
 # Global router instance
