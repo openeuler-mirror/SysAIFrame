@@ -18,7 +18,7 @@ class OpenAILikeChatConfig(OpenAIGPTConfig):
     Configuration for Chat Completion API compatible endpoints.
 
     This class is used for any provider that follows the Chat Completion API specification
-    but is not one of the specifically supported providers.
+    but is not one of the specifically supported providers (DashScope, Moonshot, etc.).
 
     Examples of compatible providers:
     - vLLM
