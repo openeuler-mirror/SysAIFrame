@@ -228,6 +228,32 @@ class ModelRouter:
         )
         return self._select_default_model()
 
+    def _select_default_model(self) -> Optional[ModelConfig]:
+        """
+        Select the default model
+
+        If default_model_instance_id is specified, use that specific instance.
+        Otherwise, select the best instance of the default model name.
+        In load-balance mode, uses routing strategy to select from candidates.
+        """
+        # First check if any models are configured
+        if not self.config_manager.models or len(self.config_manager.models) == 0:
+            logger.error("No models configured")
+            return None
+
+        default_model = self.config_manager.default_model
+        default_instance_id = self.config_manager.default_model_instance_id
+
+        if default_instance_id:
+            # Use specific instance (bypass load balancing)
+            model_config = self.config_manager.get_model_by_instance_id(default_instance_id)
+            if model_config and (not self._should_consider_health() or model_config.is_healthy):
+                logger.debug(
+                    f"Selected default model instance: {default_model} "
+                    f"(instance_id={default_instance_id})"
+                )
+                return model_config
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
