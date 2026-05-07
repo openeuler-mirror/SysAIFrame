@@ -217,6 +217,17 @@ class ModelRouter:
                     )
                     return selected
 
+        # Check if any models are configured at all
+        if not self.config_manager.models:
+            logger.error("No models configured")
+            return None
+
+        logger.debug(
+            f"Requested model '{requested_model}' not available or unhealthy, "
+            f"fallback to default"
+        )
+        return self._select_default_model()
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
