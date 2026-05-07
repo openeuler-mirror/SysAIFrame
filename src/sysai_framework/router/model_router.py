@@ -187,6 +187,35 @@ class ModelRouter:
                     f"(instance_id={model_config.instance_id})"
                 )
                 return model_config
+        else:
+            # Model name only - use load balancing if enabled
+            models = self.config_manager.get_models_by_name(requested_model)
+            if models:
+                should_consider_health = self._should_consider_health()
+                healthy_models = [
+                    m for m in models
+                    if not should_consider_health or m.is_healthy
+                ]
+
+                if healthy_models:
+                    # Use load balance strategy if enabled
+                    if self.runtime_mode == RuntimeMode.LOAD_BALANCE and self.lb_strategy:
+                        selected = self.lb_strategy.select_deployment(healthy_models)
+                        if selected:
+                            logger.debug(
+                                f"Load balance selected model: {requested_model} "
+                                f"(instance_id={selected.instance_id})"
+                            )
+                            return selected
+
+                    # Default mode: use priority-based selection
+                    healthy_models.sort(key=lambda m: (m.is_healthy, m.priority), reverse=True)
+                    selected = healthy_models[0]
+                    logger.debug(
+                        f"Selected requested model: {requested_model} "
+                        f"(instance_id={selected.instance_id})"
+                    )
+                    return selected
 
 
 # Global router instance
