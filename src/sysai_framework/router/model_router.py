@@ -141,6 +141,30 @@ class ModelRouter:
         health_check = self.config_manager.routing_config.health_check
         return health_check.lightweight_enabled or health_check.actual_request_enabled
 
+    def select_model(self, requested_model: Optional[str] = None) -> Optional[ModelConfig]:
+        """
+        Select model for routing - enhanced with capability-based selection and instance support
+
+        Supported formats:
+        1. None or empty string -> Use default model
+        2. "default" -> Use default model
+        3. "mock" -> Return built-in Mock model
+        4. "capability-xxx" -> Select by capability (e.g., capability-code)
+        5. "model_name" -> Select best instance of that model (load balancing)
+        6. "model_name:instance_id" -> Select specific instance
+
+        Args:
+            requested_model: Model identifier (can be name, "default", "mock", "capability-xxx",
+                            or "model_name:instance_id")
+
+        Returns:
+            ModelConfig or None if no suitable model found
+        """
+        # Case 1: None, empty, or "default" -> use default model
+        if not requested_model or requested_model == SPECIAL_MODEL_DEFAULT:
+            logger.debug("Using default model selection")
+            return self._select_default_model()
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
