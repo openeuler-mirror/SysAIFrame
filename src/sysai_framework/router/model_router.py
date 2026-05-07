@@ -165,6 +165,17 @@ class ModelRouter:
             logger.debug("Using default model selection")
             return self._select_default_model()
 
+        # Case 2: "mock" -> return built-in mock model
+        if requested_model == SPECIAL_MODEL_MOCK:
+            logger.debug("Using built-in mock model")
+            return self._get_mock_model()
+
+        # Case 3: Capability request (e.g., "capability-code")
+        if ModelConfigManager.is_capability_request(requested_model):
+            capability = ModelConfigManager.extract_capability(requested_model)
+            logger.debug(f"Selecting model by capability: {capability}")
+            return self._select_by_capability(capability)
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
