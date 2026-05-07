@@ -372,6 +372,52 @@ class ModelRouter:
             is_healthy=True
         )
 
+    def route_chat_completion(
+                            model: str,
+                            messages: List[Dict[str, Any]],
+                            stream: bool = False,
+                            model_config: Optional[ModelConfig] = None,
+                            **kwargs) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
+        """
+        Synchronous chat completion routing
+
+        This is the main entry point for chat completion routing.
+        Handles both streaming and non-streaming in a single method.
+
+        Args:
+            model: Model name (used if model_config is None)
+            messages: Chat messages
+            stream: Whether to stream response
+            model_config: Pre-selected model config (used if provided, skips model selection)
+            **kwargs: Additional parameters
+
+        Returns:
+            Dict for non-streaming, AsyncGenerator for streaming
+        """
+        logger.debug(
+            f"Routing chat completion for model: {model}, "
+            f"stream: {stream}, model_config provided: {model_config is not None}"
+        )
+
+        # 1. Get model configuration
+        # If model_config is provided (e.g., from fallback mechanism), use it directly
+        # Otherwise, select model using select_model (for standalone calls)
+        if model_config is not None:
+            selected_config = model_config
+            logger.debug(f"Using pre-selected model config: {selected_config.name} (instance_id: {selected_config.instance_id})")
+        else:
+            selected_config = self.select_model(model)
+            if not selected_config:
+                # Check if no models are configured at all
+                if not self.config_manager.models or len(self.config_manager.models) == 0:
+                    raise ValueError("No models configured")
+                else:
+                    # Models are configured but none are available/healthy
+                    raise ValueError("No healthy models available")
+
+        # Use selected_config for the rest of the method
+        model_config = selected_config
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
