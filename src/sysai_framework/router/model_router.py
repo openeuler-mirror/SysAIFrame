@@ -345,6 +345,20 @@ class ModelRouter:
                         )
                         return selected
 
+                # Default mode: use priority-based selection
+                healthy_models.sort(key=lambda m: (m.is_healthy, m.priority), reverse=True)
+                selected = healthy_models[0]
+                logger.debug(
+                    f"Selected model '{selected.name}' (priority={selected.priority}) "
+                    f"for capability '{capability}'"
+                )
+                return selected
+
+        logger.warning(
+            f"No healthy model found for capability '{capability}', fallback to default"
+        )
+        return self._select_default_model()
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
