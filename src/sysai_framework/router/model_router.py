@@ -127,6 +127,10 @@ class ModelRouter:
         """Get list of available models"""
         return self.config_manager.get_available_models()
 
+    def get_model_config(self, model_name: str) -> Optional[ModelConfig]:
+        """Get model configuration by name"""
+        return self.config_manager.get_model_config(model_name)
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
