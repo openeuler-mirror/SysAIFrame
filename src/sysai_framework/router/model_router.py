@@ -107,6 +107,22 @@ class ModelRouter:
                 logger.warning(f"Unknown load balance strategy: {strategy_type}, falling back to default mode")
                 self.runtime_mode = RuntimeMode.DEFAULT
 
+    def _create_strategy(self, strategy: LoadBalanceStrategy) -> BaseRoutingStrategy:
+        """Create routing strategy instance"""
+        if strategy == LoadBalanceStrategy.ROUND_ROBIN:
+            return RoundRobinStrategy(self.config_manager)
+        elif strategy == LoadBalanceStrategy.WEIGHTED:
+            return WeightedStrategy(self.config_manager)
+        elif strategy == LoadBalanceStrategy.LEAST_BUSY:
+            return LeastBusyStrategy(self.config_manager)
+        elif strategy == LoadBalanceStrategy.LOWEST_LATENCY:
+            return LowestLatencyStrategy(self.config_manager)
+        elif strategy == LoadBalanceStrategy.USAGE_BASED:
+            return UsageBasedStrategy(self.config_manager)
+        else:
+            # Fallback to weighted
+            return WeightedStrategy(self.config_manager)
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
