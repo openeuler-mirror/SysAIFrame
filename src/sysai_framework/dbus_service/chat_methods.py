@@ -35,6 +35,32 @@ class ChatServiceObject(dbus.service.Object if DBUS_AVAILABLE else object):
     INTERFACE_NAME = 'org.ctyunos.AIGateway.Chat'
 
     def __init__(self, bus_name, object_path, gateway_app=None):
-        pass
+        """
+        Initialize chat service object.
+
+        Args:
+            bus_name: D-Bus bus name
+            object_path: D-Bus object path
+            gateway_app: FastAPI application instance
+        """
+        if DBUS_AVAILABLE:
+            super().__init__(bus_name, object_path)
+
+        self.gateway_app = gateway_app
+        self.stream_handler = StreamHandler(self)
+
+        # Import dependencies
+        try:
+            from sysai_framework.config import get_config_manager
+            from sysai_framework.router.model_router import ModelRouter
+
+            self.config_manager = get_config_manager()
+            self.model_router = ModelRouter(self.config_manager)
+
+            logger.info("Chat service object initialized with dependencies")
+        except Exception as e:
+            logger.error(f"Failed to initialize dependencies: {e}", exc_info=True)
+            self.config_manager = None
+            self.model_router = None
 
 
