@@ -67,4 +67,20 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to initialize config manager: {e}", exc_info=True)
             self.config_manager = None
 
+    def _model_config_to_dict(self, model_config) -> Dict[str, Any]:
+        """Convert ModelConfig to dictionary (hide sensitive data)"""
+        return {
+            'name': model_config.name,
+            'instance_id': model_config.instance_id,
+            'provider': model_config.provider,
+            'api_base': model_config.api_base,
+            'api_key': '***' if model_config.api_key else None,
+            'priority': model_config.priority,
+            'capabilities': model_config.capabilities,
+            'supports_streaming': model_config.supports_streaming,
+            'timeout': model_config.timeout,
+            'max_retries': model_config.max_retries,
+            'is_healthy': model_config.is_healthy,
+        }
+
 
