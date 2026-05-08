@@ -945,6 +945,74 @@ class ModelRouter:
         delay = retry_config.base_delay * (retry_config.backoff_factor ** attempt)
         return min(delay, retry_config.max_delay)
 
+    def should_retry_error(
+        self,
+        error: Exception,
+        model_config: ModelConfig,
+        fallback_list: List[ModelConfig],
+        current_model_idx: int
+    ) -> bool:
+        """
+        Smart decision on whether to retry current error (inspired by LiteLLM)
+
+        Decision logic:
+        1. Authentication/Non-retriable errors -> No retry
+        2. Last model in fallback list -> Should retry (no alternatives)
+        3. RateLimitError/TimeoutError with fallback available -> Skip retry, try fallback
+        4. No healthy same-name instances -> Skip retry
+        5. Otherwise -> Can retry
+
+        Args:
+            error: Exception that occurred
+            model_config: Current model configuration
+            fallback_list: List of all fallback models
+            current_model_idx: Index of current model in fallback list
+
+        Returns:
+            True if should retry, False if should skip retry and try fallback
+        """
+        # 1. Non-retriable errors: don't retry
+        if isinstance(error, (AuthenticationError, InvalidRequestError, NonRetriableError)):
+            logger.info(
+                f"Non-retriable error for {model_config.name}: {type(error).__name__}. "
+                f"Skipping retry."
+            )
+            return False
+
+        # 2. Last model: should retry (no fallback available)
+        is_last_model = (current_model_idx >= len(fallback_list) - 1)
+        if is_last_model:
+            logger.debug(
+                f"Last model in fallback list, will retry {model_config.name}"
+            )
+            return True
+
+        # 3. RateLimitError/TimeoutError with fallback: skip retry, try fallback immediately
+        if isinstance(error, (RateLimitError, TimeoutError)):
+            logger.info(
+                f"{type(error).__name__} for {model_config.name}. "
+                f"Skipping retry, will try next fallback model."
+            )
+            return False
+
+        # 4. Check for healthy same-name instances
+        has_healthy_same_name = any(
+            m.name == model_config.name and
+            m.instance_id != model_config.instance_id and
+            m.is_healthy
+            for m in fallback_list[current_model_idx+1:]
+        )
+
+        if not has_healthy_same_name:
+            logger.info(
+                f"No healthy alternatives for {model_config.name}. "
+                f"Skipping retry, will try different model."
+            )
+            return False
+
+        # 5. Default: can retry
+        return True
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
