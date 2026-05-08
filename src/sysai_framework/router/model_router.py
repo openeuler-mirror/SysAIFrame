@@ -1013,6 +1013,15 @@ class ModelRouter:
         # 5. Default: can retry
         return True
 
+    def reload_config(self) -> bool:
+        """Reload configuration from file and update health checker"""
+        result = self.config_manager.reload_config()
+        if result:
+            # Notify health checker of config update
+            self.health_checker.update_config({})
+            logger.info("Configuration reloaded and health checker updated")
+        return result
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
