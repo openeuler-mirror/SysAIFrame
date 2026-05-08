@@ -151,3 +151,7 @@ class DBusAIGatewayService:
         return self.running
 
 
+# Global service instance management
+_service_instance: Optional[DBusAIGatewayService] = None
+
+
