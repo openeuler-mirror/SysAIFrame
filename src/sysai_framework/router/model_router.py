@@ -771,6 +771,40 @@ class ModelRouter:
         first_chunk_read = False
         start_time = time.time()
 
+    def _create_streaming_generator_for_fallback(
+        self,
+        model_config: ModelConfig,
+        messages: List[Dict[str, Any]],
+        **kwargs
+    ) -> AsyncGenerator[str, None]:
+        """
+        Create a new streaming generator for fallback model
+
+        This is called when the current streaming model fails and we need
+        to try a fallback model.
+
+        Args:
+            model_config: Fallback model configuration
+            messages: Chat messages
+            **kwargs: Additional parameters
+
+        Returns:
+            AsyncGenerator for the fallback model's streaming response
+
+        Raises:
+            Exception: If model invocation fails
+        """
+        # Call route_chat_completion directly (not with_fallback)
+        # to avoid nested fallback logic
+        # Note: route_chat_completion is sync and returns AsyncGenerator for streaming
+        return self.route_chat_completion(
+            model=model_config.name,
+            messages=messages,
+            stream=True,
+            model_config=model_config,
+            **kwargs
+        )
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
