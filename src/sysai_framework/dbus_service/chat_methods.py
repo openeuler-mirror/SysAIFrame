@@ -249,4 +249,44 @@ class ChatServiceObject(dbus.service.Object if DBUS_AVAILABLE else object):
             logger.error(f"GetChatModels error: {e}", exc_info=True)
             return dbus.Array([], signature='s')
 
+    @dbus.service.method(
+        dbus_interface=INTERFACE_NAME,
+        in_signature='',
+        out_signature='a{sv}'
+    )
+    def GetStatus(self):
+        """
+        Get gateway status information.
+
+        Returns:
+            D-Bus variant dict with status
+        """
+        try:
+            status = {
+                'service': 'sysaiframe-gateway',
+                'status': 'running',
+                'dbus_interface': 'active',
+                'timestamp': int(time.time())
+            }
+
+            if self.config_manager:
+                models = self.config_manager.get_available_models()
+                status['available_models'] = len(models)
+                status['models'] = models
+
+                # Get default model
+                default_model = self.config_manager.get_default_model()
+                if default_model:
+                    status['default_model'] = default_model
+
+            return response_to_dbus(status)
+
+        except Exception as e:
+            logger.error(f"GetStatus error: {e}", exc_info=True)
+            error_status = {
+                'status': 'error',
+                'error': str(e)
+            }
+            return response_to_dbus(error_status)
+
 
