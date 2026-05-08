@@ -702,6 +702,19 @@ class ModelRouter:
                 self.health_checker.check_endpoint_lightweight(model_config)
                 if self.config_manager.routing_config.health_check.actual_request_enabled:
                     self.health_checker.check_model_actual_request(model_config)
+        else:
+            # Check all models
+            actual_request_enabled = self.config_manager.routing_config.health_check.actual_request_enabled
+            for model_config in self.config_manager.models.values():
+                if not model_config.health_check_enabled:
+                    continue
+
+                # Always trigger lightweight check
+                self.health_checker.check_endpoint_lightweight(model_config)
+
+                # Trigger actual request check if enabled and connection_health is True
+                if actual_request_enabled and model_config.connection_health:
+                    self.health_checker.check_model_actual_request(model_config)
 
 
 # Global router instance
