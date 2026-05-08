@@ -79,4 +79,53 @@ class DBusAIGatewayService:
         self.thread.start()
         logger.info("D-Bus service thread started")
 
+    def _run_service(self):
+        """Run D-Bus service in its own thread."""
+        try:
+            # Initialize GLib main loop
+            DBusGMainLoop(set_as_default=True)
+
+            # Connect to bus
+            if self.use_system_bus:
+                try:
+                    self.bus = dbus.SystemBus()
+                    logger.info("Connected to system D-Bus")
+                except Exception as e:
+                    logger.warning(f"Failed to connect to system bus: {e}. Falling back to session bus.")
+                    self.bus = dbus.SessionBus()
+                    logger.info("Connected to session D-Bus")
+            else:
+                self.bus = dbus.SessionBus()
+                logger.info("Connected to session D-Bus")
+
+            # Request bus name
+            self.bus_name = dbus.service.BusName(self.BUS_NAME, bus=self.bus)
+
+            # Create chat service object
+            from .chat_methods import ChatServiceObject
+            self.service_object = ChatServiceObject(
+                self.bus_name,
+                self.OBJECT_PATH,
+                gateway_app=self.gateway_app
+            )
+
+            # Create admin service object
+            from .admin_methods import AdminServiceObject
+            self.admin_service_object = AdminServiceObject(
+                self.bus_name,
+                self.ADMIN_OBJECT_PATH
+            )
+
+            # Create and run main loop
+            self.mainloop = GLib.MainLoop()
+            self.running = True
+
+            logger.info(f"D-Bus service '{self.BUS_NAME}' ready at '{self.OBJECT_PATH}'")
+            logger.info(f"D-Bus admin service ready at '{self.ADMIN_OBJECT_PATH}'")
+            self.mainloop.run()
+
+        except Exception as e:
+            logger.error(f"D-Bus service error: {e}", exc_info=True)
+            self.running = False
+
 
