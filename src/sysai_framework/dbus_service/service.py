@@ -128,4 +128,26 @@ class DBusAIGatewayService:
             logger.error(f"D-Bus service error: {e}", exc_info=True)
             self.running = False
 
+    def stop(self):
+        """Stop D-Bus service."""
+        if not self.running:
+            return
+
+        logger.info("Stopping D-Bus service...")
+        self.running = False
+
+        if self.mainloop:
+            self.mainloop.quit()
+
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=5)
+            if self.thread.is_alive():
+                logger.warning("D-Bus service thread did not stop within timeout")
+
+        logger.info("D-Bus service stopped")
+
+    def is_running(self) -> bool:
+        """Check if service is running."""
+        return self.running
+
 
