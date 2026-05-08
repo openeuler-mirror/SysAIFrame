@@ -97,3 +97,36 @@ def dbus_to_python(value: Any) -> Any:
         return value
 
 
+def request_to_python(dbus_request: Dict) -> Dict:
+    """
+    Convert D-Bus request dict to Python dict for internal processing.
+
+    Args:
+        dbus_request: D-Bus request dictionary
+
+    Returns:
+        Python dictionary
+    """
+    if not DBUS_AVAILABLE:
+        return dbus_request
+
+    try:
+        python_req = dbus_to_python(dbus_request)
+
+        # Special handling for messages field
+        if 'messages' in python_req and isinstance(python_req['messages'], list):
+            # Ensure each message is a proper dict
+            messages = []
+            for msg in python_req['messages']:
+                if isinstance(msg, dict):
+                    messages.append(msg)
+                else:
+                    logger.warning(f"Invalid message format: {msg}")
+            python_req['messages'] = messages
+
+        return python_req
+    except Exception as e:
+        logger.error(f"Error converting request: {e}")
+        raise
+
+
