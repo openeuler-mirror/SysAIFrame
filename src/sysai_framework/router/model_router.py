@@ -689,6 +689,20 @@ class ModelRouter:
         """Get health statistics from health checker"""
         return self.health_checker.get_health_statistics()
 
+    def trigger_health_check(self, model_name: Optional[str] = None):
+        """
+        Manually trigger health check
+
+        Args:
+            model_name: If provided, check only this model; otherwise check all
+        """
+        if model_name:
+            model_config = self.config_manager.get_model_config(model_name)
+            if model_config:
+                self.health_checker.check_endpoint_lightweight(model_config)
+                if self.config_manager.routing_config.health_check.actual_request_enabled:
+                    self.health_checker.check_model_actual_request(model_config)
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
