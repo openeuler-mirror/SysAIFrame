@@ -616,6 +616,28 @@ class ModelRouter:
         logger.debug(f"Generated mock response for model: {model_config.name}")
         return response
 
+    async def _generate_mock_stream_response(
+                                           model_config: ModelConfig,
+                                           messages: List[Dict[str, Any]],
+                                           **kwargs) -> AsyncGenerator[str, None]:
+        """Generate mock streaming response for testing"""
+        response_id = f"chatcmpl-mock-{int(time.time())}"
+        created_time = int(time.time())
+
+        # Send initial chunk
+        initial_chunk_data = {
+            "id": response_id,
+            "object": "chat.completion.chunk",
+            "created": created_time,
+            "model": model_config.name,
+            "choices": [{
+                "index": 0,
+                "delta": {"role": "assistant", "content": ""},
+                "finish_reason": None
+            }]
+        }
+        yield f"data: {json.dumps(initial_chunk_data, ensure_ascii=False)}\n\n"
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
