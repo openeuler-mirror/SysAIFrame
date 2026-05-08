@@ -30,3 +30,13 @@ else:
     _BaseClass = object
 
 
+def _dbus_method(interface, in_sig, out_sig):
+    """Decorator factory that wraps dbus.service.method or returns identity"""
+    if DBUS_AVAILABLE:
+        return dbus.service.method(interface, in_signature=in_sig, out_signature=out_sig)
+    else:
+        def identity(func):
+            return func
+        return identity
+
+
