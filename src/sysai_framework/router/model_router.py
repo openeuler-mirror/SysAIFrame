@@ -1013,6 +1013,357 @@ class ModelRouter:
         # 5. Default: can retry
         return True
 
+    def route_chat_completion_with_fallback(self,
+                                           model: str,
+                                           messages: List[Dict[str, Any]],
+                                           stream: bool = False,
+                                           **kwargs) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
+        """
+        Route chat completion with intelligent fallback and retry
+
+        This method wraps route_chat_completion with:
+        - Automatic retry for retriable errors
+        - Intelligent model fallback on failure
+        - Health status synchronous updates
+
+        Args:
+            model: Model name
+            messages: Chat messages
+            stream: Whether to stream
+            **kwargs: Additional parameters
+
+        Returns:
+            Response or raises AllModelsFailed
+        """
+        retry_config = self.config_manager.routing_config.retry_policy
+        attempted_models = []
+        original_request = model
+
+        # Get total timeout from kwargs, or use routing_config.timeout as default
+        # Default timeout is 180s (3 minutes) for LLM requests
+        # LLM requests may take longer due to response generation and large response bodies
+        routing_timeout = self.config_manager.routing_config.timeout if self.config_manager else 180
+        total_timeout = kwargs.get('timeout', float(routing_timeout))
+        fallback_start_time = time.time()
+
+        # Build initial fallback list
+        model_config = self.select_model(model)
+        if not model_config:
+            raise ValueError("No models available")
+
+        current_model = model_config.name
+        fallback_candidates = self._build_fallback_list(current_model, original_request)
+
+        # Remove duplicates based on instance_id
+        # Use a set to track seen instance_ids to ensure each model instance is only tried once
+        seen_instance_ids = {model_config.instance_id}
+        fallback_list = [model_config]
+
+        for candidate in fallback_candidates:
+            if candidate.instance_id not in seen_instance_ids:
+                seen_instance_ids.add(candidate.instance_id)
+                fallback_list.append(candidate)
+
+        logger.debug(
+            f"Fallback list built: {len(fallback_list)} unique models: "
+            f"{[f'{m.name}({m.instance_id[:8]})' for m in fallback_list]}"
+        )
+
+        # Try each model in fallback list
+        for model_idx, model_to_try in enumerate(fallback_list):
+            # Check if total timeout exceeded
+            elapsed_time = time.time() - fallback_start_time
+            remaining_time = total_timeout - elapsed_time
+
+            if remaining_time <= 0:
+                logger.warning(
+                    f"Total timeout ({total_timeout}s) exceeded after {elapsed_time:.2f}s, "
+                    f"stopping fallback. Attempted models: {', '.join(attempted_models)}"
+                )
+                break
+
+            attempted_models.append(model_to_try.name)
+
+            # Record fallback metric if not first model
+            if model_idx > 0 and METRICS_AVAILABLE:
+                previous_model = fallback_list[model_idx - 1].name
+                fallback_total.labels(
+                    from_model=previous_model,
+                    to_model=model_to_try.name,
+                    reason="health"
+                ).inc()
+
+            # Simplified timeout allocation: each model uses all remaining time
+            # Relying on fast-fail mechanism for natural balancing
+            # Unhealthy models fail quickly (within seconds), releasing time for subsequent models
+            # Healthy models get all available time, maximizing success rate
+            model_timeout = remaining_time
+
+            logger.debug(
+                f"Timeout assignment for {model_to_try.name}: "
+                f"allocated_timeout={model_timeout:.1f}s (full remaining time), "
+                f"relying on fast-fail mechanism for natural balancing"
+            )
+
+            # Retry logic for current model
+            for attempt in range(retry_config.max_attempts):
+                # Check if timeout exceeded before this attempt
+                elapsed_time = time.time() - fallback_start_time
+                if elapsed_time >= total_timeout:
+                    logger.warning(
+                        f"Total timeout ({total_timeout}s) exceeded, stopping retry for "
+                        f"model {model_to_try.name} (attempt {attempt+1})"
+                    )
+                    break
+
+                # Record retry metric
+                if attempt > 0 and METRICS_AVAILABLE:
+                    retry_attempt_total.labels(
+                        model=model_to_try.name,
+                        attempt_number=str(attempt + 1)
+                    ).inc()
+
+                start_time = time.time()
+
+                try:
+                    logger.info(
+                        f"Attempting model {model_to_try.name} "
+                        f"(attempt {attempt+1}/{retry_config.max_attempts}, "
+                        f"fallback index {model_idx}/{len(fallback_list)})"
+                    )
+
+                    # Use the model timeout assigned at model level, but ensure it doesn't exceed actual remaining time
+                    attempt_elapsed = time.time() - fallback_start_time
+                    attempt_remaining = total_timeout - attempt_elapsed
+
+                    # Check if we have sufficient time remaining
+                    if attempt_remaining < MIN_MEANINGFUL_TIMEOUT:
+                        logger.warning(
+                            f"Insufficient time remaining ({attempt_remaining:.2f}s), "
+                            f"minimum {MIN_MEANINGFUL_TIMEOUT}s required. "
+                            f"Skipping retry for {model_to_try.name}"
+                        )
+                        break
+
+                    # Use model timeout, but don't exceed actual remaining time
+                    actual_timeout = min(model_timeout, attempt_remaining)
+
+                    call_kwargs = kwargs.copy()
+                    call_kwargs['timeout'] = actual_timeout
+                    # Pass model_config to avoid redundant select_model call
+                    # The fallback mechanism has already selected the appropriate model
+                    response = self.route_chat_completion(
+                        model=model_to_try.name,
+                        messages=messages,
+                        stream=stream,
+                        model_config=model_to_try,  # Pass pre-selected model config
+                        **call_kwargs
+                    )
+
+                    # Record success and return response
+                    # Note: For streaming requests called from route_chat_acompletion,
+                    # health status is managed by _acompletion_streaming_with_fallback.
+                    # This method (route_chat_completion_with_fallback) is primarily used
+                    # for non-streaming requests now.
+                    if not (stream and isinstance(response, AsyncGenerator)):
+                        # Non-streaming: record success immediately
+                        duration = time.time() - start_time
+                        if METRICS_AVAILABLE:
+                            model_request_total.labels(
+                                model=model_to_try.name,
+                                status="success"
+                            ).inc()
+                            model_request_duration_seconds.labels(
+                                model=model_to_try.name
+                            ).observe(duration)
+
+                            # Record fallback success if not first model
+                            if model_idx > 0:
+                                previous_model = fallback_list[model_idx - 1].name
+                                fallback_success.labels(
+                                    from_model=previous_model,
+                                    to_model=model_to_try.name
+                                ).inc()
+
+                        self.health_checker.record_success(model_to_try, check_type="actual_request")
+                        logger.debug(f"Model {model_to_try.name} succeeded")
+
+                    return response
+
+                except RetriableError as e:
+                    # Retriable error: check if we should retry
+                    duration = time.time() - start_time
+                    if METRICS_AVAILABLE:
+                        model_request_total.labels(
+                            model=model_to_try.name,
+                            status="retriable_error"
+                        ).inc()
+                        model_request_duration_seconds.labels(
+                            model=model_to_try.name
+                        ).observe(duration)
+
+                    logger.warning(
+                        f"Retriable error from {model_to_try.name} "
+                        f"(attempt {attempt+1}): {e}"
+                    )
+
+                    # Smart retry decision: should we retry or skip to fallback?
+                    if attempt < retry_config.max_attempts - 1:
+                        should_retry = self.should_retry_error(
+                            error=e,
+                            model_config=model_to_try,
+                            fallback_list=fallback_list,
+                            current_model_idx=model_idx
+                        )
+
+                        if not should_retry:
+                            # Skip retry, move to next fallback model
+                            logger.info(
+                                f"Smart retry: skipping further retries for {model_to_try.name}, "
+                                f"will try next fallback model"
+                            )
+                            break
+
+                    if attempt < retry_config.max_attempts - 1:
+                        # Check if we have enough time for retry
+                        elapsed_time = time.time() - fallback_start_time
+                        remaining_time = total_timeout - elapsed_time
+
+                        if remaining_time <= 0:
+                            is_last_model = (model_idx == len(fallback_list) - 1)
+                            if is_last_model:
+                                logger.warning(
+                                    f"Total timeout ({total_timeout}s) exceeded while retrying {model_to_try.name} "
+                                    f"(last model in fallback list). All models have been attempted."
+                                )
+                            else:
+                                logger.warning(
+                                    f"Total timeout ({total_timeout}s) exceeded while retrying {model_to_try.name}. "
+                                    f"Stopping retry and continuing to next model in fallback list."
+                                )
+                            break
+
+                        # Calculate smart backoff delay (0 if healthy alternatives exist)
+                        delay = self._calculate_backoff(
+                            attempt=attempt,
+                            model_config=model_to_try,
+                            fallback_list=fallback_list,
+                            current_model_idx=model_idx,
+                            error=e
+                        )
+
+                        # Check if we have sufficient time after backoff for a meaningful request
+                        time_after_backoff = remaining_time - delay
+
+                        if time_after_backoff < MIN_USEFUL_TIMEOUT:
+                            is_last_model = (model_idx == len(fallback_list) - 1)
+                            if is_last_model:
+                                logger.warning(
+                                    f"After backoff ({delay:.1f}s), only {time_after_backoff:.1f}s remains, "
+                                    f"which is less than minimum {MIN_USEFUL_TIMEOUT}s. "
+                                    f"Last model in fallback list, stopping retry."
+                                )
+                            else:
+                                logger.info(
+                                    f"After backoff ({delay:.1f}s), only {time_after_backoff:.1f}s remains, "
+                                    f"which is less than minimum {MIN_USEFUL_TIMEOUT}s. "
+                                    f"Skipping retry, will try next fallback model."
+                                )
+                            break
+
+                        # Adaptive backoff: don't let backoff consume too much time
+                        # Limit backoff to 30% of remaining time (unless delay is 0)
+                        if delay > 0:
+                            adaptive_delay = min(delay, remaining_time * 0.3)
+                            if adaptive_delay < delay:
+                                logger.debug(
+                                    f"Adaptive backoff: reduced from {delay:.1f}s to {adaptive_delay:.1f}s "
+                                    f"(30% of remaining {remaining_time:.1f}s)"
+                                )
+                                delay = adaptive_delay
+
+                        if delay > 0:
+                            logger.info(f"Retrying after {delay:.1f}s backoff...")
+                            time.sleep(delay)
+                        else:
+                            logger.info("Immediate retry to healthy alternative (0s backoff)")
+                    else:
+                        # Max retries reached, mark unhealthy and try fallback
+                        if METRICS_AVAILABLE:
+                            retry_exhausted_total.labels(model=model_to_try.name).inc()
+
+                        # Only mark unhealthy if actual_request check is enabled
+                        if self.health_checker._should_mark_unhealthy_on_user_request_failure(model_to_try):
+                            self.health_checker.record_failure(
+                                model_to_try,
+                                str(e),
+                                check_type="actual_request"
+                            )
+                        logger.error(
+                            f"Model {model_to_try.name} failed after {retry_config.max_attempts} retries"
+                        )
+                        break  # Move to next model in fallback list
+
+                except NonRetriableError as e:
+                    # Non-retriable error: immediately move to fallback
+                    duration = time.time() - start_time
+                    if METRICS_AVAILABLE:
+                        model_request_total.labels(
+                            model=model_to_try.name,
+                            status="non_retriable_error"
+                        ).inc()
+                        model_request_duration_seconds.labels(
+                            model=model_to_try.name
+                        ).observe(duration)
+
+                    logger.error(
+                        f"Non-retriable error from {model_to_try.name}: {e}"
+                    )
+                    # Only mark unhealthy if actual_request check is enabled
+                    if self.health_checker._should_mark_unhealthy_on_user_request_failure(model_to_try):
+                        self.health_checker.record_failure(
+                            model_to_try,
+                            str(e),
+                            check_type="actual_request"
+                        )
+                    break  # Move to next model in fallback list
+
+                except Exception as e:
+                    # Unknown error: treat as non-retriable
+                    duration = time.time() - start_time
+                    if METRICS_AVAILABLE:
+                        model_request_total.labels(
+                            model=model_to_try.name,
+                            status="non_retriable_error"
+                        ).inc()
+                        model_request_duration_seconds.labels(
+                            model=model_to_try.name
+                        ).observe(duration)
+
+                    logger.error(
+                        f"Unknown error from {model_to_try.name}: {e}",
+                        exc_info=True
+                    )
+                    # Only mark unhealthy if actual_request check is enabled
+                    if self.health_checker._should_mark_unhealthy_on_user_request_failure(model_to_try):
+                        self.health_checker.record_failure(
+                            model_to_try,
+                            str(e),
+                            check_type="actual_request"
+                        )
+                    break  # Move to next model in fallback list
+
+        logger.warning(
+            f"All {len(fallback_list)} models in fallback list have been attempted. "
+            f"Attempted models: {attempted_models}"
+        )
+
+        # All models failed
+        if METRICS_AVAILABLE:
+            all_models_failed_total.inc()
+
+        raise AllModelsFailed(attempted_models)
+
     def reload_config(self) -> bool:
         """Reload configuration from file and update health checker"""
         result = self.config_manager.reload_config()
