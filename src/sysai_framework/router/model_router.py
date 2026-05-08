@@ -436,6 +436,18 @@ class ModelRouter:
 
         logger.debug(f"Provider detected: {provider}, actual_model: {actual_model}")
 
+        # 4. Get provider config
+        provider_config = self._get_provider_config(provider)
+
+        # 5. Call HTTP handler directly
+
+        http_handler = get_http_handler()
+        # Use routing_config.timeout as default, matching fallback logic
+        # Default timeout is 180s (3 minutes) for LLM requests
+        # LLM requests may take longer due to response generation and large response bodies
+        routing_timeout = self.config_manager.routing_config.timeout if self.config_manager else 180
+        timeout = kwargs.get('timeout', float(routing_timeout))
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
