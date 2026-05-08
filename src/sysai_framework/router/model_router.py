@@ -681,6 +681,10 @@ class ModelRouter:
 
         logger.debug(f"Generated mock stream response for model: {model_config.name}")
 
+    def get_routing_status(self) -> Dict[str, Any]:
+        """Get routing status information"""
+        return self.config_manager.get_model_status()
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
