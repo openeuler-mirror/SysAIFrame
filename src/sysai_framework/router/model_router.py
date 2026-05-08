@@ -476,6 +476,26 @@ class ModelRouter:
             )
             raise
 
+    def _get_provider_config(self, provider: str):
+        """
+        Get configuration class for specific provider
+
+        Returns the appropriate BaseConfig subclass for the given provider.
+        Each config handles provider-specific request/response transformations.
+        """
+        if provider == "dashscope":
+            from sysai_framework.llms.dashscope.chat.transformation import DashScopeChatConfig
+            return DashScopeChatConfig()
+        elif provider == "moonshot":
+            from sysai_framework.llms.moonshot.chat.transformation import MoonshotChatConfig
+            return MoonshotChatConfig()
+        elif provider == "deepseek":
+            from sysai_framework.llms.deepseek.chat.transformation import DeepSeekChatConfig
+            return DeepSeekChatConfig()
+        else:  # openai_like or other Chat Completion API compatible providers
+            from sysai_framework.llms.openai_like.chat.transformation import OpenAILikeChatConfig
+            return OpenAILikeChatConfig()
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
