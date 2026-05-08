@@ -222,4 +222,31 @@ class ChatServiceObject(dbus.service.Object if DBUS_AVAILABLE else object):
             logger.error(f"Streaming request error: {e}", exc_info=True)
             raise
 
+    @dbus.service.method(
+        dbus_interface=INTERFACE_NAME,
+        in_signature='',
+        out_signature='as'
+    )
+    def GetChatModels(self):
+        """
+        Get list of available chat models.
+
+        Returns:
+            D-Bus array of model names
+        """
+        try:
+            if not self.config_manager:
+                logger.warning("Config manager not available")
+                return dbus.Array(['mock'], signature='s')
+
+            models = self.config_manager.get_available_models()
+
+            # Convert to D-Bus string array
+            from .type_converter import models_to_dbus
+            return models_to_dbus(models)
+
+        except Exception as e:
+            logger.error(f"GetChatModels error: {e}", exc_info=True)
+            return dbus.Array([], signature='s')
+
 
