@@ -662,6 +662,25 @@ class ModelRouter:
             # Convert to SSE format
             yield f"data: {json.dumps(chunk_data, ensure_ascii=False)}\n\n"
 
+        # Send final chunk
+        final_chunk_data = {
+            "id": response_id,
+            "object": "chat.completion.chunk",
+            "created": created_time,
+            "model": model_config.name,
+            "choices": [{
+                "index": 0,
+                "delta": {},
+                "finish_reason": "stop"
+            }]
+        }
+        yield f"data: {json.dumps(final_chunk_data, ensure_ascii=False)}\n\n"
+
+        # Send done signal
+        yield "data: [DONE]\n\n"
+
+        logger.debug(f"Generated mock stream response for model: {model_config.name}")
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
