@@ -170,3 +170,26 @@ def models_to_dbus(models: List[str]) -> Any:
         raise
 
 
+def dict_to_variant_dict(data: Dict) -> Any:
+    """
+    Convert Python dict to D-Bus variant dictionary (a{sv}).
+
+    Args:
+        data: Python dictionary
+
+    Returns:
+        D-Bus variant dictionary
+    """
+    if not DBUS_AVAILABLE:
+        return data
+
+    try:
+        result = {}
+        for key, value in data.items():
+            result[str(key)] = python_to_dbus(value)
+        return dbus.Dictionary(result, signature='sv')
+    except Exception as e:
+        logger.error(f"Error creating variant dict: {e}")
+        raise
+
+
