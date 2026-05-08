@@ -829,6 +829,69 @@ class ModelRouter:
         if original_model_name == SPECIAL_MODEL_MOCK:
             return []
 
+        # Capability request: fallback to same capability + general
+        if requested_model and ModelConfigManager.is_capability_request(requested_model):
+            capability = ModelConfigManager.extract_capability(requested_model)
+            # Same capability models
+            capability_models = self.config_manager.get_models_by_capability(capability)
+            fallback_list.extend([m for m in capability_models if m.name != original_model_name])
+
+            # General capability models (if different from requested capability)
+            if capability != CAPABILITY_GENERAL:
+                general_models = self.config_manager.get_models_by_capability(CAPABILITY_GENERAL)
+                fallback_list.extend([m for m in general_models if m not in fallback_list])
+
+            logger.debug(
+                f"Built capability fallback list ({len(fallback_list)} candidates): "
+                f"{[f'{m.name}({m.instance_id[:8]})' for m in fallback_list]}"
+            )
+            return fallback_list
+
+        # Default or specific model request
+        should_consider_health = self._should_consider_health()
+        # 1. First try other instances of same model
+        same_model_instances = self.config_manager.get_all_instances(original_model_name)
+        if should_consider_health:
+            healthy_same_model = [m for m in same_model_instances if m.is_healthy]
+        else:
+            healthy_same_model = same_model_instances
+        fallback_list.extend(healthy_same_model)
+        logger.debug(
+            f"Same model instances for '{original_model_name}': "
+            f"{len(healthy_same_model)} available out of {len(same_model_instances)} total"
+        )
+
+        # 2. Then try all other healthy models by priority
+        if should_consider_health:
+            all_healthy = self.config_manager.get_all_healthy_models()
+        else:
+            all_healthy = list(self.config_manager.models.values())
+        logger.debug(
+            f"All available models: {len(all_healthy)} total - "
+            f"{[f'{m.name}({m.instance_id[:8]})' for m in all_healthy]}"
+        )
+
+        # Sort by priority (higher first)
+        all_healthy.sort(key=lambda m: m.priority, reverse=True)
+
+        # Filter: exclude original model name and already added instances
+        other_healthy = [
+            m for m in all_healthy
+            if m.name != original_model_name and m not in fallback_list
+        ]
+        logger.debug(
+            f"Other healthy models (excluding '{original_model_name}'): "
+            f"{len(other_healthy)} candidates - "
+            f"{[f'{m.name}({m.instance_id[:8]})' for m in other_healthy]}"
+        )
+        fallback_list.extend(other_healthy)
+
+        logger.debug(
+            f"Built fallback list with {len(fallback_list)} candidates: "
+            f"{[f'{m.name}({m.instance_id[:8]})' for m in fallback_list]}"
+        )
+        return fallback_list
+
 
 # Global router instance
 _router_instance: Optional[ModelRouter] = None
