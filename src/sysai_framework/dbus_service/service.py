@@ -65,4 +65,18 @@ class DBusAIGatewayService:
 
         logger.info(f"D-Bus service initialized for {self.BUS_NAME}")
 
+    def start(self):
+        """Start D-Bus service in a separate thread."""
+        if not DBUS_AVAILABLE:
+            logger.warning("D-Bus not available, skipping service start")
+            return
+
+        if self.running:
+            logger.warning("D-Bus service already running")
+            return
+
+        self.thread = threading.Thread(target=self._run_service, daemon=True)
+        self.thread.start()
+        logger.info("D-Bus service thread started")
+
 
