@@ -328,4 +328,23 @@ class AdminServiceObject(_BaseClass):
             logger.error(error_msg, exc_info=True)
             return (False, error_msg)
 
+    @_dbus_method(INTERFACE_NAME, '', 's')
+    def GetServiceConfigPath(self) -> str:
+        """
+        Get the configuration file path currently used by the service.
+
+        Returns:
+            Configuration file path as string
+        """
+        logger.debug("D-Bus GetServiceConfigPath called")
+
+        if not self.config_manager:
+            return ""
+
+        try:
+            return self.config_manager.config_path
+        except Exception as e:
+            logger.error(f"Failed to get service config path: {e}", exc_info=True)
+            return ""
+
 
