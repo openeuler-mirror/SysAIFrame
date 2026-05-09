@@ -347,4 +347,35 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to get service config path: {e}", exc_info=True)
             return ""
 
+    @_dbus_method(INTERFACE_NAME, '', 's')
+    def GetRoutingConfig(self) -> str:
+        """
+        Get current routing configuration including default model.
+
+        Returns:
+            JSON string containing routing configuration
+        """
+        logger.debug("D-Bus GetRoutingConfig called")
+
+        try:
+            if not self.config_manager:
+                return json.dumps({
+                    "default_model": None,
+                    "default_model_instance_id": None
+                })
+
+            result = {
+                "default_model": self.config_manager.default_model,
+                "default_model_instance_id": self.config_manager.default_model_instance_id
+            }
+
+            return json.dumps(result, ensure_ascii=False)
+
+        except Exception as e:
+            logger.error(f"Failed to get routing config: {e}", exc_info=True)
+            return json.dumps({
+                "default_model": None,
+                "default_model_instance_id": None
+            })
+
 
