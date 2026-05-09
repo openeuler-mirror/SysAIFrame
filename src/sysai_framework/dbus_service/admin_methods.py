@@ -213,4 +213,56 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to get model: {e}", exc_info=True)
             return "[]"
 
+    @_dbus_method(INTERFACE_NAME, 's', 'bs')
+    def RemoveModel(self, instance_id: str) -> Tuple[bool, str]:
+        """
+        Remove a model by instance_id.
+
+        Args:
+            instance_id: Instance ID of the model to remove
+
+        Returns:
+            (success, message)
+            Message format: "[STATUS:code] message" for new status code system
+        """
+        from sysai_framework.core.status_codes import (
+            encode_status_in_message, MODEL_NOT_FOUND, DELETED,
+            VALIDATION_ERROR, INTERNAL_ERROR
+        )
+
+        logger.info(f"D-Bus RemoveModel called: {instance_id}")
+
+        if not self.config_manager:
+            error_msg = encode_status_in_message(VALIDATION_ERROR, "Config manager not available")
+            return (False, error_msg)
+
+        try:
+            # Check if model exists
+            if instance_id not in self.config_manager.models:
+                error_msg = encode_status_in_message(
+                    MODEL_NOT_FOUND,
+                    MODEL_NOT_FOUND.message_template.format(model=instance_id)
+                )
+                return (False, error_msg)
+
+            # Remove from memory (returns True if it was the default model)
+            is_default = self.config_manager._remove_model_from_memory(instance_id)
+
+            # Remove from file
+            self._remove_model_from_file(instance_id)
+
+            # Clear default model in file if needed
+            if is_default:
+                self.config_manager._clear_default_model_in_file()
+                logger.info(f"Cleared default model settings after removing {instance_id}")
+
+            logger.info(f"Model removed via D-Bus: instance_id={instance_id}")
+            success_msg = encode_status_in_message(DELETED, "Model removed successfully")
+            return (True, success_msg)
+
+        except Exception as e:
+            error_msg = encode_status_in_message(INTERNAL_ERROR, f"Failed to remove model: {e}")
+            logger.error(error_msg, exc_info=True)
+            return (False, error_msg)
+
 
