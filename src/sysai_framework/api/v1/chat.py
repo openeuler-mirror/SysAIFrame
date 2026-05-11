@@ -136,3 +136,27 @@ class ErrorResponse(BaseModel):
 # API Endpoints
 # ============================================================================
 
+@router.post(
+    "/chat/completions",
+    response_model=ChatCompletionResponse,
+    responses={
+        200: {"description": "Successful completion"},
+        400: {"description": "Bad request", "model": ErrorResponse},
+        401: {"description": "Unauthorized"},
+        500: {"description": "Internal server error", "model": ErrorResponse}
+    },
+    summary="Create chat completion",
+    description="Creates a completion for the chat message, Chat Completion API compatible"
+)
+async def chat_completion(
+    request: ChatCompletionRequest,
+    fastapi_request: Request,
+    authorization: Optional[str] = Header(None, description="Bearer token for authentication")
+):
+    """
+    Create a chat completion
+
+    This endpoint is Chat Completion API compatible.
+    Supports both streaming and non-streaming responses.
+
+    """
