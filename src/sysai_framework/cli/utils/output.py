@@ -113,3 +113,16 @@ class Output:
         """Print section header"""
         click.echo("")
         click.echo(click.style(title, fg='cyan', bold=True))
+
+    @staticmethod
+    def model_info(model_data: Dict[str, Any]) -> None:
+        """Print model configuration info"""
+        click.echo(f"Model: {model_data.get('name', 'N/A')}")
+        click.echo(f"  Instance ID: {model_data.get('instance_id', 'auto-generated')}")
+        click.echo(f"  Provider: {model_data.get('provider', 'openai_like')}")
+        click.echo(f"  API: {model_data.get('api_base', 'N/A')}")
+        click.echo(f"  Priority: {model_data.get('priority', 1)}")
+        click.echo(f"  Capabilities: {', '.join(model_data.get('capabilities', ['general']))}")
+        click.echo(f"  Timeout: {model_data.get('timeout', 30)}s")
+        click.echo(f"  Max Retries: {model_data.get('max_retries', 3)}")
+        click.echo(f"  Streaming: {model_data.get('supports_streaming', True)}")
