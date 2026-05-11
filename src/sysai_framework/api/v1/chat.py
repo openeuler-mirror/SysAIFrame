@@ -160,3 +160,9 @@ async def chat_completion(
     Supports both streaming and non-streaming responses.
 
     """
+    # Generate request ID for tracking
+    request_id = f"req-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+
+    # Prepare request data - use Pydantic's dict() method to safely handle optional fields
+    # exclude_none=True ensures None values are not included, preventing downstream issues
+    request_dict = request.dict(exclude_none=True)
