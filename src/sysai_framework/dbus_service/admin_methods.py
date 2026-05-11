@@ -824,4 +824,41 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to get runtime mode: {e}", exc_info=True)
             return "default"
 
+    @_dbus_method(INTERFACE_NAME, 's', 'bs')
+    def SetRuntimeMode(self, mode: str) -> Tuple[bool, str]:
+        """
+        Set runtime mode.
+
+        Args:
+            mode: Runtime mode ("default" or "load-balance")
+
+        Returns:
+            Tuple of (success, message)
+        """
+        logger.info(f"D-Bus SetRuntimeMode called: {mode}")
+
+        if not self.config_manager:
+            return (False, "Config manager not available")
+
+        if mode not in ["default", "load-balance"]:
+            return (False, f"Invalid runtime mode: {mode}. Must be 'default' or 'load-balance'")
+
+        try:
+            # Update runtime mode
+            self.config_manager.routing_config.runtime.mode = mode
+
+            # Persist to file
+            self.config_manager.persist_routing_config()
+
+            # Reload router to apply new strategy
+            from sysai_framework.router import reload_router
+            reload_router()
+
+            logger.info(f"Runtime mode set to: {mode}")
+            return (True, f"Runtime mode set to: {mode}")
+
+        except Exception as e:
+            logger.error(f"Failed to set runtime mode: {e}", exc_info=True)
+            return (False, f"Failed to set runtime mode: {str(e)}")
+
 
