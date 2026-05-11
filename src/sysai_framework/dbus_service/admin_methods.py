@@ -532,4 +532,39 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to get health status: {e}", exc_info=True)
             return json.dumps({"error": f"Failed to get health status: {str(e)}"}, ensure_ascii=False)
 
+    @_dbus_method(INTERFACE_NAME, 's', 'bs')
+    def TriggerHealthCheck(self, model_name: str) -> Tuple[bool, str]:
+        """
+        Manually trigger health check for specified model or all models.
+
+        Args:
+            model_name: Model name (empty string for all models)
+
+        Returns:
+            Tuple of (success, message)
+        """
+        logger.debug(f"D-Bus TriggerHealthCheck called for model: {model_name or 'all'}")
+
+        try:
+            from sysai_framework.router import get_router
+
+            router = get_router()
+
+            if model_name:
+                # Check specific model
+                model_config = self.config_manager.get_model_config(model_name)
+                if not model_config:
+                    return (False, f"Model '{model_name}' not found")
+
+                router.trigger_health_check(model_name)
+                return (True, f"Health check triggered for model '{model_name}'")
+            else:
+                # Check all models
+                router.trigger_health_check()
+                return (True, "Health check triggered for all models")
+
+        except Exception as e:
+            logger.error(f"Failed to trigger health check: {e}", exc_info=True)
+            return (False, f"Failed to trigger health check: {str(e)}")
+
 
