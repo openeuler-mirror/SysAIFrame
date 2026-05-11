@@ -115,3 +115,57 @@ class AdminDBusClient:
             return False
         except Exception:
             return False
+
+    def add_model(
+        self,
+        model_data: Dict[str, Any],
+        force: bool = False,
+        set_as_default: bool = False
+    ) -> 'OperationResult':
+        """
+        Add a new model configuration.
+
+        Args:
+            model_data: Model configuration dictionary
+            force: Force overwrite if instance_id exists
+            set_as_default: Set this model as the default model
+
+        Returns:
+            OperationResult with status, message, and instance_id as data
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        from sysai_framework.core.status_codes import (
+            OperationResult, parse_status_from_message, SUCCESS, INTERNAL_ERROR
+        )
+
+        admin = self._get_admin_interface()
+
+        try:
+            model_data_json = json.dumps(model_data, ensure_ascii=False)
+            success, message, instance_id = admin.AddModel(model_data_json, force, set_as_default)
+
+            # Parse status code from message if present
+            status, pure_message = parse_status_from_message(str(message))
+
+            if success:
+                return OperationResult(
+                    status=status or SUCCESS,
+                    data=str(instance_id),
+                    details={
+                        "instance_id": str(instance_id),
+                        "_formatted_message": pure_message
+                    }
+                )
+            else:
+                return OperationResult(
+                    status=status or INTERNAL_ERROR,
+                    details={
+                        "instance_id": str(instance_id),
+                        "_formatted_message": pure_message
+                    }
+                )
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to add model: {e}")
