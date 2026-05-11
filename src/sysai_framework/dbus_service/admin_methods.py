@@ -680,4 +680,39 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to update health check config: {e}", exc_info=True)
             return (False, f"Failed to update health check config: {str(e)}")
 
+    @_dbus_method(INTERFACE_NAME, '', 's')
+    def GetRetryPolicyConfig(self) -> str:
+        """
+        Get current retry policy configuration.
+
+        Returns:
+            JSON string containing retry policy configuration
+        """
+        logger.debug("D-Bus GetRetryPolicyConfig called")
+
+        # Check if config_manager is available
+        if not self.config_manager:
+            error_msg = json.dumps({
+                "error": "Config manager not available. Service may be shutting down."
+            }, ensure_ascii=False)
+            logger.error("GetRetryPolicyConfig failed: config_manager is None")
+            return error_msg
+
+        try:
+            routing_config = self.config_manager.routing_config
+            retry_policy = routing_config.retry_policy
+
+            result = {
+                "max_attempts": retry_policy.max_attempts,
+                "backoff_factor": retry_policy.backoff_factor,
+                "base_delay": retry_policy.base_delay,
+                "max_delay": retry_policy.max_delay
+            }
+
+            return json.dumps(result, ensure_ascii=False)
+
+        except Exception as e:
+            logger.error(f"Failed to get retry policy config: {e}", exc_info=True)
+            return json.dumps({"error": f"Failed to get retry policy config: {str(e)}"}, ensure_ascii=False)
+
 
