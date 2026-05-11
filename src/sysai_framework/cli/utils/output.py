@@ -126,3 +126,10 @@ class Output:
         click.echo(f"  Timeout: {model_data.get('timeout', 30)}s")
         click.echo(f"  Max Retries: {model_data.get('max_retries', 3)}")
         click.echo(f"  Streaming: {model_data.get('supports_streaming', True)}")
+
+    @staticmethod
+    def validation_errors(errors: List[str]) -> None:
+        """Print validation errors"""
+        Output.error("Validation failed:")
+        for error in errors:
+            click.echo(f"  • {error}", err=True)
