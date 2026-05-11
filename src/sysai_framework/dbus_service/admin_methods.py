@@ -861,4 +861,24 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to set runtime mode: {e}", exc_info=True)
             return (False, f"Failed to set runtime mode: {str(e)}")
 
+    @_dbus_method(INTERFACE_NAME, '', 's')
+    def GetLoadBalanceStrategy(self) -> str:
+        """
+        Get current load balance strategy.
+
+        Returns:
+            Strategy string: "round-robin", "weighted", "least-busy", "lowest-latency", or "usage-based"
+        """
+        logger.debug("D-Bus GetLoadBalanceStrategy called")
+
+        if not self.config_manager:
+            return "round-robin"
+
+        try:
+            runtime_config = self.config_manager.routing_config.runtime
+            return str(runtime_config.load_balance.strategy)
+        except Exception as e:
+            logger.error(f"Failed to get load balance strategy: {e}", exc_info=True)
+            return "round-robin"
+
 
