@@ -86,3 +86,21 @@ class AdminDBusClient:
                 )
 
         return self._bus
+
+    def _get_admin_interface(self):
+        """Get Admin D-Bus interface"""
+        if self._admin_interface is None:
+            bus = self._get_bus()
+            try:
+                proxy = bus.get_object(BUS_NAME, ADMIN_OBJECT_PATH)
+                self._admin_interface = dbus.Interface(proxy, ADMIN_INTERFACE)
+            except dbus.exceptions.DBusException as e:
+                if 'org.freedesktop.DBus.Error.ServiceUnknown' in str(e):
+                    raise ServiceNotRunningError(
+                        "SysAIFrame service is not running. "
+                        "Please start the service first: sudo systemctl start sysaiframe"
+                    )
+                else:
+                    raise DBusClientError(f"D-Bus error: {e}")
+
+        return self._admin_interface
