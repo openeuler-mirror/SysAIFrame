@@ -24,3 +24,22 @@ from sysai_framework.core.chat_processor import ChatCompletionProcessor
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+# ============================================================================
+# Pydantic Data Models
+# ============================================================================
+
+class Message(BaseModel):
+    """Chat message model"""
+    role: str = Field(..., description="Role of the message sender (system/user/assistant)")
+    content: str = Field(..., description="Content of the message")
+    name: Optional[str] = Field(None, description="Optional name of the sender")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "role": "user",
+                "content": "Hello, how are you?"
+            }
+        }
