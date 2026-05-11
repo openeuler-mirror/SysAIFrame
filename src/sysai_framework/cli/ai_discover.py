@@ -53,3 +53,12 @@ def watch(watch):
             click.echo("\nStopped watching")
     else:
         click.echo("Use --watch flag to enable watching")
+
+
+def main():
+    """Entry point for ai-discover CLI"""
+    cli()
+
+
+if __name__ == '__main__':
+    main()
