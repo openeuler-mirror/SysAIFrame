@@ -107,3 +107,9 @@ class Output:
     def print_json(data: Any) -> None:
         """Print data as formatted JSON (alias for json_output)"""
         Output.json_output(data)
+
+    @staticmethod
+    def section(title: str) -> None:
+        """Print section header"""
+        click.echo("")
+        click.echo(click.style(title, fg='cyan', bold=True))
