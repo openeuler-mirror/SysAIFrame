@@ -44,3 +44,9 @@ def cli():
       ai-config validate
     """
     pass
+
+
+# Register sub-command groups
+cli.add_command(model)
+cli.add_command(routing)
+cli.add_command(service)
