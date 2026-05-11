@@ -881,4 +881,42 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to get load balance strategy: {e}", exc_info=True)
             return "round-robin"
 
+    @_dbus_method(INTERFACE_NAME, 's', 'bs')
+    def SetLoadBalanceStrategy(self, strategy: str) -> Tuple[bool, str]:
+        """
+        Set load balance strategy.
+
+        Args:
+            strategy: Strategy name ("round-robin", "weighted", "least-busy", "lowest-latency", or "usage-based")
+
+        Returns:
+            Tuple of (success, message)
+        """
+        logger.info(f"D-Bus SetLoadBalanceStrategy called: {strategy}")
+
+        if not self.config_manager:
+            return (False, "Config manager not available")
+
+        valid_strategies = ["round-robin", "weighted", "least-busy", "lowest-latency", "usage-based"]
+        if strategy not in valid_strategies:
+            return (False, f"Invalid strategy: {strategy}. Must be one of: {', '.join(valid_strategies)}")
+
+        try:
+            # Update strategy
+            self.config_manager.routing_config.runtime.load_balance.strategy = strategy
+
+            # Persist to file
+            self.config_manager.persist_routing_config()
+
+            # Reload router to apply new strategy
+            from sysai_framework.router import reload_router
+            reload_router()
+
+            logger.info(f"Load balance strategy set to: {strategy}")
+            return (True, f"Load balance strategy set to: {strategy}")
+
+        except Exception as e:
+            logger.error(f"Failed to set load balance strategy: {e}", exc_info=True)
+            return (False, f"Failed to set load balance strategy: {str(e)}")
+
 
