@@ -603,4 +603,81 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to get health check config: {e}", exc_info=True)
             return json.dumps({"error": f"Failed to get health check config: {str(e)}"}, ensure_ascii=False)
 
+    @_dbus_method(INTERFACE_NAME, 's', 'bs')
+    def UpdateHealthCheckConfig(self, config_json: str) -> Tuple[bool, str]:
+        """
+        Update health check configuration (hot reload).
+
+        Args:
+            config_json: JSON string containing health check configuration
+
+        Returns:
+            Tuple of (success, message)
+        """
+        logger.debug(f"D-Bus UpdateHealthCheckConfig called with: {config_json}")
+
+        # Check if config_manager is available
+        if not self.config_manager:
+            logger.error("UpdateHealthCheckConfig failed: config_manager is None")
+            return (False, "Config manager not available. Service may be shutting down.")
+
+        try:
+            config_dict = json.loads(config_json)
+
+            # Validate configuration keys
+            valid_keys = {
+                "lightweight_enabled", "lightweight_interval",
+                "actual_request_enabled", "actual_request_interval", "timeout"
+            }
+            invalid_keys = set(config_dict.keys()) - valid_keys
+            if invalid_keys:
+                return (False, f"Invalid configuration keys: {', '.join(invalid_keys)}")
+
+            # Define reasonable value ranges
+            value_limits = {
+                "lightweight_interval": (1, 3600),  # 1 second to 1 hour
+                "actual_request_interval": (60, 86400),  # 1 minute to 1 day
+                "timeout": (1, 300),  # 1 second to 5 minutes
+            }
+
+            # Validate numeric values with range checks
+            for key in ["lightweight_interval", "actual_request_interval", "timeout"]:
+                if key in config_dict:
+                    value = config_dict[key]
+                    if not isinstance(value, int):
+                        return (False, f"'{key}' must be an integer")
+
+                    min_val, max_val = value_limits[key]
+                    if not (min_val <= value <= max_val):
+                        return (False, f"'{key}' must be between {min_val} and {max_val} seconds")
+
+            # Update configuration in config_manager
+            routing_config = self.config_manager.routing_config
+            health_config = routing_config.health_check
+
+            # Apply updates
+            for key, value in config_dict.items():
+                setattr(health_config, key, value)
+
+            # Persist to file
+            try:
+                self.config_manager.persist_routing_config()
+                logger.info(f"Health check configuration persisted to file: {config_dict}")
+            except Exception as persist_error:
+                logger.error(f"Failed to persist configuration: {persist_error}")
+                # Continue anyway, configuration is applied in-memory
+
+            # Notify router's health checker of config update
+            from sysai_framework.router import get_router
+            router = get_router()
+            router.health_checker.update_config(config_dict)
+
+            return (True, "Health check configuration updated successfully")
+
+        except json.JSONDecodeError as e:
+            return (False, f"Invalid JSON: {str(e)}")
+        except Exception as e:
+            logger.error(f"Failed to update health check config: {e}", exc_info=True)
+            return (False, f"Failed to update health check config: {str(e)}")
+
 
