@@ -43,3 +43,35 @@ class Message(BaseModel):
                 "content": "Hello, how are you?"
             }
         }
+
+
+class ChatCompletionRequest(BaseModel):
+    """Chat completion request model - Chat Completion API compatible"""
+    model: str = Field(..., description="Model name to use for completion")
+    messages: List[Message] = Field(..., description="List of messages in the conversation")
+    temperature: Optional[float] = Field(1.0, ge=0.0, le=2.0, description="Sampling temperature")
+    max_tokens: Optional[int] = Field(None, gt=0, description="Maximum tokens to generate")
+    top_p: Optional[float] = Field(1.0, ge=0.0, le=1.0, description="Nucleus sampling parameter")
+    n: Optional[int] = Field(1, ge=1, description="Number of completions to generate")
+    stream: Optional[bool] = Field(False, description="Enable streaming response")
+    stop: Optional[Union[str, List[str]]] = Field(None, description="Stop sequences")
+    presence_penalty: Optional[float] = Field(0.0, ge=-2.0, le=2.0, description="Presence penalty")
+    frequency_penalty: Optional[float] = Field(0.0, ge=-2.0, le=2.0, description="Frequency penalty")
+    logit_bias: Optional[Dict[str, float]] = Field(None, description="Logit bias map")
+    user: Optional[str] = Field(None, description="User identifier")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "model": "deepseek-chat",
+                "messages": [
+                    {"role": "system", "content": "You are a helpful Linux expert."},
+                    {"role": "user", "content": "Explain the Linux scheduler"}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 512,
+                "stream": False
+            }
+        }
+
+
