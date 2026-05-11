@@ -105,3 +105,9 @@ class ChatCompletionResponse(BaseModel):
     usage: UsageInfo
 
 
+class DeltaMessage(BaseModel):
+    """Delta message for streaming response"""
+    role: Optional[str] = None
+    content: Optional[str] = None
+
+
