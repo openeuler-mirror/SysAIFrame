@@ -127,3 +127,8 @@ class ChatCompletionChunk(BaseModel):
     choices: List[ChatChoiceChunk]
 
 
+class ErrorResponse(BaseModel):
+    """Error response model"""
+    error: Dict[str, Any]
+
+
