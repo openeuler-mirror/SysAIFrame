@@ -88,3 +88,13 @@ def show(config_path: str, as_json: bool):
               help=f'Path to configuration file (default: {DEFAULT_CONFIG_PATH})')
 def validate(config_path: str):
     """Validate configuration file"""
+    if not os.path.exists(config_path):
+        Output.error(f"Configuration file not found: {config_path}")
+        sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
+
+    errors = []
+    warnings = []
+
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
