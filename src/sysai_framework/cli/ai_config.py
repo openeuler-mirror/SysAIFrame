@@ -162,3 +162,45 @@ def validate(config_path: str):
     except Exception as e:
         Output.error(f"Validation failed: {e}")
         sys.exit(Output.EXIT_VALIDATION_ERROR)
+
+
+@cli.command()
+def reload():
+    """
+    Reload configuration in running service
+
+    This command notifies the running SysAIFrame service to reload
+    its configuration from file. The service must be running.
+    """
+    try:
+        client = get_dbus_client()
+        result = client.reload_config()
+
+        if result.success:
+            Output.success(result.get_message())
+            sys.exit(Output.EXIT_SUCCESS)
+        else:
+            Output.error(result.get_message())
+            sys.exit(Output.EXIT_WRITE_FAILED)
+
+    except ServiceNotRunningError:
+        Output.error("SysAIFrame service is not running")
+        Output.info("Please start the service: sudo systemctl start sysaiframe")
+        sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
+    except DBusNotAvailableError:
+        Output.error("D-Bus is not available on this system")
+        sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
+    except DBusClientError as e:
+        Output.error(f"D-Bus error: {e}")
+        sys.exit(Output.EXIT_WRITE_FAILED)
+
+
+def main():
+    """Entry point for ai-config CLI"""
+    # Set prog_name to 'ai-config' so error messages show friendly command name
+    # instead of 'python -m sysai_framework.cli.ai_config'
+    cli(prog_name='ai-config')
+
+
+if __name__ == '__main__':
+    main()
