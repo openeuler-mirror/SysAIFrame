@@ -715,4 +715,72 @@ class AdminServiceObject(_BaseClass):
             logger.error(f"Failed to get retry policy config: {e}", exc_info=True)
             return json.dumps({"error": f"Failed to get retry policy config: {str(e)}"}, ensure_ascii=False)
 
+    @_dbus_method(INTERFACE_NAME, 's', 'bs')
+    def UpdateRetryPolicyConfig(self, config_json: str) -> Tuple[bool, str]:
+        """
+        Update retry policy configuration (hot reload).
+
+        Args:
+            config_json: JSON string containing retry policy configuration
+
+        Returns:
+            Tuple of (success, message)
+        """
+        logger.debug(f"D-Bus UpdateRetryPolicyConfig called with: {config_json}")
+
+        # Check if config_manager is available
+        if not self.config_manager:
+            logger.error("UpdateRetryPolicyConfig failed: config_manager is None")
+            return (False, "Config manager not available. Service may be shutting down.")
+
+        try:
+            config_dict = json.loads(config_json)
+
+            # Validate configuration keys
+            valid_keys = {"max_attempts", "backoff_factor", "base_delay", "max_delay"}
+            invalid_keys = set(config_dict.keys()) - valid_keys
+            if invalid_keys:
+                return (False, f"Invalid configuration keys: {', '.join(invalid_keys)}")
+
+            # Define reasonable value ranges
+            value_limits = {
+                "max_attempts": (1, 10),  # Max 10 retry attempts
+                "backoff_factor": (1, 10),  # Backoff factor 1-10
+                "base_delay": (1, 60),  # Base delay 1 second to 1 minute
+                "max_delay": (1, 300),  # Max delay 1 second to 5 minutes
+            }
+
+            # Validate numeric values with range checks
+            for key, value in config_dict.items():
+                if not isinstance(value, int):
+                    return (False, f"'{key}' must be an integer")
+
+                min_val, max_val = value_limits[key]
+                if not (min_val <= value <= max_val):
+                    return (False, f"'{key}' must be between {min_val} and {max_val}")
+
+            # Update configuration in config_manager
+            routing_config = self.config_manager.routing_config
+            retry_policy = routing_config.retry_policy
+
+            # Apply updates
+            for key, value in config_dict.items():
+                setattr(retry_policy, key, value)
+
+            # Persist to file
+            try:
+                self.config_manager.persist_routing_config()
+                logger.info(f"Retry policy configuration persisted to file: {config_dict}")
+            except Exception as persist_error:
+                logger.error(f"Failed to persist configuration: {persist_error}")
+                # Continue anyway, configuration is applied in-memory
+
+            return (True, "Retry policy configuration updated successfully")
+
+        except json.JSONDecodeError as e:
+            return (False, f"Invalid JSON: {str(e)}")
+        except Exception as e:
+            logger.error(f"Failed to update retry policy config: {e}", exc_info=True)
+            return (False, f"Failed to update retry policy config: {str(e)}")
+
 
