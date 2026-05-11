@@ -24,3 +24,18 @@ try:
 except ImportError:
     DBUS_AVAILABLE = False
     logger.debug("dbus-python not available")
+
+
+class DBusClientError(Exception):
+    """Base exception for D-Bus client errors"""
+    pass
+
+
+class ServiceNotRunningError(DBusClientError):
+    """Raised when the SysAIFrame service is not running"""
+    pass
+
+
+class DBusNotAvailableError(DBusClientError):
+    """Raised when D-Bus is not available on the system"""
+    pass
