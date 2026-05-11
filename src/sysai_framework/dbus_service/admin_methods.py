@@ -872,14 +872,14 @@ class AdminServiceObject(_BaseClass):
         logger.debug("D-Bus GetLoadBalanceStrategy called")
 
         if not self.config_manager:
-            return "round-robin"
+            return "weighted"
 
         try:
             runtime_config = self.config_manager.routing_config.runtime
             return str(runtime_config.load_balance.strategy)
         except Exception as e:
             logger.error(f"Failed to get load balance strategy: {e}", exc_info=True)
-            return "round-robin"
+            return "weighted"
 
     @_dbus_method(INTERFACE_NAME, 's', 'bs')
     def SetLoadBalanceStrategy(self, strategy: str) -> Tuple[bool, str]:
