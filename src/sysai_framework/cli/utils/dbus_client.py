@@ -549,3 +549,22 @@ class AdminDBusClient:
             return (bool(success), str(message))
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to update retry policy config: {e}")
+
+    def get_runtime_mode(self) -> str:
+        """
+        Get current runtime mode.
+
+        Returns:
+            Runtime mode string: "default" or "load-balance"
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            mode = admin.GetRuntimeMode()
+            return str(mode)
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to get runtime mode: {e}")
