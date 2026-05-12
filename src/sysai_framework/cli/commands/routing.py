@@ -31,3 +31,40 @@ def _set_default_validate_params(name, instance_id):
         Output.error("At least one of --name or --instance_id must be provided")
         return Output.EXIT_VALIDATION_ERROR
     return None
+
+
+# set-default command - online_mode with name and instance_id
+def _set_default_online_name_instance_id(name, instance_id, client):
+    """Handle set-default online_mode when both name and instance_id are provided"""
+    # Get model by instance_id first
+    model_result = client.get_model(instance_id)
+    if not model_result:
+        Output.error(f"Model with instance_id '{instance_id}' not found")
+        return Output.EXIT_VALIDATION_ERROR
+
+    # Parse result (could be dict or list)
+    if isinstance(model_result, list):
+        if len(model_result) == 0:
+            Output.error(f"Model with instance_id '{instance_id}' not found")
+            return Output.EXIT_VALIDATION_ERROR
+        model = model_result[0]
+    else:
+        model = model_result
+
+    # Check if name matches
+    if model.get('name') != name:
+        Output.error(f"Model name mismatch: instance_id '{instance_id}' belongs to model '{model.get('name')}', not '{name}'")
+        return Output.EXIT_VALIDATION_ERROR
+
+    # Names match, proceed with setting default
+    result = client.set_default_model(name, instance_id)
+    if result.success:
+        Output.success(result.get_message())
+        Output.info(f"Default model: {name}")
+        Output.info(f"Instance ID: {instance_id}")
+        return 0
+    else:
+        Output.error(result.get_message())
+        if result.details and 'available_models' in result.details:
+            Output.info(f"Available models: {', '.join(result.details['available_models'])}")
+        return result.status.cli_exit_code if hasattr(result, 'status') else 1
