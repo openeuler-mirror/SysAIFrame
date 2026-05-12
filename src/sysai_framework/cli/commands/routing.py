@@ -460,3 +460,11 @@ def _health_check_trigger_online(client, model_name):
     except Exception as e:
         Output.error(f"Failed to trigger health check: {e}")
         return 1
+
+
+# Health Check Trigger Command - offline_mode
+def _health_check_trigger_offline():
+    """Trigger health check in offline mode"""
+    Output.error("Cannot trigger health check in offline mode")
+    Output.info("Please start the service and try again")
+    return 1
