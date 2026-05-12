@@ -719,3 +719,11 @@ def _actual_request_set_interval_online(client, seconds):
     except Exception as e:
         Output.error(f"Failed to set interval: {e}")
         return 1
+
+
+# Actual Request offline_mode helper
+def _actual_request_offline_mode(operation):
+    """Generic offline_mode for actual_request commands"""
+    Output.error(f"Cannot {operation} actual request validation in offline mode")
+    Output.info("Please start the service and try again")
+    return 1
