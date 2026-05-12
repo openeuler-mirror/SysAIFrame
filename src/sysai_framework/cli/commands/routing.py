@@ -646,3 +646,13 @@ def _define_lightweight_set_interval_command(lightweight_group):
         )
         sys.exit(exit_code)
     return lightweight_set_interval
+
+
+# Actual Request Health Check Subgroup definition
+def _define_actual_request_group(health_check_group):
+    """Define and return the actual-request health check subgroup"""
+    @health_check_group.group('actual-request')
+    def actual_request():
+        """Actual request validation management"""
+        pass
+    return actual_request
