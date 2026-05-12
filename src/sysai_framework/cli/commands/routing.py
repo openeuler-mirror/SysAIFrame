@@ -897,3 +897,11 @@ def _retry_status_online(client, json_output):
     except Exception as e:
         Output.error(f"Failed to get retry policy: {e}")
         return 1
+
+
+# Retry Status Command - offline_mode
+def _retry_status_offline():
+    """Get retry policy status in offline mode"""
+    Output.warning("Offline mode: Cannot get real-time configuration")
+    Output.info("Please start the service to view retry policy")
+    return 1
