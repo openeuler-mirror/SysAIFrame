@@ -107,3 +107,9 @@ def _validate_timeout(ctx, param, value):
         return timeout
     except ValueError:
         raise click.BadParameter(f"Invalid timeout value: {value}. Must be an integer.")
+
+
+@click.group()
+def model():
+    """Model management commands"""
+    pass
