@@ -507,3 +507,23 @@ def _define_lightweight_group(health_check_group):
         """Lightweight health check management"""
         pass
     return lightweight
+
+
+# Lightweight Enable Command - online_mode
+def _lightweight_enable_online(client):
+    """Enable lightweight health check via D-Bus"""
+    import json as json_module
+    try:
+        config = {"lightweight_enabled": True}
+        success, message = client.update_health_check_config(json_module.dumps(config))
+
+        if success:
+            Output.success("Lightweight health check enabled")
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to enable lightweight check: {e}")
+        return 1
