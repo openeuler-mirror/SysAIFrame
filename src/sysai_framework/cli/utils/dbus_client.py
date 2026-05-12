@@ -432,3 +432,25 @@ class AdminDBusClient:
                     f"Original error: {e}"
                 )
             raise DBusClientError(f"Failed to get health check config: {e}")
+
+    def update_health_check_config(self, config_json: str) -> Tuple[bool, str]:
+        """
+        Update health check configuration (hot reload).
+
+        Args:
+            config_json: JSON string containing health check configuration
+
+        Returns:
+            Tuple of (success, message)
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            success, message = admin.UpdateHealthCheckConfig(config_json)
+            return (bool(success), str(message))
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to update health check config: {e}")
