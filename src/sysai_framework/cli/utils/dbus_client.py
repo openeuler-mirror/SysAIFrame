@@ -527,3 +527,25 @@ class AdminDBusClient:
                     f"Original error: {e}"
                 )
             raise DBusClientError(f"Failed to get retry policy config: {e}")
+
+    def update_retry_policy_config(self, config_json: str) -> Tuple[bool, str]:
+        """
+        Update retry policy configuration (hot reload).
+
+        Args:
+            config_json: JSON string containing retry policy configuration
+
+        Returns:
+            Tuple of (success, message)
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            success, message = admin.UpdateRetryPolicyConfig(config_json)
+            return (bool(success), str(message))
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to update retry policy config: {e}")
