@@ -328,3 +328,62 @@ class AdminDBusClient:
             return {}
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to get routing config: {e}")
+
+    def set_default_model(
+        self,
+        model_name: str,
+        instance_id: Optional[str] = None
+    ) -> 'OperationResult':
+        """
+        Set default model for routing.
+
+        Args:
+            model_name: Model name to set as default
+            instance_id: Optional specific instance ID
+
+        Returns:
+            OperationResult with status and message
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        from sysai_framework.core.status_codes import (
+            OperationResult, parse_status_from_message, SUCCESS, INTERNAL_ERROR
+        )
+
+        admin = self._get_admin_interface()
+
+        try:
+            # Convert None to empty string for D-Bus
+            instance_id_str = instance_id if instance_id else ""
+
+            success, message = admin.SetDefaultModel(model_name, instance_id_str)
+
+            # Parse status code from message if present
+            status, pure_message = parse_status_from_message(str(message))
+
+            if success:
+                # Create a result with pre-formatted message
+                result = OperationResult(
+                    status=status or SUCCESS,
+                    details={
+                        "default_model": model_name,
+                        "default_model_instance_id": instance_id,
+                        "_formatted_message": pure_message  # Store pre-formatted message
+                    }
+                )
+                return result
+            else:
+                # Create error result with pre-formatted message
+                result = OperationResult(
+                    status=status or INTERNAL_ERROR,
+                    details={
+                        "requested_model": model_name,
+                        "requested_instance_id": instance_id,
+                        "_formatted_message": pure_message  # Store pre-formatted message
+                    }
+                )
+                return result
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to set default model: {e}")
