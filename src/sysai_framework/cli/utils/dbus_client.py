@@ -481,3 +481,25 @@ class AdminDBusClient:
                     f"Original error: {e}"
                 )
             raise DBusClientError(f"Failed to get health status: {e}")
+
+    def trigger_health_check(self, model_name: str) -> Tuple[bool, str]:
+        """
+        Manually trigger health check for specified model or all models.
+
+        Args:
+            model_name: Model name (empty string for all models)
+
+        Returns:
+            Tuple of (success, message)
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            success, message = admin.TriggerHealthCheck(model_name)
+            return (bool(success), str(message))
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to trigger health check: {e}")
