@@ -727,3 +727,33 @@ def _actual_request_offline_mode(operation):
     Output.error(f"Cannot {operation} actual request validation in offline mode")
     Output.info("Please start the service and try again")
     return 1
+
+
+# Actual Request Enable Command definition
+def _define_actual_request_enable_command(actual_request_group):
+    """Define and return the actual_request enable click command"""
+    @actual_request_group.command('enable')
+    @click.option('--interval', type=int, default=300,
+                  help='Check interval in seconds (default: 300)')
+    def actual_request_enable(interval: int):
+        """Enable actual request validation (WARNING: incurs API costs)"""
+        if interval <= 0:
+            Output.error("Interval must be a positive integer")
+            sys.exit(Output.EXIT_VALIDATION_ERROR)
+
+        Output.warning("WARNING: Enabling actual request validation will incur API costs!")
+
+        def online_mode(client):
+            return _actual_request_enable_online(client, interval)
+        def offline_mode():
+            return _actual_request_offline_mode("enable")
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="enable actual request validation",
+            require_config_file=False,
+            config_path=None
+        )
+        sys.exit(exit_code)
+    return actual_request_enable
