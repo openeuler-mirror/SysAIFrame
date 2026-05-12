@@ -757,3 +757,25 @@ def _define_actual_request_enable_command(actual_request_group):
         )
         sys.exit(exit_code)
     return actual_request_enable
+
+
+# Actual Request Disable Command definition
+def _define_actual_request_disable_command(actual_request_group):
+    """Define and return the actual_request disable click command"""
+    @actual_request_group.command('disable')
+    def actual_request_disable():
+        """Disable actual request validation"""
+        def online_mode(client):
+            return _actual_request_disable_online(client)
+        def offline_mode():
+            return _actual_request_offline_mode("disable")
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="disable actual request validation",
+            require_config_file=False,
+            config_path=None
+        )
+        sys.exit(exit_code)
+    return actual_request_disable
