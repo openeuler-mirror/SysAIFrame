@@ -597,3 +597,25 @@ def _define_lightweight_enable_command(lightweight_group):
         )
         sys.exit(exit_code)
     return lightweight_enable
+
+
+# Lightweight Disable Command definition
+def _define_lightweight_disable_command(lightweight_group):
+    """Define and return the lightweight disable click command"""
+    @lightweight_group.command('disable')
+    def lightweight_disable():
+        """Disable lightweight health check"""
+        def online_mode(client):
+            return _lightweight_disable_online(client)
+        def offline_mode():
+            return _lightweight_offline_mode("disable")
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="disable lightweight check",
+            require_config_file=False,
+            config_path=None
+        )
+        sys.exit(exit_code)
+    return lightweight_disable
