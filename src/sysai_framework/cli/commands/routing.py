@@ -68,3 +68,39 @@ def _set_default_online_name_instance_id(name, instance_id, client):
         if result.details and 'available_models' in result.details:
             Output.info(f"Available models: {', '.join(result.details['available_models'])}")
         return result.status.cli_exit_code if hasattr(result, 'status') else 1
+
+
+# set-default command - online_mode with instance_id only
+def _set_default_online_instance_id_only(instance_id, client):
+    """Handle set-default online_mode when only instance_id is provided"""
+    # Get model by instance_id to get the name
+    model_result = client.get_model(instance_id)
+    if not model_result:
+        Output.error(f"Model with instance_id '{instance_id}' not found")
+        return Output.EXIT_VALIDATION_ERROR
+
+    # Parse result
+    if isinstance(model_result, list):
+        if len(model_result) == 0:
+            Output.error(f"Model with instance_id '{instance_id}' not found")
+            return Output.EXIT_VALIDATION_ERROR
+        model = model_result[0]
+    else:
+        model = model_result
+
+    model_name = model.get('name')
+    if not model_name:
+        Output.error(f"Failed to get model name for instance_id '{instance_id}'")
+        return Output.EXIT_VALIDATION_ERROR
+
+    result = client.set_default_model(model_name, instance_id)
+    if result.success:
+        Output.success(result.get_message())
+        Output.info(f"Default model: {model_name}")
+        Output.info(f"Instance ID: {instance_id}")
+        return 0
+    else:
+        Output.error(result.get_message())
+        if result.details and 'available_models' in result.details:
+            Output.info(f"Available models: {', '.join(result.details['available_models'])}")
+        return result.status.cli_exit_code if hasattr(result, 'status') else 1
