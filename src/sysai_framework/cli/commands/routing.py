@@ -404,3 +404,11 @@ def _health_check_status_online(client, json_output):
     except Exception as e:
         Output.error(f"Failed to get health check status: {e}")
         return 1
+
+
+# Health Check Status Command - offline_mode
+def _health_check_status_offline():
+    """Get health check status in offline mode"""
+    Output.warning("Offline mode: Cannot get real-time health status")
+    Output.info("Please start the service to view health check status")
+    return 1
