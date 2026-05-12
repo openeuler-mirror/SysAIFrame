@@ -104,3 +104,49 @@ def _set_default_online_instance_id_only(instance_id, client):
         if result.details and 'available_models' in result.details:
             Output.info(f"Available models: {', '.join(result.details['available_models'])}")
         return result.status.cli_exit_code if hasattr(result, 'status') else 1
+
+
+# set-default command - online_mode with name only
+def _set_default_online_name_only(name, client):
+    """Handle set-default online_mode when only name is provided"""
+    # Get models by name
+    models_result = client.get_model(name)
+    if not models_result:
+        Output.error(f"Model with name '{name}' not found")
+        return Output.EXIT_VALIDATION_ERROR
+
+    # Parse result
+    if isinstance(models_result, list):
+        matching_models = models_result
+    else:
+        matching_models = [models_result]
+
+    if len(matching_models) == 0:
+        Output.error(f"Model with name '{name}' not found")
+        return Output.EXIT_VALIDATION_ERROR
+
+    if len(matching_models) > 1:
+        Output.error(f"Multiple models found with name '{name}':")
+        for m in matching_models:
+            Output.info(f"  Instance ID: {m.get('instance_id')}, Provider: {m.get('provider')}, API: {m.get('api_base')}")
+        Output.info("Use --instance_id to specify a specific instance")
+        return Output.EXIT_VALIDATION_ERROR
+
+    # Only one model found, use it
+    model = matching_models[0]
+    model_instance_id = model.get('instance_id')
+    if not model_instance_id:
+        Output.error(f"Failed to get instance_id for model '{name}'")
+        return Output.EXIT_VALIDATION_ERROR
+
+    result = client.set_default_model(name, model_instance_id)
+    if result.success:
+        Output.success(result.get_message())
+        Output.info(f"Default model: {name}")
+        Output.info(f"Instance ID: {model_instance_id}")
+        return 0
+    else:
+        Output.error(result.get_message())
+        if result.details and 'available_models' in result.details:
+            Output.info(f"Available models: {', '.join(result.details['available_models'])}")
+        return result.status.cli_exit_code if hasattr(result, 'status') else 1
