@@ -826,3 +826,11 @@ def _health_check_set_timeout_online(client, seconds):
     except Exception as e:
         Output.error(f"Failed to set timeout: {e}")
         return 1
+
+
+# Health Check Set-Timeout Command - offline_mode
+def _health_check_set_timeout_offline():
+    """Set health check timeout in offline mode"""
+    Output.error("Cannot set timeout in offline mode")
+    Output.info("Please start the service and try again")
+    return 1
