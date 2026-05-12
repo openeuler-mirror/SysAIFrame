@@ -468,3 +468,32 @@ def _health_check_trigger_offline():
     Output.error("Cannot trigger health check in offline mode")
     Output.info("Please start the service and try again")
     return 1
+
+
+# Health Check Trigger Command definition
+def _define_health_check_trigger_command(health_check_group):
+    """Define and return the health_check trigger click command"""
+    @health_check_group.command('trigger')
+    @click.argument('model_name', required=False)
+    def health_check_trigger(model_name: Optional[str]):
+        """Manually trigger health check for specified model or all models"""
+
+        def online_mode(client):
+            """Execute via D-Bus"""
+            return _health_check_trigger_online(client, model_name)
+
+        def offline_mode():
+            """Execute in offline mode"""
+            return _health_check_trigger_offline()
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="trigger health check",
+            require_config_file=False,
+            config_path=None
+        )
+
+        sys.exit(exit_code)
+
+    return health_check_trigger
