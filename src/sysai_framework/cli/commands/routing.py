@@ -254,3 +254,15 @@ def _set_default_offline_name_only(name, config_manager):
             if 'available_instances' in result.details:
                 Output.info(f"Available instances: {', '.join(result.details['available_instances'])}")
         return 1
+
+
+# set-default command - online_mode dispatcher
+def _set_default_online_dispatcher(name, instance_id, client):
+    """Dispatch to appropriate online_mode handler based on provided parameters"""
+    if name and instance_id:
+        return _set_default_online_name_instance_id(name, instance_id, client)
+    elif instance_id and not name:
+        return _set_default_online_instance_id_only(instance_id, client)
+    elif name and not instance_id:
+        return _set_default_online_name_only(name, client)
+    return None
