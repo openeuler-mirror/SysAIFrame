@@ -350,3 +350,94 @@ def list_models(config_path: str, as_json: bool):
     except Exception as e:
         Output.error(f"Failed to list models: {e}")
         sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
+
+
+@model.command('show')
+@click.argument('identifier', required=False)
+@click.option('--name', help='Model name to show')
+@click.option('--instance_id', help='Instance ID to show')
+@click.option('--config_path', default=DEFAULT_CONFIG_PATH,
+              help=f'Configuration file path (default: {DEFAULT_CONFIG_PATH})')
+@click.option('--json', 'as_json', is_flag=True, help='Output as JSON')
+def show_model(identifier: Optional[str], name: Optional[str], instance_id: Optional[str], config_path: str, as_json: bool):
+    """
+    Show details of a specific model
+
+    You can specify the model using:
+    - IDENTIFIER (positional argument): Model name or instance_id
+    - --name: Model name
+    - --instance_id: Instance ID
+    """
+    if not identifier and not name and not instance_id:
+        Output.error("At least one of IDENTIFIER, --name, or --instance_id must be provided")
+        sys.exit(Output.EXIT_VALIDATION_ERROR)
+
+    def _model_to_dict(model_config) -> dict:
+        """Convert model config to dict"""
+        return {
+            'name': model_config.name,
+            'instance_id': model_config.instance_id,
+            'provider': model_config.provider,
+            'api_base': model_config.api_base,
+            'priority': model_config.priority,
+            'capabilities': model_config.capabilities,
+            'supports_streaming': model_config.supports_streaming,
+            'timeout': model_config.timeout,
+            'max_retries': model_config.max_retries,
+            'is_healthy': model_config.is_healthy,
+        }
+
+    def online_mode(client):
+        """Get model via D-Bus"""
+        if identifier:
+            return client.get_model(identifier)
+        elif name:
+            return client.get_model(name)
+        else:
+            return client.get_model(instance_id)
+
+    def offline_mode():
+        """Get model from config file"""
+        from sysai_framework.config import ModelConfigManager
+
+        manager = ModelConfigManager(config_path=config_path)
+
+        if identifier:
+            models = manager.get_models_by_name_or_id(identifier)
+        elif name:
+            models = manager.get_models_by_name_or_id(name)
+        else:
+            models = manager.get_models_by_name_or_id(instance_id)
+
+        if not models:
+            return None
+
+        if len(models) == 1:
+            return _model_to_dict(models[0])
+        else:
+            return [_model_to_dict(m) for m in models]
+
+    try:
+        result = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="show model",
+            require_config_file=True,
+            config_path=config_path,
+            silent_offline=True
+        )
+
+        if not result:
+            Output.error(f"Model not found")
+            sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
+
+        if as_json:
+            Output.json_output(result)
+        else:
+            Output.model_info(result if isinstance(result, dict) else result[0] if isinstance(result, list) else {})
+
+        sys.exit(Output.EXIT_SUCCESS)
+
+    except Exception as e:
+        Output.error(f"Failed to show model: {e}")
+        sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
