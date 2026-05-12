@@ -341,3 +341,13 @@ def _define_set_default_command(routing_group):
         sys.exit(exit_code)
 
     return set_default
+
+
+# Health Check Command Group
+def _define_health_check_group(routing_group):
+    """Define and return the health_check click group"""
+    @routing_group.group(name='health-check')
+    def health_check():
+        """Health check management commands"""
+        pass
+    return health_check
