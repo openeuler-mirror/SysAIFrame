@@ -190,3 +190,27 @@ class AdminDBusClient:
             return []
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to list models: {e}")
+
+    def get_model(self, identifier: str) -> Optional[Dict[str, Any]]:
+        """
+        Get model configuration by name or instance_id.
+
+        Args:
+            identifier: Model name or instance_id
+
+        Returns:
+            Model configuration dictionary or None if not found
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            model_json = admin.GetModel(identifier)
+            if model_json:
+                return json.loads(model_json)
+            return None
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to get model: {e}")
