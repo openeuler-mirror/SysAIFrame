@@ -289,3 +289,21 @@ class AdminDBusClient:
                 )
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to reload config: {e}")
+
+    def get_service_config_path(self) -> str:
+        """
+        Get the configuration file path used by the service.
+
+        Returns:
+            Configuration file path
+
+        Raises:
+            ServiceNotRunningError: If service is not running
+            DBusClientError: If D-Bus call fails
+        """
+        admin = self._get_admin_interface()
+
+        try:
+            return admin.GetServiceConfigPath()
+        except dbus.exceptions.DBusException as e:
+            raise DBusClientError(f"Failed to get service config path: {e}")
