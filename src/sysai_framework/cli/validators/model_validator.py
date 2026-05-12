@@ -135,3 +135,38 @@ class ModelValidator:
             return all([result.scheme, result.netloc])
         except Exception:
             return False
+
+    def _is_localhost(self, netloc: str) -> bool:
+        """Check if host is localhost"""
+        host = netloc.split(':')[0].lower()
+        return host in ('localhost', '127.0.0.1', '::1')
+
+    def _validate_api_key(self, api_key: Optional[str], provider: str) -> None:
+        """Validate API key (required for cloud providers)"""
+        is_local = provider.lower() in self.LOCAL_PROVIDERS
+
+        if not api_key or api_key.strip() == '':
+            if not is_local:
+                self.errors.append(
+                    f"API key (--api_key) is required for provider '{provider}'. "
+                    f"Only local providers ({', '.join(self.LOCAL_PROVIDERS)}) can omit API key."
+                )
+        else:
+            api_key = api_key.strip()
+
+            # Warn about common placeholder keys
+            placeholder_patterns = ['your-api-key', 'sk-xxx', 'api-key-here', 'placeholder']
+            for pattern in placeholder_patterns:
+                if pattern.lower() in api_key.lower():
+                    self.warnings.append(
+                        f"API key appears to be a placeholder. "
+                        f"Please provide a valid API key."
+                    )
+                    break
+
+            # Warn about mock key
+            if api_key == 'sk-mock-key':
+                self.warnings.append(
+                    "Using mock API key 'sk-mock-key'. "
+                    "This will cause authentication errors with real API endpoints."
+                )
