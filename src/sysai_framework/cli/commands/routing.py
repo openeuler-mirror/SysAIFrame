@@ -953,3 +953,11 @@ def _retry_set_attempts_online(client, attempts):
     except Exception as e:
         Output.error(f"Failed to set retry attempts: {e}")
         return 1
+
+
+# Retry Set-Attempts Command - offline_mode
+def _retry_set_attempts_offline():
+    """Set retry attempts in offline mode"""
+    Output.error("Cannot set retry attempts in offline mode")
+    Output.info("Please start the service and try again")
+    return 1
