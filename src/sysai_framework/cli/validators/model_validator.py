@@ -127,3 +127,11 @@ class ModelValidator:
             self.warnings.append("No API endpoint specified")
 
         return (len(self.errors) == 0, self.errors, self.warnings)
+
+    def _is_valid_url(self, url: str) -> bool:
+        """Check if URL is valid"""
+        try:
+            result = urlparse(url)
+            return all([result.scheme, result.netloc])
+        except Exception:
+            return False
