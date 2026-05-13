@@ -1016,3 +1016,30 @@ def _retry_set_backoff_offline():
     Output.error("Cannot set backoff factor in offline mode")
     Output.info("Please start the service and try again")
     return 1
+
+
+# Retry Set-Backoff Command definition
+def _define_retry_set_backoff_command(retry_group):
+    """Define and return the retry set-backoff click command"""
+    @retry_group.command('set-backoff')
+    @click.argument('factor', type=int)
+    def retry_set_backoff(factor: int):
+        """Set backoff factor for exponential backoff"""
+        if factor <= 0:
+            Output.error("Backoff factor must be a positive integer")
+            sys.exit(Output.EXIT_VALIDATION_ERROR)
+
+        def online_mode(client):
+            return _retry_set_backoff_online(client, factor)
+        def offline_mode():
+            return _retry_set_backoff_offline()
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="set backoff factor",
+            require_config_file=False,
+            config_path=None
+        )
+        sys.exit(exit_code)
+    return retry_set_backoff
