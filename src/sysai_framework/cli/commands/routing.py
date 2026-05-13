@@ -1153,3 +1153,28 @@ def _define_retry_set_max_delay_command(retry_group):
         )
         sys.exit(exit_code)
     return retry_set_max_delay
+
+
+# Routing Show Command - online_mode
+def _routing_show_online(client, json_output):
+    """Show routing configuration via D-Bus"""
+    import json as json_module
+
+    try:
+        config_json = client.get_routing_config()
+        config = json_module.loads(config_json)
+
+        if json_output:
+            Output.print_json(config)
+            return 0
+
+        Output.section("Routing Configuration")
+        Output.info(f"  Default Model: {config.get('default_model', 'N/A')}")
+        Output.info(f"  Strategy: {config.get('strategy', 'N/A')}")
+        Output.info(f"  Health Check: {'Enabled' if config.get('health_check_enabled') else 'Disabled'}")
+
+        return 0
+
+    except Exception as e:
+        Output.error(f"Failed to get routing config: {e}")
+        return 1
