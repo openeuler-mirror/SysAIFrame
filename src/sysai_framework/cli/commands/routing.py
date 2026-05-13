@@ -1126,3 +1126,30 @@ def _retry_set_max_delay_offline():
     Output.error("Cannot set max delay in offline mode")
     Output.info("Please start the service and try again")
     return 1
+
+
+# Retry Set-Max-Delay Command definition
+def _define_retry_set_max_delay_command(retry_group):
+    """Define and return the retry set-max-delay click command"""
+    @retry_group.command('set-max-delay')
+    @click.argument('seconds', type=int)
+    def retry_set_max_delay(seconds: int):
+        """Set maximum delay cap in seconds"""
+        if seconds <= 0:
+            Output.error("Max delay must be a positive integer")
+            sys.exit(Output.EXIT_VALIDATION_ERROR)
+
+        def online_mode(client):
+            return _retry_set_max_delay_online(client, seconds)
+        def offline_mode():
+            return _retry_set_max_delay_offline()
+
+        exit_code = auto_execute(
+            online_func=online_mode,
+            offline_func=offline_mode,
+            operation_name="set max delay",
+            require_config_file=False,
+            config_path=None
+        )
+        sys.exit(exit_code)
+    return retry_set_max_delay
