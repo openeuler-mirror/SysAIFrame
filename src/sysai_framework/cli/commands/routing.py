@@ -1355,3 +1355,11 @@ def _routing_set_option_online(client, key, value):
     except Exception as e:
         Output.error(f"Failed to set routing option: {e}")
         return 1
+
+
+# Routing Set-Option Command - offline_mode
+def _routing_set_option_offline():
+    """Set routing option in offline mode"""
+    Output.error("Cannot set routing option in offline mode")
+    Output.info("Please start the service and try again")
+    return 1
