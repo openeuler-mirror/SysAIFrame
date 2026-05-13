@@ -1334,3 +1334,24 @@ def _define_routing_set_strategy_command(routing_group):
         sys.exit(exit_code)
 
     return routing_set_strategy
+
+
+# Routing Set-Option Command - online_mode
+def _routing_set_option_online(client, key, value):
+    """Set routing option via D-Bus"""
+    import json as json_module
+
+    try:
+        config = {key: value}
+        success, message = client.update_routing_config(json_module.dumps(config))
+
+        if success:
+            Output.success(f"Routing option '{key}' set to '{value}'")
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to set routing option: {e}")
+        return 1
