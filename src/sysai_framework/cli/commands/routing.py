@@ -1098,3 +1098,23 @@ def _define_retry_set_base_delay_command(retry_group):
         )
         sys.exit(exit_code)
     return retry_set_base_delay
+
+
+# Retry Set-Max-Delay Command - online_mode
+def _retry_set_max_delay_online(client, seconds):
+    """Set max delay via D-Bus"""
+    import json as json_module
+    try:
+        config = {"max_delay": seconds}
+        success, message = client.update_retry_policy_config(json_module.dumps(config))
+
+        if success:
+            Output.success(f"Max delay set to {seconds}s")
+            return 0
+        else:
+            Output.error(message)
+            return 1
+
+    except Exception as e:
+        Output.error(f"Failed to set max delay: {e}")
+        return 1
