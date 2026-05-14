@@ -10,3 +10,8 @@ import logging
 from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
+
+
+class RegisterManager:
+    """Model registration manager using mDNS/DNS-SD"""
+    pass
