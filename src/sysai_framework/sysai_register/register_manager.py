@@ -14,4 +14,8 @@ logger = logging.getLogger(__name__)
 
 class RegisterManager:
     """Model registration manager using mDNS/DNS-SD"""
-    pass
+
+    def __init__(self):
+        """Initialize register manager"""
+        self._registered_services: Dict[str, Dict] = {}
+        logger.info("RegisterManager initialized")
