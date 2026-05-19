@@ -29,3 +29,9 @@ class RegisterManager:
         """Stop registration service"""
         logger.info("Stopping registration service...")
         # TODO: Implement cleanup
+
+    def register_service(self, service_name: str, service_info: Dict):
+        """Register a service"""
+        # TODO: Implement service registration
+        self._registered_services[service_name] = service_info
+        logger.info(f"Registered service: {service_name}")
