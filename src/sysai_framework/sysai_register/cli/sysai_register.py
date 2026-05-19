@@ -61,3 +61,12 @@ def list():
     click.echo("Registered services:")
     # TODO: Implement listing of registered services
     click.echo("No services registered (registration not yet implemented)")
+
+
+def main():
+    """Entry point for sysai-register CLI"""
+    cli()
+
+
+if __name__ == '__main__':
+    main()
