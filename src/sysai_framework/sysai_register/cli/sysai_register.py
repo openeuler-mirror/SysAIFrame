@@ -53,3 +53,11 @@ def unregister(service_name):
     click.echo(f"Unregistering service: {service_name}")
     # TODO: Implement actual unregistration
     click.echo("Service unregistration not yet implemented")
+
+
+@cli.command()
+def list():
+    """List registered services"""
+    click.echo("Registered services:")
+    # TODO: Implement listing of registered services
+    click.echo("No services registered (registration not yet implemented)")
