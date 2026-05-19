@@ -35,3 +35,9 @@ class RegisterManager:
         # TODO: Implement service registration
         self._registered_services[service_name] = service_info
         logger.info(f"Registered service: {service_name}")
+
+    def unregister_service(self, service_name: str):
+        """Unregister a service"""
+        if service_name in self._registered_services:
+            del self._registered_services[service_name]
+            logger.info(f"Unregistered service: {service_name}")
