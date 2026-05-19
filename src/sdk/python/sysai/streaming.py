@@ -46,3 +46,42 @@ class StreamIterator:
         self.thread: Optional[threading.Thread] = None
 
         self._setup_signals()
+
+    def _setup_signals(self):
+        """Setup D-Bus signal handlers with request_id filtering"""
+        try:
+            match_rule = (
+                f"type='signal',"
+                f"interface='org.ctyunos.AIGateway.Chat',"
+                f"member='StreamChunk',"
+                f"arg0='{self.request_id}'"
+            )
+            self.bus.add_match_string(match_rule)
+
+            match_rule_done = (
+                f"type='signal',"
+                f"interface='org.ctyunos.AIGateway.Chat',"
+                f"member='StreamDone',"
+                f"arg0='{self.request_id}'"
+            )
+            self.bus.add_match_string(match_rule_done)
+
+            self.bus.add_signal_receiver(
+                self._handle_chunk,
+                signal_name="StreamChunk",
+                dbus_interface="org.ctyunos.AIGateway.Chat",
+                path="/org/ctyunos/AIGateway/Chat"
+            )
+
+            self.bus.add_signal_receiver(
+                self._handle_done,
+                signal_name="StreamDone",
+                dbus_interface="org.ctyunos.AIGateway.Chat",
+                path="/org/ctyunos/AIGateway/Chat"
+            )
+
+            logger.debug(f"Signal handlers setup for request_id: {self.request_id}")
+
+        except Exception as e:
+            logger.error(f"Failed to setup signal handlers: {e}")
+            raise ServerError(f"Failed to setup streaming: {e}")
