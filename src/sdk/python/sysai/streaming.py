@@ -113,3 +113,22 @@ class StreamIterator:
         self.chunk_queue.put(None)
         if self.mainloop:
             self.mainloop.quit()
+
+    def _dbus_to_python(self, value: Any) -> Any:
+        """Convert D-Bus types to Python types"""
+        if isinstance(value, dbus.Dictionary):
+            return {self._dbus_to_python(k): self._dbus_to_python(v) for k, v in value.items()}
+        elif isinstance(value, dbus.Array):
+            return [self._dbus_to_python(item) for item in value]
+        elif isinstance(value, dbus.Boolean):
+            return bool(value)
+        elif isinstance(value, (dbus.Int16, dbus.Int32, dbus.Int64,
+                               dbus.UInt16, dbus.UInt32, dbus.UInt64)):
+            return int(value)
+        elif isinstance(value, dbus.Double):
+            return float(value)
+        elif isinstance(value, (dbus.String, dbus.ObjectPath, dbus.Signature)):
+            return str(value)
+        elif isinstance(value, dbus.Byte):
+            return int(value)
+        return value
