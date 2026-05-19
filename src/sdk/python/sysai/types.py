@@ -80,3 +80,20 @@ class ChatMessage:
         """Create assistant message"""
         return cls(role="assistant", content=content, name=name)
 
+
+@dataclass
+class Usage:
+    """Token usage statistics"""
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Usage":
+        """Create from dictionary"""
+        return cls(
+            prompt_tokens=data.get("prompt_tokens", 0),
+            completion_tokens=data.get("completion_tokens", 0),
+            total_tokens=data.get("total_tokens", 0)
+        )
+
