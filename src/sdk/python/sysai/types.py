@@ -133,3 +133,49 @@ class ChatResponse:
             raw_response=data
         )
 
+
+@dataclass
+class ChatChunk:
+    """Streaming chat chunk"""
+    id: str
+    model: str
+    content: Optional[str]
+    finish_reason: Optional[str]
+    raw_chunk: Dict[str, Any]
+
+    @classmethod
+    def from_dict(cls, request_id: str, model: str, data: Dict[str, Any]) -> "ChatChunk":
+        """Create from D-Bus chunk dictionary"""
+        content = None
+        finish_reason = None
+
+        if "choices" in data and data["choices"]:
+            choice = data["choices"][0]
+            if "delta" in choice:
+                delta = choice["delta"]
+                content = delta.get("content")
+                if content == "":
+                    content = None
+            finish_reason = choice.get("finish_reason")
+            if finish_reason == "":
+                finish_reason = None
+
+        return cls(
+            id=request_id,
+            model=model,
+            content=content,
+            finish_reason=finish_reason,
+            raw_chunk=data
+        )
+
+
+def _convert_empty_to_none(value: Any) -> Any:
+    """Convert empty strings to None recursively"""
+    if isinstance(value, str) and value == "":
+        return None
+    elif isinstance(value, dict):
+        return {k: _convert_empty_to_none(v) for k, v in value.items()}
+    elif isinstance(value, list):
+        return [_convert_empty_to_none(item) for item in value]
+    return value
+
