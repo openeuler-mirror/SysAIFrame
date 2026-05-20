@@ -133,3 +133,38 @@ class SysAIClient:
         elif isinstance(value, dbus.Byte):
             return int(value)
         return value
+
+    def _build_request(
+        self,
+        messages: List[Union[Dict[str, str], ChatMessage]],
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        top_p: Optional[float] = None,
+        stream: bool = False,
+    ) -> Dict[str, Any]:
+        """Build request dictionary for D-Bus call"""
+        request = {}
+
+        msg_list = []
+        for msg in messages:
+            if isinstance(msg, ChatMessage):
+                msg_list.append(msg.to_dict())
+            elif isinstance(msg, dict):
+                msg_list.append(msg)
+            else:
+                raise InvalidRequestError(f"Invalid message type: {type(msg)}")
+
+        request["messages"] = msg_list
+        request["stream"] = stream
+
+        if model is not None:
+            request["model"] = model
+        if temperature is not None:
+            request["temperature"] = temperature
+        if max_tokens is not None:
+            request["max_tokens"] = max_tokens
+        if top_p is not None:
+            request["top_p"] = top_p
+
+        return request
