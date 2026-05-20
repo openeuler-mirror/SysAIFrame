@@ -44,4 +44,8 @@ impl SysAIError {
     pub fn connection<S: Into<String>>(msg: S) -> Self {
         Self::Connection(msg.into())
     }
+
+    pub fn service_unavailable<S: Into<String>>(msg: S) -> Self {
+        Self::ServiceUnavailable(msg.into())
+    }
 }
