@@ -15,3 +15,13 @@ pub struct Message {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
 }
+
+impl Message {
+    pub fn new<R: Into<String>, C: Into<String>>(role: R, content: C) -> Self {
+        Self {
+            role: role.into(),
+            content: content.into(),
+            name: None,
+        }
+    }
+}
