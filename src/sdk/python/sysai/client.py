@@ -308,3 +308,62 @@ class SysAIClient:
             raise
         except Exception as e:
             raise ServerError(f"Unexpected error: {e}")
+
+    def list_models(self) -> List[str]:
+        """Get list of available models."""
+        if not self.interface:
+            raise SysAIConnectionError("Not connected to D-Bus")
+
+        try:
+            models = self.interface.GetChatModels()
+            return [str(m) for m in models]
+        except dbus.DBusException as e:
+            raise self._handle_dbus_error(e)
+        except Exception as e:
+            raise ServerError(f"Unexpected error: {e}")
+
+    def get_status(self) -> Dict[str, Any]:
+        """Get service status."""
+        if not self.interface:
+            raise SysAIConnectionError("Not connected to D-Bus")
+
+        try:
+            dbus_status = self.interface.GetStatus()
+            status_str = self._dbus_to_python(dbus_status)
+            if isinstance(status_str, str) and status_str:
+                import json
+                status = json.loads(status_str)
+            else:
+                status = status_str if isinstance(status_str, dict) else {}
+
+            if isinstance(status, dict):
+                if "state" not in status:
+                    models = status.get("models", [])
+                    available_models = status.get("available_models", None)
+                    has_models = False
+                    if isinstance(models, list):
+                        has_models = len(models) > 0
+                    elif isinstance(available_models, int):
+                        has_models = available_models > 0
+                    status["state"] = "online" if has_models else "offline"
+
+                if "message" not in status:
+                    status["message"] = (
+                        "Service has available models"
+                        if status.get("state") == "online"
+                        else "Service has no available models"
+                    )
+
+            return status
+        except dbus.DBusException as e:
+            raise self._handle_dbus_error(e)
+        except Exception as e:
+            raise ServerError(f"Unexpected error: {e}")
+
+    def __enter__(self):
+        """Context manager entry"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit"""
+        return False
