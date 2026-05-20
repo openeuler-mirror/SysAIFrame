@@ -61,3 +61,30 @@ class SysAIClient:
         self.interface: Optional[dbus.Interface] = None
 
         self._connect()
+
+    def _connect(self):
+        """Connect to D-Bus and get interface"""
+        try:
+            DBusGMainLoop(set_as_default=True)
+
+            if self.use_system_bus:
+                try:
+                    self.bus = dbus.SystemBus()
+                    logger.debug("Connected to system D-Bus")
+                except Exception as e:
+                    logger.warning(f"Failed to connect to system bus: {e}, trying session bus")
+                    self.bus = dbus.SessionBus()
+                    logger.debug("Connected to session D-Bus")
+            else:
+                self.bus = dbus.SessionBus()
+                logger.debug("Connected to session D-Bus")
+
+            proxy = self.bus.get_object(self.BUS_NAME, self.OBJECT_PATH)
+            self.interface = dbus.Interface(proxy, self.INTERFACE_NAME)
+
+            logger.info(f"SysAI client connected to {self.BUS_NAME}")
+
+        except dbus.DBusException as e:
+            raise SysAIConnectionError(f"Failed to connect to D-Bus: {e}")
+        except Exception as e:
+            raise SysAIConnectionError(f"Unexpected error connecting to D-Bus: {e}")
