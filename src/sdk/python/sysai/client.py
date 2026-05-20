@@ -42,3 +42,22 @@ class SysAIClient:
     BUS_NAME = "org.ctyunos.AIGateway.Chat"
     OBJECT_PATH = "/org/ctyunos/AIGateway/Chat"
     INTERFACE_NAME = "org.ctyunos.AIGateway.Chat"
+
+    def __init__(self, use_system_bus: bool = True):
+        """
+        Initialize SysAI client.
+
+        Args:
+            use_system_bus: Use system bus (True) or session bus (False)
+
+        Raises:
+            SysAIConnectionError: If D-Bus connection fails
+        """
+        if not DBUS_AVAILABLE:
+            raise SysAIConnectionError("D-Bus dependencies not available. Install dbus-python and PyGObject.")
+
+        self.use_system_bus = use_system_bus
+        self.bus: Optional[dbus.Bus] = None
+        self.interface: Optional[dbus.Interface] = None
+
+        self._connect()
