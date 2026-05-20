@@ -56,4 +56,8 @@ impl SysAIError {
     pub fn timeout<S: Into<String>>(msg: S) -> Self {
         Self::Timeout(msg.into())
     }
+
+    pub fn model_not_found<S: Into<String>>(msg: S) -> Self {
+        Self::ModelNotFound(msg.into())
+    }
 }
