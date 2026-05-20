@@ -29,3 +29,16 @@ from .types import (
     SysAITimeoutError,
 )
 from .streaming import StreamIterator
+
+
+class SysAIClient:
+    """
+    Client for SysAIFrame AI Gateway.
+
+    Provides methods for chat completion (streaming and non-streaming),
+    model listing, and service status.
+    """
+
+    BUS_NAME = "org.ctyunos.AIGateway.Chat"
+    OBJECT_PATH = "/org/ctyunos/AIGateway/Chat"
+    INTERFACE_NAME = "org.ctyunos.AIGateway.Chat"
