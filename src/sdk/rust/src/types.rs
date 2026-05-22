@@ -28,4 +28,8 @@ impl Message {
     pub fn user<S: Into<String>>(content: S) -> Self {
         Self::new("user", content)
     }
+
+    pub fn system<S: Into<String>>(content: S) -> Self {
+        Self::new("system", content)
+    }
 }
