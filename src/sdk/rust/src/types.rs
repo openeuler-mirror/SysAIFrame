@@ -138,3 +138,14 @@ fn extract_string(dict: &HashMap<String, OwnedValue>, key: &str) -> Option<Strin
     let json = to_json(v);
     json.as_str().filter(|s| !s.is_empty()).map(|s| s.to_string())
 }
+
+fn extract_content_from_choices(dict: &HashMap<String, OwnedValue>) -> Option<String> {
+    let choices = dict.get("choices")?;
+    let json = to_json(choices);
+    let content = json.as_array()?
+        .first()?
+        .get("message")?
+        .get("content")?
+        .as_str()?;
+    if content.is_empty() { None } else { Some(content.to_string()) }
+}
