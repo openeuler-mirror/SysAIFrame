@@ -135,4 +135,20 @@ impl SysAIClient {
 
         Ok(models)
     }
+
+    /// Get service status
+    pub fn get_status(&self) -> Result<HashMap<String, OwnedValue>> {
+        let proxy = Proxy::new(
+            &self.connection, BUS_NAME, OBJECT_PATH, INTERFACE,
+        ).map_err(|e| SysAIError::connection(format!("Failed to create proxy: {}", e)))?;
+
+        let reply = proxy
+            .call_method("GetStatus", &())
+            .map_err(|e| SysAIError::Server(format!("Failed to get status: {}", e)))?;
+
+        let status: HashMap<String, OwnedValue> = reply.body().deserialize()
+            .map_err(|e| SysAIError::Server(format!("Failed to deserialize status: {}", e)))?;
+
+        Ok(status)
+    }
 }
