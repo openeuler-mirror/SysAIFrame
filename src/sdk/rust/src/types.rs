@@ -104,3 +104,9 @@ impl Default for Usage {
         }
     }
 }
+
+// Helper: convert OwnedValue to clean serde_json::Value (unwrap zvariant wrappers)
+pub(crate) fn to_json(v: &OwnedValue) -> serde_json::Value {
+    let raw = serde_json::to_value(v).unwrap_or(serde_json::Value::Null);
+    unwrap_zvariant(raw)
+}
