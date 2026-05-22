@@ -143,6 +143,40 @@ impl ChatResponse {
     }
 }
 
+/// Chat chunk (streaming)
+#[derive(Debug, Clone)]
+pub struct ChatChunk {
+    pub id: String,
+    pub model: String,
+    content: Option<String>,
+    pub finish_reason: Option<String>,
+}
+
+impl ChatChunk {
+    /// Get chunk content
+    pub fn content(&self) -> Option<&str> {
+        self.content.as_deref()
+    }
+
+    /// Parse from D-Bus variant dictionary
+    #[allow(dead_code)]
+    pub(crate) fn from_variant_dict(
+        id: String,
+        model: String,
+        dict: HashMap<String, OwnedValue>,
+    ) -> crate::Result<Self> {
+        let content = extract_delta_content(&dict);
+        let finish_reason = extract_finish_reason(&dict);
+
+        Ok(Self {
+            id,
+            model,
+            content,
+            finish_reason,
+        })
+    }
+}
+
 // Helper: convert OwnedValue to clean serde_json::Value (unwrap zvariant wrappers)
 pub(crate) fn to_json(v: &OwnedValue) -> serde_json::Value {
     let raw = serde_json::to_value(v).unwrap_or(serde_json::Value::Null);
