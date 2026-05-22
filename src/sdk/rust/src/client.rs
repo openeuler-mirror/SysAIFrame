@@ -17,3 +17,12 @@ const INTERFACE: &str = "org.ctyunos.AIGateway.Chat";
 pub struct SysAIClient {
     connection: Connection,
 }
+
+impl SysAIClient {
+    /// Create a new client connected to system bus
+    pub fn new() -> Result<Self> {
+        let connection = Connection::system()
+            .map_err(|e| SysAIError::connection(format!("Failed to connect to system bus: {}", e)))?;
+        Ok(Self { connection })
+    }
+}
