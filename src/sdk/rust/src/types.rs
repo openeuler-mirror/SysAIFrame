@@ -110,3 +110,25 @@ pub(crate) fn to_json(v: &OwnedValue) -> serde_json::Value {
     let raw = serde_json::to_value(v).unwrap_or(serde_json::Value::Null);
     unwrap_zvariant(raw)
 }
+
+fn unwrap_zvariant(v: serde_json::Value) -> serde_json::Value {
+    match v {
+        serde_json::Value::Object(ref map)
+            if map.contains_key("zvariant::Value::Value") =>
+        {
+            let inner = map["zvariant::Value::Value"].clone();
+            unwrap_zvariant(inner)
+        }
+        serde_json::Value::Object(map) => {
+            serde_json::Value::Object(
+                map.into_iter()
+                    .map(|(k, v)| (k, unwrap_zvariant(v)))
+                    .collect(),
+            )
+        }
+        serde_json::Value::Array(arr) => {
+            serde_json::Value::Array(arr.into_iter().map(unwrap_zvariant).collect())
+        }
+        other => other,
+    }
+}
