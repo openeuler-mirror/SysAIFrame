@@ -79,4 +79,44 @@ impl SysAIClient {
 
         ChatResponse::from_variant_dict(response)
     }
+
+    /// Send a chat completion request with streaming
+    ///
+    /// Returns an iterator over chat chunks
+    pub fn chat_stream(
+        &self,
+        messages: &[Message],
+        options: Option<ChatOptions>,
+    ) -> Result<impl Iterator<Item = Result<ChatChunk>>> {
+        let request = build_request_dict(messages, options, true)?;
+
+        let proxy = Proxy::new(
+            &self.connection, BUS_NAME, OBJECT_PATH, INTERFACE,
+        ).map_err(|e| SysAIError::connection(format!("Failed to create proxy: {}", e)))?;
+
+        let reply = proxy
+            .call_method("ChatCompletion", &(request,))
+            .map_err(|e| SysAIError::Server(format!("D-Bus call failed: {}", e)))?;
+
+        let response: HashMap<String, OwnedValue> = reply.body().deserialize()
+            .map_err(|e| SysAIError::Server(format!("Failed to deserialize response: {}", e)))?;
+
+        let request_id = response
+            .get("id")
+            .and_then(|v| {
+                let json = crate::types::to_json(v);
+                json.as_str().map(|s| s.to_string())
+            })
+            .ok_or_else(|| SysAIError::server("No request_id in response"))?;
+
+        let model = response
+            .get("model")
+            .and_then(|v| {
+                let json = crate::types::to_json(v);
+                json.as_str().map(|s| s.to_string())
+            })
+            .unwrap_or_else(|| "default".to_string());
+
+        crate::streaming::StreamIterator::new(self.connection.clone(), request_id, model)
+    }
 }
