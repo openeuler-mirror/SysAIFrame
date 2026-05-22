@@ -52,3 +52,11 @@ impl Message {
         map
     }
 }
+
+#[derive(Debug, Clone, Default)]
+pub struct ChatOptions {
+    pub model: Option<String>,
+    pub temperature: Option<f64>,
+    pub max_tokens: Option<i32>,
+    pub top_p: Option<f64>,
+}
