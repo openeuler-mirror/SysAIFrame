@@ -80,4 +80,27 @@ impl ChatOptions {
         self.max_tokens = Some(max_tokens);
         self
     }
+
+    pub fn top_p(mut self, top_p: f64) -> Self {
+        self.top_p = Some(top_p);
+        self
+    }
+}
+
+/// Token usage statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Usage {
+    pub prompt_tokens: i32,
+    pub completion_tokens: i32,
+    pub total_tokens: i32,
+}
+
+impl Default for Usage {
+    fn default() -> Self {
+        Self {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
+        }
+    }
 }
