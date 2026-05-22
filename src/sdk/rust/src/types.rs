@@ -161,3 +161,13 @@ fn extract_delta_content(dict: &HashMap<String, OwnedValue>) -> Option<String> {
         .as_str()?;
     if content.is_empty() { None } else { Some(content.to_string()) }
 }
+
+fn extract_finish_reason(dict: &HashMap<String, OwnedValue>) -> Option<String> {
+    let choices = dict.get("choices")?;
+    let json = to_json(choices);
+    let reason = json.as_array()?
+        .first()?
+        .get("finish_reason")?
+        .as_str()?;
+    if reason.is_empty() { None } else { Some(reason.to_string()) }
+}
