@@ -38,3 +38,40 @@ impl StreamIterator {
         })
     }
 }
+
+impl Iterator for StreamIterator {
+    type Item = Result<ChatChunk>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Check if we have buffered chunks
+        {
+            let chunks = self.chunks.lock().unwrap();
+            if self.index < chunks.len() {
+                let chunk = chunks[self.index].clone();
+                self.index += 1;
+                return Some(Ok(chunk));
+            }
+        }
+
+        // Check if stream is done
+        {
+            let done = self.done.lock().unwrap();
+            if *done {
+                return None;
+            }
+        }
+
+        // Poll for new messages
+        // Note: This is a simplified implementation
+        // In production, use proper signal subscription
+        std::thread::sleep(Duration::from_millis(100));
+
+        // For now, return None to end the stream
+        // In a full implementation, we would:
+        // 1. Subscribe to D-Bus signals
+        // 2. Receive StreamChunk signals
+        // 3. Buffer chunks
+        // 4. Wait for StreamDone signal
+        None
+    }
+}
