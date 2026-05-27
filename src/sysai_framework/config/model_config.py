@@ -23,10 +23,15 @@ from contextlib import contextmanager
 from ruamel.yaml import YAML  # type: ignore
 from ruamel.yaml.comments import CommentedMap, CommentedSeq  # type: ignore
 
+from sysai_framework.utils.provider_utils import SUPPORTED_PROVIDERS
+
 if TYPE_CHECKING:
     from sysai_framework.core.status_codes import OperationResult
 
 logger = logging.getLogger(__name__)
+
+# Timeout constants - single source of truth
+DEFAULT_ROUTING_TIMEOUT = 300  # Default timeout for routing (fallback chain budget)
 
 
 # Predefined capability constants (recommended for common use cases)
@@ -109,7 +114,7 @@ class RoutingConfig:
     default_model_instance_id: Optional[str] = None
     health_check: HealthCheckConfig = field(default_factory=HealthCheckConfig)
     retry_policy: RetryPolicyConfig = field(default_factory=RetryPolicyConfig)
-    timeout: int = 180  # Default timeout for LLM requests (3 minutes, suitable for complex text generation)
+    timeout: int = DEFAULT_ROUTING_TIMEOUT  # Default timeout for LLM requests
     runtime: RuntimeConfig = field(default_factory=RuntimeConfig)  # Runtime mode configuration
 
 
@@ -117,6 +122,31 @@ class RoutingConfig:
 class ModelConfig:
     """
     Model configuration data structure for SysAIFrame
+
+    Fields:
+        name: Model logical name (can be shared by multiple instances)
+        instance_id: Unique instance identifier (auto-generated if not provided)
+        provider: Provider type (openai, deepseek, dashscope, moonshot, volcengine, zai, minimax, ollama, etc.)
+        api_base: API base URL
+        api_key: API key for authentication
+        endpoint: Legacy field, use api_base instead
+        priority: Model priority (higher value = higher priority)
+        capabilities: List of capability names. Can use predefined constants
+                      (CAPABILITY_GENERAL, CAPABILITY_CODE, etc.) or custom strings.
+                      Examples: ["general", "code"], ["medical", "legal"], ["custom-task"]
+        supports_streaming: Whether the model supports streaming responses
+        timeout: Non-streaming request timeout in seconds. None means inherit from routing_config.timeout
+        stream_timeout: Streaming inter-chunk timeout in seconds. None means inherit from timeout
+        max_retries: Maximum retry attempts
+        is_healthy: Whether the model is currently healthy and available
+
+        Health-related fields (managed by HealthChecker):
+        connection_health: Whether lightweight check (HTTP HEAD) is healthy
+        last_health_check: Timestamp of last health check
+        consecutive_failures: Count of consecutive failures (for statistics)
+        consecutive_successes: Count of consecutive successes (for statistics)
+        health_check_enabled: Whether health check is enabled for this model
+        unhealthy_reason: Reason why model is unhealthy
     """
     name: str
     instance_id: Optional[str] = None  # Unique instance identifier
@@ -128,7 +158,8 @@ class ModelConfig:
     weight: int = 1  # Load balance weight (used in weighted strategy)
     capabilities: List[str] = None
     supports_streaming: bool = True
-    timeout: int = 30
+    timeout: Optional[int] = None  # Non-streaming: full response timeout. None means inherit from routing_config.timeout
+    stream_timeout: Optional[int] = None  # Streaming: inter-chunk timeout. None means inherit from timeout
     max_retries: int = 3
     is_healthy: bool = True
 
