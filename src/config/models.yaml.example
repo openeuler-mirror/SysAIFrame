@@ -1,0 +1,187 @@
+# CTyunOS AI Gateway Model Configuration File Example
+#
+# INITIAL SETUP:
+# On first installation, models.yaml is created empty with no models configured.
+# The service will run in degraded state until you add at least one model.
+#
+# To add models:
+#   1. Copy the examples below to models.yaml
+#   2. OR use CLI: ai-config model add <name> --api <url> --api_key <key>
+#
+# EMPTY CONFIGURATION:
+# If you want an empty configuration (service in degraded state), use:
+#
+#   models: []
+#   routing:
+#     default_model: null
+#     timeout: 30
+#
+# The service will return appropriate errors until models are configured.
+#
+# EXAMPLE CONFIGURATIONS:
+
+models:
+  # OpenAI-compatible service example
+  - name: "qwen-7b"
+    # instance_id: "qwen-instance-1"  # Optional: unique instance identifier
+    #                              # If not provided, auto-generated based on name + api_base + api_key
+    provider: "openai"
+    endpoint: "http://192.168.1.10:8000/v1"
+    api_key: "sk-your-api-key-here"
+    priority: 1
+    weight: 1  # Load balance weight (used in weighted strategy, default: 1)
+    capabilities: ["chat", "completions"]
+    supports_streaming: true
+    timeout: 30
+    max_retries: 3
+
+  # DeepSeek example - first instance
+  - name: "deepseek-chat"
+    instance_id: "deepseek-instance-1"  # Optional: can specify custom instance_id
+    provider: "deepseek"
+    endpoint: "https://api.deepseek.com/v1"
+    api_key: "sk-your-deepseek-key-1"
+    priority: 2
+    capabilities: ["chat"]
+    supports_streaming: true
+    timeout: 30
+    max_retries: 3
+
+  # DeepSeek example - second instance (same model name, different deployment)
+  # This enables load balancing and failover for the same model
+  - name: "deepseek-chat"
+    instance_id: "deepseek-instance-2"  # Different instance_id for same model name
+    provider: "deepseek"
+    endpoint: "https://api.deepseek.com/v1"
+    api_key: "sk-your-deepseek-key-2"
+    priority: 1  # Lower priority, used as backup
+    capabilities: ["chat"]
+    supports_streaming: true
+    timeout: 30
+    max_retries: 3
+
+  # Local Ollama example
+  - name: "llama2"
+    provider: "ollama"
+    endpoint: "http://localhost:11434"
+    api_key: ""  # Ollama does not require an API key
+    priority: 3
+    capabilities: ["chat", "completions"]
+    supports_streaming: true
+    timeout: 60
+    max_retries: 2
+
+routing:
+  # Default model (used when model is "default" or not specified in request)
+  # Can be either:
+  #   - model_name: automatically selects best instance (healthy + highest priority)
+  #   - instance_id: uses specific instance
+  default_model: "deepseek-chat"  # Model name - will auto-select best instance
+
+  # Optional: specify exact instance_id for default model
+  # If specified, this instance will always be used as default
+  # default_model_instance_id: "deepseek-instance-1"
+
+  # Request timeout (seconds)
+  timeout: 30
+
+  # Runtime mode configuration
+  runtime:
+    # Runtime mode: "default" or "load-balance"
+    # - default: Uses priority-based selection (existing behavior)
+    # - load-balance: Uses load balance strategy for model selection
+    mode: "default"  # or "load-balance"
+
+    # Load balance configuration (only effective when mode is "load-balance")
+    load_balance:
+      # Strategy: "round-robin" | "weighted" | "least-busy" | "lowest-latency" | "usage-based"
+      strategy: "weighted"
+
+      # Strategy-specific options
+      options:
+        # lowest-latency strategy options
+        latency_buffer: 0.1      # Buffer ratio (0.0-1.0) for latency-based selection
+        latency_window: 10       # Number of recent requests to track for latency
+
+        # usage-based strategy options
+        usage_window: 60         # Time window in seconds for usage tracking (TPM/RPM)
+
+  # Health check configuration
+  health_check:
+    # Master switch for all health checks
+    enabled: true
+
+    # Lightweight check (HTTP HEAD request to endpoint)
+    # - Very low cost, no API charges
+    # - Checks endpoint reachability only
+    lightweight_enabled: true
+    lightweight_interval: 60  # seconds between checks
+
+    # Actual request validation (sends real test message)
+    # - INCURS API COSTS - disabled by default
+    # - Validates model availability and functionality
+    # - Required for recovering models marked unhealthy by actual request failures
+    # - Can be auto-enabled per-model when needed for recovery
+    actual_request_enabled: false  # WARNING: Set to true only if you accept API costs
+    actual_request_interval: 300  # seconds between checks (5 minutes)
+
+    # Health check timeout
+    timeout: 10  # seconds
+
+  # Retry policy for model requests
+  retry_policy:
+    # Maximum retry attempts for retriable errors (timeout, rate limit, 503)
+    max_attempts: 3
+
+    # Exponential backoff factor
+    backoff_factor: 2
+
+    # Base delay for first retry (seconds)
+    base_delay: 1
+
+    # Maximum delay cap (seconds)
+    max_delay: 30
+
+# Usage instructions:
+# 1. Copy this file to models.yaml
+# 2. Modify endpoint to actual model service address
+# 3. Modify api_key to actual key (if needed)
+# 4. Set default_model to your desired default model
+# 5. For multiple instances of the same model:
+#    - Use the same 'name' for all instances
+#    - Specify different 'instance_id' (or let it auto-generate)
+#    - Set different priorities for load balancing
+#    - Set different weights for weighted load balancing
+#    - System will automatically select best instance (healthy + highest priority in default mode)
+# 6. To use specific instance: use "model_name:instance_id" format in API requests
+# 7. Restart the service or call the reload interface to apply the configuration
+# 8. Runtime mode configuration:
+#    - Set routing.runtime.mode to "load-balance" to enable load balancing
+#    - Choose a strategy: round-robin, weighted, least-busy, lowest-latency, or usage-based
+#    - Adjust strategy options as needed
+#
+# Health Management:
+# - Lightweight checks run automatically every 60s by default (no API cost)
+# - Actual request validation is OFF by default to avoid API costs
+# - When a model fails during actual use:
+#   * It's immediately marked unhealthy
+#   * System automatically tries fallback models
+#   * If actual_request_enabled=false globally, it's auto-enabled for that model to allow recovery
+# - Recovery logic:
+#   * Lightweight check failure → recovers on lightweight success
+#   * Actual request failure → recovers ONLY on actual request success
+# - CLI management:
+#   * ai-config routing health-check enable/disable
+#   * ai-config routing health-check actual-request enable --interval 300
+#   * ai-config routing health-check status
+#   * ai-config routing health-check trigger [model_name]
+#
+# Intelligent Fallback:
+# - Specific model request → tries other instances of same model
+# - "default" request → tries all healthy models by priority
+# - "capability-xxx" request → tries models with that capability + general capability
+# - "mock" → no fallback (testing only)
+#
+# Monitoring:
+# - Prometheus metrics available at /metrics endpoint
+# - Health status API at /v1/health, /v1/health/models, /v1/health/models/{model_name}
