@@ -165,4 +165,40 @@ SYSAI_API void sysai_options_set_top_p(sysai_options_t *opts, double top_p);
  */
 SYSAI_API void sysai_options_free(sysai_options_t *opts);
 
+/* ============================================================================
+ * Chat Completion
+ * ========================================================================= */
+
+/**
+ * Send a chat completion request (non-streaming)
+ *
+ * @param client Client handle
+ * @param messages NULL-terminated array of messages
+ * @param options Request options (can be NULL)
+ * @return Response handle or NULL on error
+ */
+SYSAI_API sysai_response_t *sysai_chat(
+    sysai_client_t *client,
+    const sysai_message_t **messages,
+    const sysai_options_t *options
+);
+
+/**
+ * Send a chat completion request with streaming
+ *
+ * @param client Client handle
+ * @param messages NULL-terminated array of messages
+ * @param options Request options (can be NULL)
+ * @param callback Callback for receiving chunks
+ * @param user_data User data passed to callback
+ * @return SYSAI_OK on success, error code on failure
+ */
+SYSAI_API int sysai_chat_stream(
+    sysai_client_t *client,
+    const sysai_message_t **messages,
+    const sysai_options_t *options,
+    sysai_stream_cb callback,
+    void *user_data
+);
+
 #endif /* SYSAI_H */
