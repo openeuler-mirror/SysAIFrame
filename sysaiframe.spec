@@ -37,3 +37,30 @@ Requires: dbus-daemon
 %description
 CTyunOS System AI Framework Gateway - Unified AI service gateway with
 OpenAI-compatible API, D-Bus interface, and service discovery capabilities.
+
+%package devel
+Summary: C/C++ development files for SysAIFrame AI Gateway
+Requires: %{name} = %{version}-%{release}
+Requires: systemd-libs
+Requires: cjson
+
+%description devel
+C/C++ client library (libsysai.so) and header files for developing
+applications that communicate with SysAIFrame AI Gateway via D-Bus.
+
+%package python-devel
+Summary: Python development library for SysAIFrame AI Gateway
+Requires: %{name} = %{version}-%{release}
+Requires: python3-dbus
+Requires: python3-gobject
+
+%description python-devel
+Python client library (sysai) for developing applications that
+communicate with SysAIFrame AI Gateway via D-Bus.
+
+%package rust-devel
+Summary: Rust development library for SysAIFrame AI Gateway
+
+%description rust-devel
+Rust SDK source (sysai-sdk crate) for developing applications that
+communicate with SysAIFrame AI Gateway via D-Bus.
