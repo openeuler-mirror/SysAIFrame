@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=@CMAKE_INSTALL_FULL_LIBDIR@
+includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
+
+Name: sysai
+Description: C client library for SysAIFrame AI Gateway
+Version: @PROJECT_VERSION@
+Requires: libsystemd
+Libs: -L${libdir} -lsysai
+Cflags: -I${includedir}
