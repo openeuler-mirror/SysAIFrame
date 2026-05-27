@@ -86,3 +86,36 @@ async def cors_middleware(request: Request, call_next):
             logger.info(f"Remote connection from: {origin}")
     
     return response
+
+# Configure CORS with dynamic configuration (after our middleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=config.get_cors_origins(),
+    allow_credentials=config.get_cors_credentials(),
+    allow_methods=config.get_cors_methods(),
+    allow_headers=config.get_cors_headers(),
+    expose_headers=["*"],
+)
+
+# Register API routes
+app.include_router(chat.router, prefix="/v1", tags=["Chat Completions"])
+app.include_router(health.router, tags=["Health"])
+
+
+@app.get("/")
+async def root():
+    """Root endpoint - Service information"""
+    return {
+        "service": "SysAIFrame AI Gateway",
+        "version": "0.1.0",
+        "status": "running"
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "service": "sysaiframe-gateway"
+    }
