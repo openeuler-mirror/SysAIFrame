@@ -16,3 +16,23 @@ import uvicorn
 import logging
 import os
 import atexit
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Reduce third-party library log verbosity
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+# Create FastAPI application
+app = FastAPI(
+    title="SysAIFrame AI Gateway",
+    description="Unified AI Service Gateway - Chat Completion API Compatible",
+    version="0.1.0",
+    docs_url=None,
+    redoc_url=None
+)
