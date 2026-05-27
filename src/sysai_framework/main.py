@@ -138,3 +138,61 @@ async def shutdown_event():
     
     # D-Bus service will be stopped in finally block or atexit handler
     logger.info("Shutdown event completed")
+
+
+def main():
+    """Main entry point"""
+    logger.info("Starting SysAIFrame AI Gateway...")
+    logger.info(f"CORS Policy: {'TEST MODE - Remote access enabled' if config.test_mode else 'PRODUCTION - Local access only'}")
+    if config.test_mode:
+        logger.warning("⚠️  TEST_MODE is enabled - Remote access is allowed")
+        if config.allowed_remote_hosts:
+            logger.info(f"Allowed remote hosts: {', '.join(config.allowed_remote_hosts)}")
+        else:
+            logger.info("Allowed remote hosts: ANY (CORS_ALLOWED_HOSTS not set)")
+    
+    # Initialize D-Bus service if enabled and available
+    dbus_service = None
+    enable_dbus = os.getenv('ENABLE_DBUS', 'true').lower() == 'true'
+    
+    if enable_dbus:
+        try:
+            from sysai_framework.dbus_service import DBusAIGatewayService
+            dbus_service = DBusAIGatewayService(gateway_app=app, use_system_bus=True)
+            dbus_service.start()
+            logger.info("D-Bus service started")
+            
+            # Register cleanup
+            def cleanup_dbus():
+                if dbus_service:
+                    logger.info("Shutting down D-Bus service...")
+                    dbus_service.stop()
+            
+            atexit.register(cleanup_dbus)
+        except Exception as e:
+            logger.warning(f"D-Bus service not started: {e}")
+            logger.info("Gateway will run without D-Bus support")
+    else:
+        logger.info("D-Bus service disabled (ENABLE_DBUS=false)")
+    
+    try:
+        # Use host from config (defaults to 0.0.0.0 for external access)
+        host = config.gateway_host
+        port = config.gateway_port
+        logger.info(f"Starting server on {host}:{port}")
+        uvicorn.run(
+            app,
+            host=host,
+            port=port,
+            log_level="warning",  # Reduce uvicorn access logs (use WARNING to only show errors)
+            access_log=False,  # Disable access logs (already logged by our middleware)
+            timeout_keep_alive=5,  # Reduce keep-alive timeout
+            timeout_graceful_shutdown=10  # Add graceful shutdown timeout
+        )
+    finally:
+        if dbus_service:
+            dbus_service.stop()
+
+
+if __name__ == "__main__":
+    main()
