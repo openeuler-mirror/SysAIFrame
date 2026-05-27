@@ -115,4 +115,54 @@ SYSAI_API sysai_message_t *sysai_message_new(const char *role, const char *conte
  */
 SYSAI_API void sysai_message_free(sysai_message_t *message);
 
+/* ============================================================================
+ * Request Options
+ * ========================================================================= */
+
+/**
+ * Create new request options
+ *
+ * @return Options handle or NULL on error
+ */
+SYSAI_API sysai_options_t *sysai_options_new(void);
+
+/**
+ * Set model name
+ *
+ * @param opts Options handle
+ * @param model Model name
+ */
+SYSAI_API void sysai_options_set_model(sysai_options_t *opts, const char *model);
+
+/**
+ * Set temperature
+ *
+ * @param opts Options handle
+ * @param temperature Temperature value (0.0 to 2.0)
+ */
+SYSAI_API void sysai_options_set_temperature(sysai_options_t *opts, double temperature);
+
+/**
+ * Set max tokens
+ *
+ * @param opts Options handle
+ * @param max_tokens Maximum tokens to generate
+ */
+SYSAI_API void sysai_options_set_max_tokens(sysai_options_t *opts, int max_tokens);
+
+/**
+ * Set top_p
+ *
+ * @param opts Options handle
+ * @param top_p Top-p value (0.0 to 1.0)
+ */
+SYSAI_API void sysai_options_set_top_p(sysai_options_t *opts, double top_p);
+
+/**
+ * Free options
+ *
+ * @param opts Options handle
+ */
+SYSAI_API void sysai_options_free(sysai_options_t *opts);
+
 #endif /* SYSAI_H */
