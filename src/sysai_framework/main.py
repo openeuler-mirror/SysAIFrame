@@ -119,3 +119,22 @@ async def health_check():
         "status": "healthy",
         "service": "sysaiframe-gateway"
     }
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Handle shutdown event - stop background tasks"""
+    logger.info("Shutting down...")
+    
+    # Stop health checker background tasks
+    try:
+        from sysai_framework.router.model_router import get_router
+        router = get_router()
+        if hasattr(router, 'health_checker') and router.health_checker:
+            logger.info("Stopping health checker background tasks...")
+            router.health_checker.stop_background_checks()
+    except Exception as e:
+        logger.warning(f"Error stopping health checker: {e}")
+    
+    # D-Bus service will be stopped in finally block or atexit handler
+    logger.info("Shutdown event completed")
