@@ -46,4 +46,17 @@ struct sysai_response {
 /* Internal functions */
 sysai_client_t *sysai_client_new_internal(bool use_session);
 
+int sysai_build_request_dict(
+    sd_bus_message *m,
+    const sysai_message_t **messages,
+    const sysai_options_t *options,
+    bool stream
+);
+
+sysai_response_t *sysai_parse_response(sd_bus_message *m);
+
+/* Helper functions from sysai_types.c */
+char *extract_string_from_variant_dict(sd_bus_message *m, const char *key);
+int extract_int_from_variant_dict(sd_bus_message *m, const char *key);
+
 #endif /* SYSAI_INTERNAL_H */

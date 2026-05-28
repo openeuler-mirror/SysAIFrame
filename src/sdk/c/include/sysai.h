@@ -42,8 +42,8 @@ extern "C" {
 #define SYSAI_ERR_TIMEOUT      -4
 #define SYSAI_ERR_MODEL        -5
 #define SYSAI_ERR_SERVER       -6
-#define SYSAI_ERR_PARSE       -7
-#define SYSAI_ERR_MEMORY      -8
+#define SYSAI_ERR_PARSE        -7
+#define SYSAI_ERR_MEMORY       -8
 
 /* Opaque types */
 typedef struct sysai_client sysai_client_t;
@@ -109,6 +109,22 @@ SYSAI_API int sysai_last_error_code(sysai_client_t *client);
 SYSAI_API sysai_message_t *sysai_message_new(const char *role, const char *content);
 
 /**
+ * Get message role
+ *
+ * @param message Message handle
+ * @return Role string
+ */
+SYSAI_API const char *sysai_message_get_role(const sysai_message_t *message);
+
+/**
+ * Get message content
+ *
+ * @param message Message handle
+ * @return Content string
+ */
+SYSAI_API const char *sysai_message_get_content(const sysai_message_t *message);
+
+/**
  * Free a message
  *
  * @param message Message handle
@@ -159,6 +175,41 @@ SYSAI_API void sysai_options_set_max_tokens(sysai_options_t *opts, int max_token
 SYSAI_API void sysai_options_set_top_p(sysai_options_t *opts, double top_p);
 
 /**
+ * Get model name
+ *
+ * @param opts Options handle
+ * @return Model name or NULL
+ */
+SYSAI_API const char *sysai_options_get_model(const sysai_options_t *opts);
+
+/**
+ * Get temperature
+ *
+ * @param opts Options handle
+ * @param has_value Output: whether temperature was set
+ * @return Temperature value (0.0 if not set)
+ */
+SYSAI_API double sysai_options_get_temperature(const sysai_options_t *opts, bool *has_value);
+
+/**
+ * Get max tokens
+ *
+ * @param opts Options handle
+ * @param has_value Output: whether max_tokens was set
+ * @return Max tokens value (0 if not set)
+ */
+SYSAI_API int sysai_options_get_max_tokens(const sysai_options_t *opts, bool *has_value);
+
+/**
+ * Get top_p
+ *
+ * @param opts Options handle
+ * @param has_value Output: whether top_p was set
+ * @return Top-p value (0.0 if not set)
+ */
+SYSAI_API double sysai_options_get_top_p(const sysai_options_t *opts, bool *has_value);
+
+/**
  * Free options
  *
  * @param opts Options handle
@@ -204,6 +255,24 @@ SYSAI_API int sysai_chat_stream(
 /* ============================================================================
  * Response Access
  * ========================================================================= */
+
+/**
+ * Create a new response (for testing / manual construction)
+ *
+ * @param id Response ID (can be "")
+ * @param model Model name (can be "")
+ * @param content Response content (can be "")
+ * @param finish_reason Finish reason (can be NULL)
+ * @param total_tokens Total tokens used
+ * @return Response handle or NULL on error
+ */
+SYSAI_API sysai_response_t *sysai_response_new(
+    const char *id,
+    const char *model,
+    const char *content,
+    const char *finish_reason,
+    int total_tokens
+);
 
 /**
  * Get response content

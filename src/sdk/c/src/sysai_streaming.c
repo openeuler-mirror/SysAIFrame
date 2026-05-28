@@ -265,7 +265,7 @@ int sysai_chat_stream(
         if (r < 0) break;
 
         if (r == 0) {
-            r = sd_bus_wait(client->bus, 60000000);  /* 60 second timeout */
+            r = sd_bus_wait(client->bus, 120000000);  /* 120 second timeout */
             if (r < 0) break;
         }
     }
