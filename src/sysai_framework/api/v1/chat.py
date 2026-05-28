@@ -32,9 +32,11 @@ router = APIRouter()
 
 class Message(BaseModel):
     """Chat message model"""
-    role: str = Field(..., description="Role of the message sender (system/user/assistant)")
-    content: str = Field(..., description="Content of the message")
+    role: str = Field(..., description="Role of the message sender (system/user/assistant/tool)")
+    content: Optional[Union[str, List[Dict[str, Any]]]] = Field(None, description="Content of the message")
     name: Optional[str] = Field(None, description="Optional name of the sender")
+    tool_calls: Optional[List[Dict[str, Any]]] = Field(None, description="Tool calls made by the assistant")
+    tool_call_id: Optional[str] = Field(None, description="Tool call ID for tool response messages")
 
     class Config:
         schema_extra = {
@@ -59,7 +61,12 @@ class ChatCompletionRequest(BaseModel):
     frequency_penalty: Optional[float] = Field(0.0, ge=-2.0, le=2.0, description="Frequency penalty")
     logit_bias: Optional[Dict[str, float]] = Field(None, description="Logit bias map")
     user: Optional[str] = Field(None, description="User identifier")
-
+    thinking_budget: Optional[int] = Field(None, description="Thinking budget for reasoning models")
+    reasoning: Optional[str] = Field(None, description="Reasoning effort level")
+    tools: Optional[List[Dict[str, Any]]] = Field(None, description="List of tools available to the model")
+    tool_choice: Optional[Union[str, Dict[str, Any]]] = Field(None, description="Tool choice strategy")
+    parallel_tool_calls: Optional[bool] = Field(None, description="Whether to allow parallel tool calls")
+    
     class Config:
         schema_extra = {
             "example": {
@@ -78,7 +85,10 @@ class ChatCompletionRequest(BaseModel):
 class ChatMessage(BaseModel):
     """Chat message in response"""
     role: str
-    content: str
+    content: Optional[str] = None
+    reasoning: Optional[str] = None
+    tool_calls: Optional[List[Dict[str, Any]]] = None
+    tool_call_id: Optional[str] = None
 
 
 class ChatChoice(BaseModel):
@@ -109,6 +119,7 @@ class DeltaMessage(BaseModel):
     """Delta message for streaming response"""
     role: Optional[str] = None
     content: Optional[str] = None
+    tool_calls: Optional[List[Dict[str, Any]]] = None
 
 
 class ChatChoiceChunk(BaseModel):
@@ -155,18 +166,18 @@ async def chat_completion(
 ):
     """
     Create a chat completion
-
+    
     This endpoint is Chat Completion API compatible.
     Supports both streaming and non-streaming responses.
-
+    
     """
     # Generate request ID for tracking
     request_id = f"req-{int(time.time())}-{uuid.uuid4().hex[:8]}"
-
+    
     # Prepare request data - use Pydantic's dict() method to safely handle optional fields
     # exclude_none=True ensures None values are not included, preventing downstream issues
     request_dict = request.dict(exclude_none=True)
-
+    
     # Build request_data with required fields and optional fields (only if provided)
     request_data = {
         'request_id': request_id,
@@ -174,25 +185,27 @@ async def chat_completion(
         'messages': [msg.dict() for msg in request.messages],
         'stream': request_dict.get('stream', False),  # Always include stream, default False
     }
-
+    
     # Add optional fields that were provided (exclude_none=True already filtered them)
     optional_fields = ['temperature', 'max_tokens', 'top_p', 'stop',
-                       'presence_penalty', 'frequency_penalty', 'user']
+                       'presence_penalty', 'frequency_penalty', 'user',
+                       'tools', 'tool_choice', 'parallel_tool_calls',
+                       'thinking_budget', 'reasoning']
     for field in optional_fields:
         if field in request_dict:
             request_data[field] = request_dict[field]
-
+    
     logger.debug(
         f"[{request_id}] Received chat completion request: model={request.model}, stream={request.stream}"
     )
-
+    
     try:
         # Create chat-specific processor with global hook manager
         processor = ChatCompletionProcessor(request_data, hook_manager=get_hook_manager())
-
+        
         # Get router instance
         router_instance = get_router()
-
+        
         # Process request - processor handles streaming vs non-streaming internally
         # Returns StreamingResponse for streaming, dict for non-streaming
         return await processor.process_request(
@@ -200,10 +213,10 @@ async def chat_completion(
             router_instance=router_instance,
             authorization=authorization
         )
-
+            
     except Exception as e:
         logger.error(f"[{request_id}] Request failed: {e}", exc_info=True)
-
+        
         # Check for AllModelsFailed exception (all fallback models failed)
         from sysai_framework.core.exceptions import AllModelsFailed
         if isinstance(e, AllModelsFailed):
@@ -218,10 +231,10 @@ async def chat_completion(
                     }
                 }
             )
-
+        
         # Check for specific error cases
         error_message = str(e).lower()
-
+        
         # Get router instance for checking model count (if available)
         try:
             router_instance = get_router()
@@ -229,14 +242,14 @@ async def chat_completion(
         except Exception:
             # If we can't get router instance, assume no models
             model_count = 0
-
+        
         # Case 1: No models configured
         # Check both error message and actual model count
         has_no_models = (
-            "no models configured" in error_message or
+            "no models configured" in error_message or 
             model_count == 0
         )
-
+        
         if has_no_models:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -248,7 +261,7 @@ async def chat_completion(
                     }
                 }
             )
-
+        
         # Case 2: No available model found (could be no models or no healthy models)
         if "no available model found" in error_message:
             # Check if there are any models configured
@@ -275,7 +288,7 @@ async def chat_completion(
                         }
                     }
                 )
-
+        
         # Case 3: No healthy models
         if "no healthy models" in error_message:
             raise HTTPException(
@@ -288,7 +301,7 @@ async def chat_completion(
                     }
                 }
             )
-
+        
         # Convert to Chat Completion API compatible exception
         compatible_exception = await handle_exception_with_logging(
             e,
@@ -310,13 +323,13 @@ async def chat_completion(
 async def list_models():
     """
     List available models
-
+    
     Returns a list of models that can be used for chat completion.
     """
     try:
         router_instance = get_router()
         models = router_instance.get_available_models()
-
+        
         # Format response according to Chat Completion API specification
         model_list = [
             {
@@ -327,12 +340,12 @@ async def list_models():
             }
             for model_name in models
         ]
-
+        
         return {
             "object": "list",
             "data": model_list
         }
-
+        
     except Exception as e:
         logger.error(f"Error listing models: {e}")
         raise HTTPException(
@@ -349,19 +362,19 @@ async def list_models():
 async def get_model(model_name: str):
     """
     Get model details
-
+    
     Returns detailed information about a specific model.
     """
     try:
         router_instance = get_router()
         model_config = router_instance.get_model_config(model_name)
-
+        
         if not model_config:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={"error": {"message": f"Model {model_name} not found"}}
             )
-
+        
         return {
             "id": model_config.name,
             "object": "model",
@@ -371,7 +384,7 @@ async def get_model(model_name: str):
             "capabilities": model_config.capabilities,
             "supports_streaming": model_config.supports_streaming
         }
-
+        
     except HTTPException:
         raise
     except Exception as e:
@@ -386,11 +399,11 @@ async def get_model(model_name: str):
 async def get_service_status():
     """
     Get service status
-
+    
     Returns service state and model availability information.
     This endpoint can be used to check if the service has any configured models
     and whether they are healthy.
-
+    
     Response fields:
     - state: Service state (initializing/ready/degraded/error)
     - total_models: Total number of configured models
@@ -401,22 +414,22 @@ async def get_service_status():
     try:
         from sysai_framework.core.service_status import get_service_status, update_service_status
         from sysai_framework.config import get_config_manager
-
+        
         # Update status from current configuration
         config_manager = get_config_manager()
         update_service_status(config_manager)
-
+        
         # Get status
         service_status = get_service_status()
         status_dict = service_status.to_dict()
-
+        
         # Return appropriate HTTP status code based on service state
         http_status = status.HTTP_200_OK
         if service_status.is_degraded():
             http_status = status.HTTP_503_SERVICE_UNAVAILABLE
-
+        
         return status_dict
-
+        
     except Exception as e:
         logger.error(f"Error getting service status: {e}")
         raise HTTPException(
