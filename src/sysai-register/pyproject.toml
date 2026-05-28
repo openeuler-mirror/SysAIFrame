@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sysai-register"
+version = "1.0.0"
+description = "AI Model Registration Service for SysAIFrame"
+requires-python = ">=3.8"
+license = {text = "MulanPSL-2.0"}
+authors = [
+    {name = "SysAIFrame Team", email = "sysaiframe@ctyunos.com"}
+]
+maintainers = [
+    {name = "SysAIFrame Team", email = "sysaiframe@ctyunos.com"}
+]
+keywords = ["ai", "registration", "zeroconf", "mdns", "dns-sd"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Mulan Permissive Software License v2 (MulanPSL-2.0)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "zeroconf>=0.131.0",
+    "click>=8.1.0",
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ctyunos/sysaiframe"
+Documentation = "https://github.com/ctyunos/sysaiframe"
+Repository = "https://github.com/ctyunos/sysaiframe"
+Issues = "https://github.com/ctyunos/sysaiframe/issues"
+
+[project.scripts]
+sysai-register = "sysai_register.cli.sysai_register:main"
+
+[tool.setuptools]
+packages = ["sysai_register", "sysai_register.cli"]
+package-dir = {"sysai_register" = "sysai_register"}
