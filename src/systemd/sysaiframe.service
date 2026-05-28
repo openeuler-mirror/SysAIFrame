@@ -33,3 +33,4 @@ ReadWritePaths=/var/log/sysaiframe /run/sysaiframe /etc/sysaiframe
 
 [Install]
 WantedBy=multi-user.target
+
