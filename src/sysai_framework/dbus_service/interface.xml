@@ -1,0 +1,363 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="org.ctyunos.AIGateway.Chat">
+    <!-- Chat completion method with full OpenAI-compatible parameters -->
+    <method name="ChatCompletion">
+      <arg name="request" type="a{sv}" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Request parameters as variant dict (model, messages, temperature, stream, etc.)"/>
+      </arg>
+      <arg name="response" type="a{sv}" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Response as variant dict (for non-streaming: full response; for streaming: initial response with id and model)"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Perform chat completion with specified parameters. If stream=true, returns initial response and emits StreamChunk signals."/>
+    </method>
+    
+    <!-- Get available chat models -->
+    <method name="GetChatModels">
+      <arg name="models" type="as" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Array of available model names"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Retrieve list of available chat models"/>
+    </method>
+    
+    <!-- Get gateway status -->
+    <method name="GetStatus">
+      <arg name="status" type="a{sv}" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Gateway status information as variant dict"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get current gateway status and statistics"/>
+    </method>
+    
+    <!-- Streaming response signals -->
+    <signal name="StreamChunk">
+      <arg name="request_id" type="s">
+        <annotation name="org.freedesktop.DBus.Description" value="Request ID matching the initial ChatCompletion response"/>
+      </arg>
+      <arg name="chunk" type="a{sv}">
+        <annotation name="org.freedesktop.DBus.Description" value="Chunk data in chat.completion.chunk format"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Emitted for each chunk in streaming responses"/>
+    </signal>
+    
+    <signal name="StreamDone">
+      <arg name="request_id" type="s">
+        <annotation name="org.freedesktop.DBus.Description" value="Request ID of completed stream"/>
+      </arg>
+      <arg name="usage" type="a{sv}">
+        <annotation name="org.freedesktop.DBus.Description" value="Final token usage statistics"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Emitted when streaming response is complete"/>
+    </signal>
+  </interface>
+  
+  <!-- Model Configuration Admin Interface -->
+  <interface name="org.ctyunos.AIGateway.Admin">
+    <!-- Add a new model configuration -->
+    <method name="AddModel">
+      <arg name="model_data_json" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Model configuration as JSON string"/>
+      </arg>
+      <arg name="force" type="b" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Force overwrite if instance_id exists"/>
+      </arg>
+      <arg name="set_as_default" type="b" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Set this model as the default model"/>
+      </arg>
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if model was added successfully"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Success or error message"/>
+      </arg>
+      <arg name="instance_id" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Instance ID of the added model"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Add a new model configuration. Configuration takes effect immediately."/>
+    </method>
+    
+    <!-- List all configured models -->
+    <method name="ListModels">
+      <arg name="models_json" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Array of model configurations as JSON string"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get all configured models"/>
+    </method>
+    
+    <!-- Get a specific model by identifier -->
+    <method name="GetModel">
+      <arg name="identifier" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Model name or instance_id"/>
+      </arg>
+      <arg name="model_json" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Model configuration as JSON string, empty if not found"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get model configuration by name or instance_id"/>
+    </method>
+    
+    <!-- Remove a model by instance_id -->
+    <method name="RemoveModel">
+      <arg name="instance_id" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Instance ID of the model to remove"/>
+      </arg>
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if model was removed successfully"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Success or error message"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Remove a model configuration"/>
+    </method>
+
+    <!-- Update model configuration -->
+    <method name="UpdateModel">
+      <arg name="instance_id" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Instance ID of the model to update"/>
+      </arg>
+      <arg name="updates_json" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="JSON string of fields to update (patch)"/>
+      </arg>
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if update succeeded"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Success or error message"/>
+      </arg>
+      <arg name="model_json" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Updated model configuration as JSON string"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Update model configuration (partial update)"/>
+    </method>
+
+    <!-- Reload configuration from file -->
+    <method name="ReloadConfig">
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if configuration was reloaded successfully"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Success or error message"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Reload configuration from file"/>
+    </method>
+    
+    <!-- Set default model -->
+    <method name="SetDefaultModel">
+      <arg name="model_name" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Model name to set as default"/>
+      </arg>
+      <arg name="instance_id" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Optional specific instance ID (empty string if not specified)"/>
+      </arg>
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if default model was set successfully"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Success or error message"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Set default model for routing"/>
+    </method>
+    
+    <!-- Get service status -->
+    <method name="GetServiceStatus">
+      <arg name="status_json" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Service status information as JSON string"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get current service operational status"/>
+    </method>
+    
+    <!-- Get service configuration file path -->
+    <method name="GetServiceConfigPath">
+      <arg name="config_path" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Configuration file path currently used by the service"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get the configuration file path currently used by the service"/>
+    </method>
+    
+    <!-- Get routing configuration -->
+    <method name="GetRoutingConfig">
+      <arg name="routing_json" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Routing configuration as JSON string"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get current routing configuration including default model"/>
+    </method>
+    
+    <!-- Health Management Methods -->
+    <method name="GetHealthStatus">
+      <arg name="model_name" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Model name (empty for all models)"/>
+      </arg>
+      <arg name="status_json" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Health status as JSON string"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get health status for specified model or all models"/>
+    </method>
+    
+    <method name="TriggerHealthCheck">
+      <arg name="model_name" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Model name (empty for all models)"/>
+      </arg>
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if check was triggered"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Result message"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Manually trigger health check"/>
+    </method>
+    
+    <method name="GetHealthCheckConfig">
+      <arg name="config_json" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Health check configuration as JSON"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get current health check configuration"/>
+    </method>
+    
+    <method name="UpdateHealthCheckConfig">
+      <arg name="config_json" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Health check configuration as JSON"/>
+      </arg>
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if update succeeded"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Result message"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Update health check configuration (hot reload)"/>
+    </method>
+    
+    <method name="GetRetryPolicyConfig">
+      <arg name="config_json" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Retry policy configuration as JSON"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get current retry policy configuration"/>
+    </method>
+    
+    <method name="UpdateRetryPolicyConfig">
+      <arg name="config_json" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Retry policy configuration as JSON"/>
+      </arg>
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if update succeeded"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Result message"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Update retry policy configuration (hot reload)"/>
+    </method>
+
+    <!-- Runtime Mode Methods -->
+    <method name="GetRuntimeMode">
+      <arg name="mode" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Runtime mode string: default or load-balance"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get current runtime mode"/>
+    </method>
+
+    <method name="SetRuntimeMode">
+      <arg name="mode" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Runtime mode: default or load-balance"/>
+      </arg>
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if mode was set successfully"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Success or error message"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Set runtime mode"/>
+    </method>
+
+    <!-- Load Balance Strategy Methods -->
+    <method name="GetLoadBalanceStrategy">
+      <arg name="strategy" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Load balance strategy string"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get current load balance strategy"/>
+    </method>
+
+    <method name="SetLoadBalanceStrategy">
+      <arg name="strategy" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Strategy name"/>
+      </arg>
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if strategy was set successfully"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Success or error message"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Set load balance strategy"/>
+    </method>
+
+    <!-- Load Balance Options Methods -->
+    <method name="GetLoadBalanceOptions">
+      <arg name="options_json" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Load balance options as JSON (latency_buffer, latency_window, usage_window)"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get current load balance options configuration"/>
+    </method>
+
+    <method name="UpdateLoadBalanceOptions">
+      <arg name="config_json" type="s" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Load balance options as JSON"/>
+      </arg>
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if update succeeded"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Result message"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Update load balance options configuration (hot reload)"/>
+    </method>
+
+    <!-- Gateway Configuration Methods -->
+    <method name="GetGatewayConfig">
+      <arg name="config_json" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Gateway configuration as JSON (remote_access, port, effective_host)"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Get current gateway configuration"/>
+    </method>
+
+    <method name="SetRemoteAccess">
+      <arg name="enabled" type="b" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="True to allow remote access (bind 0.0.0.0), False for local only (bind 127.0.0.1)"/>
+      </arg>
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if update succeeded"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Result message (includes restart reminder)"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Set remote access switch. Requires service restart to take effect."/>
+    </method>
+
+    <method name="SetGatewayPort">
+      <arg name="port" type="i" direction="in">
+        <annotation name="org.freedesktop.DBus.Description" value="Port number (1-65535)"/>
+      </arg>
+      <arg name="success" type="b" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="True if update succeeded"/>
+      </arg>
+      <arg name="message" type="s" direction="out">
+        <annotation name="org.freedesktop.DBus.Description" value="Result message (includes restart reminder)"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Set gateway port. Requires service restart to take effect."/>
+    </method>
+
+    <!-- Health Status Change Signal -->
+    <signal name="ModelHealthChanged">
+      <arg name="model_name" type="s">
+        <annotation name="org.freedesktop.DBus.Description" value="Name of the model"/>
+      </arg>
+      <arg name="instance_id" type="s">
+        <annotation name="org.freedesktop.DBus.Description" value="Instance ID of the model"/>
+      </arg>
+      <arg name="is_healthy" type="b">
+        <annotation name="org.freedesktop.DBus.Description" value="Current health status"/>
+      </arg>
+      <arg name="reason" type="s">
+        <annotation name="org.freedesktop.DBus.Description" value="Unhealthy reason (empty if healthy)"/>
+      </arg>
+      <annotation name="org.freedesktop.DBus.Description" value="Emitted when a model's health status changes"/>
+    </signal>
+  </interface>
+</node>
+
