@@ -119,47 +119,34 @@ class ChatServiceObject(dbus.service.Object if DBUS_AVAILABLE else object):
             if not self.model_router:
                 raise Exception("Model router not initialized")
 
-            # Create a minimal request object
-            from pydantic import BaseModel
-            from typing import List, Optional
-
-            class Message(BaseModel):
-                role: str
-                content: str
-
-            class ChatRequest(BaseModel):
-                model: Optional[str] = None
-                messages: List[Message]
-                temperature: Optional[float] = 0.7
-                max_tokens: Optional[int] = 1000
-                top_p: Optional[float] = 1.0
-                stream: bool = False
-
             # Validate required fields
             if 'messages' not in request or not request['messages']:
                 raise ValueError("'messages' field is required and cannot be empty")
 
-            # Convert request to Pydantic model
-            messages = [Message(**msg) for msg in request['messages']]
-            chat_request = ChatRequest(
-                model=request.get('model'),
-                messages=messages,
-                temperature=request.get('temperature', 0.7),
-                max_tokens=request.get('max_tokens', 1000),
-                top_p=request.get('top_p', 1.0),
-                stream=False
-            )
+            # Build params dict from raw request, letting litellm handle validation
+            model = request.get('model')
+            messages = request['messages']
 
-            # Process request using existing processor
-            # Note: This is synchronous, which is appropriate for D-Bus method calls
-            result = self.model_router.route_chat_completion(
-                model=chat_request.model,
-                messages=[msg.dict() for msg in chat_request.messages],
-                temperature=chat_request.temperature,
-                max_tokens=chat_request.max_tokens,
-                top_p=chat_request.top_p,
-                stream=False
-            )
+            # Base params
+            params = {
+                'model': model,
+                'messages': messages,
+                'stream': False,
+            }
+
+            # Optional fields to pass through if present
+            optional_fields = [
+                'temperature', 'max_tokens', 'top_p', 'stop',
+                'presence_penalty', 'frequency_penalty', 'user',
+                'thinking_budget', 'reasoning',
+                'tools', 'tool_choice', 'parallel_tool_calls',
+            ]
+            for field in optional_fields:
+                if field in request and request[field] is not None:
+                    params[field] = request[field]
+
+            # Process request using model router
+            result = self.model_router.route_chat_completion(**params)
 
             # Convert result to response format
             if isinstance(result, dict):
@@ -170,7 +157,7 @@ class ChatServiceObject(dbus.service.Object if DBUS_AVAILABLE else object):
                     'id': f'chatcmpl-{uuid.uuid4().hex[:8]}',
                     'object': 'chat.completion',
                     'created': int(time.time()),
-                    'model': chat_request.model or 'default',
+                    'model': model or 'default',
                     'choices': [{
                         'index': 0,
                         'message': {
