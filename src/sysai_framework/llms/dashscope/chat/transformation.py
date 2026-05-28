@@ -1,24 +1,37 @@
 """
-Translates from Chat Completion API `/v1/chat/completions` to DashScope's `/v1/chat/completions`
+Copyright (C) 2025 CTyunOS. All Rights Reserved.
+File: transformation.py
+Desc: Translates from Chat Completion API to DashScope's API
+      Based on litellm.llms.dashscope.chat.transformation with stub modifications
+Date: 2025-11-17
+Author: Liu Mingran
 """
 
 from typing import Any, Coroutine, List, Literal, Optional, Tuple, Union, overload
 
-from sysai_framework.llms.base.utils import (
-    handle_messages_with_content_list_to_str_conversion,
-)
 from sysai_framework.llms.base.utils import get_secret_str
-from sysai_framework.llms.base.types import AllMessageValues
+from sysai_framework.llms.base.types import AllMessageValues, ChatCompletionToolParam
 
 from ...openai.chat.gpt_transformation import OpenAIGPTConfig
 
 
 class DashScopeChatConfig(OpenAIGPTConfig):
+    def remove_cache_control_flag_from_messages_and_tools(
+        self,
+        model: str,
+        messages: List[AllMessageValues],
+        tools: Optional[List[ChatCompletionToolParam]] = None,
+    ) -> Tuple[List[AllMessageValues], Optional[List[ChatCompletionToolParam]]]:
+        """
+        Override to preserve cache_control for DashScope.
+        DashScope/Qwen supports Prompt Cache via cache_control - don't strip it.
+        """
+        return messages, tools
+
     @overload
     def _transform_messages(
         self, messages: List[AllMessageValues], model: str, is_async: Literal[True]
-    ) -> Coroutine[Any, Any, List[AllMessageValues]]:
-        ...
+    ) -> Coroutine[Any, Any, List[AllMessageValues]]: ...
 
     @overload
     def _transform_messages(
@@ -26,16 +39,15 @@ class DashScopeChatConfig(OpenAIGPTConfig):
         messages: List[AllMessageValues],
         model: str,
         is_async: Literal[False] = False,
-    ) -> List[AllMessageValues]:
-        ...
+    ) -> List[AllMessageValues]: ...
 
     def _transform_messages(
         self, messages: List[AllMessageValues], model: str, is_async: bool = False
     ) -> Union[List[AllMessageValues], Coroutine[Any, Any, List[AllMessageValues]]]:
         """
-        DashScope does not support content in list format.
+        DashScope/Qwen supports multimodal content (images, audio).
+        Pass messages through directly without flattening.
         """
-        messages = handle_messages_with_content_list_to_str_conversion(messages)
         if is_async:
             return super()._transform_messages(
                 messages=messages, model=model, is_async=True
@@ -51,7 +63,7 @@ class DashScopeChatConfig(OpenAIGPTConfig):
         api_base = (
             api_base
             or get_secret_str("DASHSCOPE_API_BASE")
-            or "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+            or "https://dashscope.aliyuncs.com/compatible-mode/v1"
         )  # type: ignore
         dynamic_api_key = api_key or get_secret_str("DASHSCOPE_API_KEY")
         return api_base, dynamic_api_key
@@ -75,4 +87,3 @@ class DashScopeChatConfig(OpenAIGPTConfig):
             api_base = f"{api_base}/chat/completions"
 
         return api_base
-
