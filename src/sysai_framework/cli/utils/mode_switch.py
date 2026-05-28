@@ -85,7 +85,7 @@ def auto_execute(
             except Exception as e:
                 # If we can't get service config path, fall back to online mode
                 logger.warning(f"Failed to get service config path: {e}, using online mode")
-                return online_func(client)
+            return online_func(client)
         else:
             # Service not running, automatically switch to offline mode
             # Determine the config path to use
