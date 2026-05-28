@@ -13,11 +13,11 @@ from typing import Optional, Any, Dict
 
 class StatusLevel(Enum):
     """Status level enumeration"""
-    SUCCESS = "success"
-    INFO = "info"
-    WARNING = "warning"
-    ERROR = "error"
-    CRITICAL = "critical"
+    SUCCESS = "success"      # Success
+    INFO = "info"           # Information
+    WARNING = "warning"     # Warning
+    ERROR = "error"         # Error
+    CRITICAL = "critical"   # Critical error
 
 
 @dataclass(frozen=True)
@@ -288,6 +288,19 @@ class OperationResult:
         status: Status code object
         data: Return data (result on success, e.g., ModelConfig object)
         details: Details dictionary (parameters for message formatting)
+
+    Examples:
+        >>> # Success result
+        >>> result = OperationResult.success_result(data=model_config)
+        >>> if result.success:
+        ...     print(f"Success: {result.data}")
+
+        >>> # Error result
+        >>> result = OperationResult.error_result(
+        ...     MODEL_NOT_FOUND,
+        ...     details={"model": "gpt-4"}
+        ... )
+        >>> print(result.get_message())  # "Model not found: gpt-4"
     """
     status: StatusCode
     data: Optional[Any] = None
@@ -323,13 +336,16 @@ class OperationResult:
         Returns:
             Formatted message string
         """
+        # Check if there's a pre-formatted message (used by D-Bus client)
         if self.details and "_formatted_message" in self.details:
             return self.details["_formatted_message"]
 
         try:
+            # Merge details and kwargs
             format_args = {**(self.details or {}), **kwargs}
             return self.status.message_template.format(**format_args)
-        except KeyError:
+        except KeyError as e:
+            # If required parameters are missing, return original template
             return self.status.message_template
 
     def to_dict(self) -> Dict[str, Any]:
@@ -431,6 +447,7 @@ def get_status_by_code(code: int) -> Optional[StatusCode]:
     Returns:
         Corresponding StatusCode object, or None if not found
     """
+    # Get all status code constants
     import sys
     current_module = sys.modules[__name__]
 
@@ -463,6 +480,7 @@ def get_status_by_name(name: str) -> Optional[StatusCode]:
         pass
 
     return None
+
 
 def list_all_status_codes() -> Dict[int, StatusCode]:
     """
@@ -497,6 +515,7 @@ def parse_status_from_message(message: str) -> tuple[Optional[StatusCode], str]:
     """
     import re
 
+    # Try to match [STATUS:number] format
     match = re.match(r'^\[STATUS:(\d+)\]\s*(.*)', message)
     if match:
         code = int(match.group(1))
