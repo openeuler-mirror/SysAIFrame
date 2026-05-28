@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use zvariant::{OwnedValue, Value};
 
+/// Chat message
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
     pub role: String,
@@ -17,6 +18,7 @@ pub struct Message {
 }
 
 impl Message {
+    /// Create a new message
     pub fn new<R: Into<String>, C: Into<String>>(role: R, content: C) -> Self {
         Self {
             role: role.into(),
@@ -25,23 +27,28 @@ impl Message {
         }
     }
 
+    /// Create a user message
     pub fn user<S: Into<String>>(content: S) -> Self {
         Self::new("user", content)
     }
 
+    /// Create a system message
     pub fn system<S: Into<String>>(content: S) -> Self {
         Self::new("system", content)
     }
 
+    /// Create an assistant message
     pub fn assistant<S: Into<String>>(content: S) -> Self {
         Self::new("assistant", content)
     }
 
+    /// Set the name field
     pub fn with_name<S: Into<String>>(mut self, name: S) -> Self {
         self.name = Some(name.into());
         self
     }
 
+    /// Convert to D-Bus variant dictionary
     pub(crate) fn to_variant_dict(&self) -> HashMap<String, OwnedValue> {
         let mut map = HashMap::new();
         map.insert("role".to_string(), Value::new(&self.role).try_to_owned().unwrap());
@@ -53,6 +60,7 @@ impl Message {
     }
 }
 
+/// Chat options (builder pattern)
 #[derive(Debug, Clone, Default)]
 pub struct ChatOptions {
     pub model: Option<String>,
@@ -62,25 +70,30 @@ pub struct ChatOptions {
 }
 
 impl ChatOptions {
+    /// Create new options
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Set model
     pub fn model<S: Into<String>>(mut self, model: S) -> Self {
         self.model = Some(model.into());
         self
     }
 
+    /// Set temperature
     pub fn temperature(mut self, temperature: f64) -> Self {
         self.temperature = Some(temperature);
         self
     }
 
+    /// Set max tokens
     pub fn max_tokens(mut self, max_tokens: i32) -> Self {
         self.max_tokens = Some(max_tokens);
         self
     }
 
+    /// Set top_p
     pub fn top_p(mut self, top_p: f64) -> Self {
         self.top_p = Some(top_p);
         self

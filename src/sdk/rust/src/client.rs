@@ -37,9 +37,13 @@ impl SysAIClient {
     pub fn chat(&self, messages: &[Message], options: Option<ChatOptions>) -> Result<ChatResponse> {
         let request = build_request_dict(messages, options, false)?;
 
-        let proxy = Proxy::new(
-            &self.connection, BUS_NAME, OBJECT_PATH, INTERFACE,
-        ).map_err(|e| SysAIError::connection(format!("Failed to create proxy: {}", e)))?;
+        let proxy = Proxy::builder(&self.connection)
+            .destination(BUS_NAME)?
+            .path(OBJECT_PATH)?
+            .interface(INTERFACE)?
+            .method_call_timeout(std::time::Duration::from_secs(120))
+            .build()
+            .map_err(|e| SysAIError::connection(format!("Failed to create proxy: {}", e)))?;
 
         let reply = proxy
             .call_method("ChatCompletion", &(request,))
@@ -90,9 +94,13 @@ impl SysAIClient {
     ) -> Result<impl Iterator<Item = Result<ChatChunk>>> {
         let request = build_request_dict(messages, options, true)?;
 
-        let proxy = Proxy::new(
-            &self.connection, BUS_NAME, OBJECT_PATH, INTERFACE,
-        ).map_err(|e| SysAIError::connection(format!("Failed to create proxy: {}", e)))?;
+        let proxy = Proxy::builder(&self.connection)
+            .destination(BUS_NAME)?
+            .path(OBJECT_PATH)?
+            .interface(INTERFACE)?
+            .method_call_timeout(std::time::Duration::from_secs(120))
+            .build()
+            .map_err(|e| SysAIError::connection(format!("Failed to create proxy: {}", e)))?;
 
         let reply = proxy
             .call_method("ChatCompletion", &(request,))
@@ -122,9 +130,13 @@ impl SysAIClient {
 
     /// Get list of available models
     pub fn list_models(&self) -> Result<Vec<String>> {
-        let proxy = Proxy::new(
-            &self.connection, BUS_NAME, OBJECT_PATH, INTERFACE,
-        ).map_err(|e| SysAIError::connection(format!("Failed to create proxy: {}", e)))?;
+        let proxy = Proxy::builder(&self.connection)
+            .destination(BUS_NAME)?
+            .path(OBJECT_PATH)?
+            .interface(INTERFACE)?
+            .method_call_timeout(std::time::Duration::from_secs(120))
+            .build()
+            .map_err(|e| SysAIError::connection(format!("Failed to create proxy: {}", e)))?;
 
         let reply = proxy
             .call_method("GetChatModels", &())
@@ -138,9 +150,13 @@ impl SysAIClient {
 
     /// Get service status
     pub fn get_status(&self) -> Result<HashMap<String, OwnedValue>> {
-        let proxy = Proxy::new(
-            &self.connection, BUS_NAME, OBJECT_PATH, INTERFACE,
-        ).map_err(|e| SysAIError::connection(format!("Failed to create proxy: {}", e)))?;
+        let proxy = Proxy::builder(&self.connection)
+            .destination(BUS_NAME)?
+            .path(OBJECT_PATH)?
+            .interface(INTERFACE)?
+            .method_call_timeout(std::time::Duration::from_secs(120))
+            .build()
+            .map_err(|e| SysAIError::connection(format!("Failed to create proxy: {}", e)))?;
 
         let reply = proxy
             .call_method("GetStatus", &())
