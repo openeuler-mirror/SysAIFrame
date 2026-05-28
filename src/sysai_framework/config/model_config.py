@@ -1340,3 +1340,781 @@ class ModelConfigManager:
                     "exception": str(e)
                 }
             )
+
+    # File lock configuration
+    _LOCK_TIMEOUT = 10  # seconds
+    _LOCK_RETRY_INTERVAL = 0.1  # seconds
+    _ZOMBIE_LOCK_MAX_AGE = 60  # seconds - consider lock file older than this as zombie
+
+    def _is_zombie_lock(self, lock_path: str) -> bool:
+        """
+        Check if lock file is a zombie (not actually held by any process)
+
+        Args:
+            lock_path: Path to lock file
+
+        Returns:
+            True if lock appears to be zombie, False otherwise
+        """
+        if not os.path.exists(lock_path):
+            return False
+
+        try:
+            # Check lock file age
+            lock_age = time.time() - os.path.getmtime(lock_path)
+            if lock_age > self._ZOMBIE_LOCK_MAX_AGE:
+                logger.warning(f"Found old lock file {lock_path} (age: {lock_age:.1f}s), attempting cleanup")
+                return True
+
+            # Try to open and lock the file in non-blocking mode
+            test_fd = os.open(lock_path, os.O_RDWR)
+            try:
+                fcntl.flock(test_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.flock(test_fd, fcntl.LOCK_UN)
+                os.close(test_fd)
+                logger.warning(f"Lock file {lock_path} is not held by any process, cleaning up")
+                return True
+            except BlockingIOError:
+                os.close(test_fd)
+                return False
+        except (OSError, IOError) as e:
+            logger.debug(f"Error checking zombie lock {lock_path}: {e}")
+            return False
+
+    def _cleanup_zombie_lock(self, lock_path: str) -> bool:
+        """
+        Attempt to clean up a zombie lock file
+
+        Args:
+            lock_path: Path to lock file
+
+        Returns:
+            True if cleanup succeeded, False otherwise
+        """
+        try:
+            if os.path.exists(lock_path):
+                os.unlink(lock_path)
+                logger.info(f"Cleaned up zombie lock file: {lock_path}")
+                return True
+        except OSError as e:
+            logger.warning(f"Failed to cleanup zombie lock {lock_path}: {e}")
+        return False
+
+    @contextmanager
+    def _file_lock(self, timeout: int = None, require_file_lock: bool = True):
+        """
+        Context manager for file locking to prevent concurrent writes
+
+        Args:
+            timeout: Lock timeout in seconds (default: _LOCK_TIMEOUT)
+            require_file_lock: If False, skip file lock (for in-process only operations)
+        """
+        if timeout is None:
+            timeout = self._LOCK_TIMEOUT
+
+        lock_path = f"{self.config_path}.lock"
+        lock_fd = None
+        start_time = time.time()
+
+        if not require_file_lock:
+            yield
+            return
+
+        try:
+            while True:
+                if self._is_zombie_lock(lock_path):
+                    self._cleanup_zombie_lock(lock_path)
+
+                try:
+                    lock_fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o644)
+                    fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except (BlockingIOError, OSError):
+                    if lock_fd is not None:
+                        os.close(lock_fd)
+                        lock_fd = None
+
+                    elapsed = time.time() - start_time
+                    if elapsed >= timeout:
+                        error_msg = (
+                            f"Failed to acquire lock on {self.config_path} "
+                            f"after {timeout} seconds.\n"
+                            f"Possible causes:\n"
+                            f"  1. Another process is modifying the configuration file\n"
+                            f"  2. A stale lock file exists: {lock_path}\n"
+                            f"  3. The SysAIFrame service is running and holding the lock\n"
+                            f"\n"
+                            f"Solutions:\n"
+                            f"  1. Wait for the other operation to complete\n"
+                            f"  2. If service is running, use D-Bus (default) instead of --offline mode\n"
+                            f"  3. Manually remove stale lock: rm -f {lock_path}\n"
+                            f"  4. Restart the service: systemctl restart sysaiframe"
+                        )
+                        raise TimeoutError(error_msg)
+
+                    time.sleep(self._LOCK_RETRY_INTERVAL)
+
+            yield
+
+        finally:
+            if lock_fd is not None:
+                try:
+                    fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                    os.close(lock_fd)
+                except OSError:
+                    pass
+
+            try:
+                if os.path.exists(lock_path):
+                    os.unlink(lock_path)
+            except OSError:
+                pass
+
+    @contextmanager
+    def _config_lock(self, require_file_lock: bool = True, timeout: int = None):
+        """
+        Combined thread lock + file lock context manager
+
+        This provides:
+        - Thread lock: For in-process concurrency
+        - File lock: For cross-process concurrency
+
+        Args:
+            require_file_lock: If True, acquire file lock (for cross-process protection)
+                             If False, only use thread lock (for in-process only)
+            timeout: File lock timeout in seconds (default: _LOCK_TIMEOUT)
+        """
+        self._thread_lock.acquire()
+        try:
+            with self._file_lock(timeout=timeout, require_file_lock=require_file_lock):
+                yield
+        finally:
+            self._thread_lock.release()
+
+    def add_model(
+        self,
+        model_data: Dict[str, Any],
+        persist: bool = True,
+        force: bool = False,
+        require_file_lock: bool = True,
+        set_as_default: bool = False
+    ) -> 'OperationResult':
+        """
+        Add a new model configuration
+
+        Args:
+            model_data: Model configuration dictionary
+            persist: Whether to persist changes to config file
+            force: Whether to overwrite existing model with same instance_id
+            set_as_default: Whether to set this model as the default model
+
+        Returns:
+            OperationResult: Contains status, data (ModelConfig), and details
+        """
+        from sysai_framework.core.status_codes import (
+            OperationResult, SUCCESS, CREATED, MODEL_ALREADY_EXISTS,
+            MODEL_INVALID, VALIDATION_ERROR, CONFIG_LOCKED, CONFIG_WRITE_FAILED
+        )
+
+        try:
+            # Step 1: Validate model data
+            validation_messages = self._validate_model_data(model_data, 0, "add_model")
+            error_messages = [msg for msg in validation_messages if msg.level == "error"]
+            if error_messages:
+                error_details = "; ".join([msg.message for msg in error_messages])
+                return OperationResult.error_result(
+                    VALIDATION_ERROR,
+                    details={"details": error_details}
+                )
+
+            warning_messages = [msg for msg in validation_messages if msg.level == "warning"]
+            for warning in warning_messages:
+                logger.warning(warning.message)
+
+            # Step 2: Check for duplicate instance_id
+            instance_id = model_data.get('instance_id')
+            existing_model = None
+            if instance_id and instance_id in self.models:
+                if force:
+                    existing_model = self.models[instance_id]
+                    logger.info(f"Force overwriting existing model: {instance_id}")
+                else:
+                    return OperationResult.error_result(
+                        MODEL_ALREADY_EXISTS,
+                        details={"instance_id": instance_id}
+                    )
+
+            # Step 3: Create ModelConfig object
+            model_config, generated_id, _ = self._process_single_model(
+                model_data,
+                index=len(self.models)
+            )
+
+            if model_config is None:
+                return OperationResult.error_result(
+                    MODEL_INVALID,
+                    details={"details": "Failed to create model configuration"}
+                )
+
+            # Step 4: Check for duplicate generated instance_id
+            if not force and model_config.instance_id in self.models:
+                return OperationResult.error_result(
+                    MODEL_ALREADY_EXISTS,
+                    details={"instance_id": model_config.instance_id}
+                )
+
+            # Step 5: Remove existing model if forcing
+            if force and existing_model:
+                self._remove_model_from_memory(existing_model.instance_id)
+
+            # Step 6: Add to in-memory configuration
+            self.models[model_config.instance_id] = model_config
+
+            if model_config.name not in self.model_name_index:
+                self.model_name_index[model_config.name] = []
+            if model_config.instance_id not in self.model_name_index[model_config.name]:
+                self.model_name_index[model_config.name].append(model_config.instance_id)
+
+            # Step 7: Persist to file if requested
+            if persist:
+                try:
+                    with self._config_lock(require_file_lock=require_file_lock):
+                        self._persist_add_model(
+                            model_data,
+                            model_config.instance_id,
+                            force=force
+                        )
+
+                        if set_as_default:
+                            self.default_model = model_config.name
+                            self.default_model_instance_id = model_config.instance_id
+                            self._persist_default_model()
+                            logger.info(
+                                f"Set model '{model_config.name}' (instance_id={model_config.instance_id}) as default"
+                            )
+                except TimeoutError as e:
+                    self._remove_model_from_memory(model_config.instance_id)
+                    return OperationResult.error_result(
+                        CONFIG_LOCKED,
+                        details={"details": str(e)}
+                    )
+                except Exception as e:
+                    self._remove_model_from_memory(model_config.instance_id)
+                    return OperationResult.error_result(
+                        CONFIG_WRITE_FAILED,
+                        details={"details": str(e)}
+                    )
+
+            if set_as_default and not persist:
+                self.default_model = model_config.name
+                self.default_model_instance_id = model_config.instance_id
+                logger.info(
+                    f"Set model '{model_config.name}' (instance_id={model_config.instance_id}) as default (in-memory only)"
+                )
+
+            logger.info(
+                f"Added model: {model_config.name} "
+                f"(instance_id={model_config.instance_id})"
+            )
+
+            if not set_as_default and not self.default_model:
+                self._update_default_model_if_needed()
+
+            status_code = CREATED if not force else SUCCESS
+            return OperationResult.success_result(
+                data=model_config,
+                status=status_code
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to add model: {e}")
+            from sysai_framework.core.status_codes import INTERNAL_ERROR
+            return OperationResult.error_result(
+                INTERNAL_ERROR,
+                details={"details": str(e)}
+            )
+
+    def _remove_model_from_memory(self, instance_id: str) -> bool:
+        """
+        Remove a model from in-memory configuration
+
+        Args:
+            instance_id: Instance ID of the model to remove
+
+        Returns:
+            bool: True if the removed model was the default model
+        """
+        if instance_id not in self.models:
+            return False
+
+        model = self.models[instance_id]
+        is_default = False
+
+        if self.default_model_instance_id == instance_id:
+            is_default = True
+        elif self.default_model == model.name:
+            is_default = True
+
+        del self.models[instance_id]
+
+        if model.name in self.model_name_index:
+            if instance_id in self.model_name_index[model.name]:
+                self.model_name_index[model.name].remove(instance_id)
+            if not self.model_name_index[model.name]:
+                del self.model_name_index[model.name]
+
+        if is_default:
+            self.default_model = None
+            self.default_model_instance_id = None
+            logger.info(f"Cleared default model settings after removing {instance_id}")
+            self._update_default_model_if_needed()
+
+        return is_default
+
+    def _persist_add_model(
+        self,
+        model_data: Dict[str, Any],
+        instance_id: str,
+        force: bool = False
+    ) -> None:
+        """
+        Persist a new model to the configuration file
+
+        Args:
+            model_data: Model configuration dictionary
+            instance_id: Generated or provided instance_id
+            force: Whether to overwrite existing model with same instance_id
+        """
+        if not os.path.exists(self.config_path):
+            raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
+
+        yaml_obj = YAML()
+        yaml_obj.preserve_quotes = True
+
+        with open(self.config_path, 'r', encoding='utf-8') as f:
+            config = yaml_obj.load(f)
+
+        if config is None:
+            config = CommentedMap()
+
+        if 'models' not in config:
+            config['models'] = CommentedSeq()
+
+        if 'routing' not in config:
+            config['routing'] = CommentedMap()
+            config['routing']['timeout'] = int(self.routing_config.timeout)
+        elif 'timeout' not in config['routing']:
+            config['routing']['timeout'] = int(self.routing_config.timeout)
+
+        if force:
+            models = config['models']
+            for i in range(len(models) - 1, -1, -1):
+                if models[i].get('instance_id') == instance_id:
+                    del models[i]
+
+        new_model = CommentedMap()
+        field_order = [
+            'name', 'instance_id', 'provider', 'api_base', 'api_key',
+            'priority', 'capabilities', 'supports_streaming',
+            'timeout', 'max_retries'
+        ]
+
+        model_data_with_id = dict(model_data)
+        model_data_with_id['instance_id'] = instance_id
+
+        for field in field_order:
+            if field in model_data_with_id and model_data_with_id[field] is not None:
+                value = model_data_with_id[field]
+                if field == 'capabilities' and isinstance(value, list):
+                    new_model[field] = CommentedSeq(value)
+                else:
+                    new_model[field] = value
+
+        config['models'].append(new_model)
+
+        temp_path = f"{self.config_path}.tmp"
+        try:
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                yaml_obj.dump(config, f)
+                f.flush()
+                os.fsync(f.fileno())
+
+            os.replace(temp_path, self.config_path)
+
+            try:
+                dir_fd = os.open(os.path.dirname(self.config_path), os.O_RDONLY)
+                try:
+                    os.fsync(dir_fd)
+                finally:
+                    os.close(dir_fd)
+            except (OSError, IOError):
+                pass
+
+        except Exception:
+            try:
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+            except OSError:
+                pass
+            raise
+
+    # Fields that are not allowed to be updated via update_model()
+    IMMUTABLE_FIELDS = {'name', 'instance_id', 'api_key', 'api_base', 'endpoint'}
+
+    def update_model(
+        self,
+        instance_id: str,
+        updates: Dict[str, Any],
+        persist: bool = True,
+        require_file_lock: bool = True
+    ) -> 'OperationResult':
+        """
+        Update model configuration (partial update / patch).
+
+        Args:
+            instance_id: Instance ID of the model to update.
+            updates: Dictionary of fields to update.
+            persist: Whether to persist changes to config file.
+            require_file_lock: Whether to acquire file lock before persisting.
+
+        Returns:
+            OperationResult with status and updated model data.
+        """
+        from sysai_framework.core.status_codes import (
+            OperationResult, UPDATED, NO_CHANGE, MODEL_NOT_FOUND,
+            VALIDATION_ERROR, CONFIG_LOCKED, CONFIG_WRITE_FAILED,
+            INTERNAL_ERROR
+        )
+
+        try:
+            if instance_id not in self.models:
+                return OperationResult.error_result(
+                    MODEL_NOT_FOUND,
+                    details={"model": instance_id}
+                )
+
+            for field in self.IMMUTABLE_FIELDS:
+                if field in updates:
+                    return OperationResult.error_result(
+                        VALIDATION_ERROR,
+                        details={"details": f"Field '{field}' is not updatable"}
+                    )
+
+            actual_updates = {k: v for k, v in updates.items() if v is not None}
+            if not actual_updates:
+                return OperationResult(
+                    status=NO_CHANGE,
+                    details={"_formatted_message": "No fields to update (all values are unchanged)"}
+                )
+
+            model = self.models[instance_id]
+            validation_errors = self._validate_update_fields(actual_updates)
+            if validation_errors:
+                return OperationResult.error_result(
+                    VALIDATION_ERROR,
+                    details={"details": "; ".join(validation_errors)}
+                )
+
+            changes = {}
+            for field, new_value in actual_updates.items():
+                current_value = getattr(model, field, None)
+                if field == 'capabilities' and isinstance(current_value, list):
+                    if set(current_value) != set(new_value):
+                        changes[field] = (current_value, new_value)
+                elif current_value != new_value:
+                    changes[field] = (current_value, new_value)
+
+            if not changes:
+                return OperationResult(
+                    status=NO_CHANGE,
+                    details={"_formatted_message": "No changes needed (all values are the same)"}
+                )
+
+            for field, (_, new_value) in changes.items():
+                setattr(model, field, new_value)
+
+            if persist:
+                try:
+                    with self._config_lock(require_file_lock=require_file_lock):
+                        self._persist_update_model(instance_id, changes)
+                except Exception as e:
+                    logger.error(f"Failed to persist model update: {e}")
+                    try:
+                        self.load_config()
+                    except Exception:
+                        pass
+                    return OperationResult.error_result(
+                        CONFIG_WRITE_FAILED,
+                        details={"details": str(e)}
+                    )
+
+            model_dict = {
+                'name': model.name,
+                'instance_id': model.instance_id,
+                'provider': model.provider,
+                'api_base': model.api_base,
+                'api_key': '***' if model.api_key else None,
+                'priority': model.priority,
+                'capabilities': model.capabilities,
+                'supports_streaming': model.supports_streaming,
+                'timeout': model.timeout,
+                'stream_timeout': model.stream_timeout,
+                'max_retries': model.max_retries,
+                'is_healthy': model.is_healthy,
+            }
+
+            changed_fields = list(changes.keys())
+            return OperationResult(
+                status=UPDATED,
+                details={
+                    "_formatted_message": f"Model '{model.name}' updated successfully (fields: {', '.join(changed_fields)})",
+                    "instance_id": model.instance_id,
+                    "updated_fields": changed_fields,
+                    "model": model_dict,
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to update model: {e}")
+            return OperationResult.error_result(
+                INTERNAL_ERROR,
+                details={"details": str(e)}
+            )
+
+    def _validate_update_fields(self, updates: Dict[str, Any]) -> List[str]:
+        """
+        Validate field values for model update.
+
+        Args:
+            updates: Dictionary of fields to validate.
+
+        Returns:
+            List of error messages (empty if valid).
+        """
+        errors = []
+
+        if 'priority' in updates:
+            val = updates['priority']
+            if not isinstance(val, int) or val < 1 or val > 100:
+                errors.append("Priority must be an integer between 1 and 100")
+
+        if 'timeout' in updates:
+            val = updates['timeout']
+            if val is None:
+                pass
+            elif not isinstance(val, int) or val < 1 or val > 3600:
+                errors.append("Timeout must be None (inherit) or an integer between 1 and 3600")
+
+        if 'max_retries' in updates:
+            val = updates['max_retries']
+            if not isinstance(val, int) or val < 0 or val > 10:
+                errors.append("Max retries must be an integer between 0 and 10")
+
+        if 'provider' in updates:
+            val = updates['provider']
+            if val not in SUPPORTED_PROVIDERS:
+                errors.append(f"Provider must be one of: {', '.join(sorted(SUPPORTED_PROVIDERS))}")
+
+        if 'capabilities' in updates:
+            val = updates['capabilities']
+            if not isinstance(val, list) or len(val) == 0:
+                errors.append("Capabilities must be a non-empty list")
+
+        if 'supports_streaming' in updates:
+            val = updates['supports_streaming']
+            if not isinstance(val, bool):
+                errors.append("Streaming must be true or false")
+
+        return errors
+
+    def _persist_update_model(
+        self,
+        instance_id: str,
+        changes: Dict[str, Any]
+    ) -> None:
+        """
+        Persist model updates to the configuration file.
+
+        Args:
+            instance_id: Instance ID of the model to update.
+            changes: Dictionary of {field: (old_value, new_value)}.
+        """
+        if not os.path.exists(self.config_path):
+            raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
+
+        yaml_obj = YAML()
+        yaml_obj.preserve_quotes = True
+
+        with open(self.config_path, 'r', encoding='utf-8') as f:
+            config = yaml_obj.load(f)
+
+        if config is None or 'models' not in config:
+            raise ValueError("Invalid configuration file: no models section")
+
+        models = config['models']
+        found = False
+        for model_entry in models:
+            if model_entry.get('instance_id') == instance_id:
+                for field, (_, new_value) in changes.items():
+                    if field == 'capabilities' and isinstance(new_value, list):
+                        model_entry[field] = CommentedSeq(new_value)
+                    else:
+                        model_entry[field] = new_value
+                found = True
+                break
+
+        if not found:
+            raise ValueError(f"Model with instance_id '{instance_id}' not found in config file")
+
+        temp_path = f"{self.config_path}.tmp"
+        try:
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                yaml_obj.dump(config, f)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp_path, self.config_path)
+            try:
+                dir_fd = os.open(os.path.dirname(self.config_path), os.O_RDONLY)
+                try:
+                    os.fsync(dir_fd)
+                finally:
+                    os.close(dir_fd)
+            except (OSError, IOError):
+                pass
+        except Exception:
+            try:
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+            except OSError:
+                pass
+            raise
+
+    def _persist_default_model(self) -> None:
+        """
+        Persist default model settings to configuration file
+
+        Updates routing.default_model and routing.default_model_instance_id
+        in the YAML configuration file using atomic write.
+        """
+        if not os.path.exists(self.config_path):
+            raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
+
+        yaml_obj = YAML()
+        yaml_obj.preserve_quotes = True
+
+        with open(self.config_path, 'r', encoding='utf-8') as f:
+            config = yaml_obj.load(f)
+
+        if config is None:
+            config = CommentedMap()
+
+        if 'routing' not in config:
+            config['routing'] = CommentedMap()
+
+        if self.default_model:
+            config['routing']['default_model'] = str(self.default_model)
+        else:
+            if 'default_model' in config['routing']:
+                del config['routing']['default_model']
+
+        if self.default_model_instance_id:
+            config['routing']['default_model_instance_id'] = str(self.default_model_instance_id)
+        else:
+            if 'default_model_instance_id' in config['routing']:
+                del config['routing']['default_model_instance_id']
+
+        runtime_config = self.routing_config.runtime
+        if 'runtime' not in config['routing']:
+            config['routing']['runtime'] = CommentedMap()
+
+        config['routing']['runtime']['mode'] = runtime_config.mode
+
+        if 'load_balance' not in config['routing']['runtime']:
+            config['routing']['runtime']['load_balance'] = CommentedMap()
+
+        config['routing']['runtime']['load_balance']['strategy'] = runtime_config.load_balance.strategy
+
+        if 'options' not in config['routing']['runtime']['load_balance']:
+            config['routing']['runtime']['load_balance']['options'] = CommentedMap()
+
+        options = runtime_config.load_balance.options
+        config['routing']['runtime']['load_balance']['options']['latency_buffer'] = options.latency_buffer
+        config['routing']['runtime']['load_balance']['options']['latency_window'] = options.latency_window
+        config['routing']['runtime']['load_balance']['options']['usage_window'] = options.usage_window
+
+        temp_path = f"{self.config_path}.tmp"
+        try:
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                yaml_obj.dump(config, f)
+                f.flush()
+                os.fsync(f.fileno())
+
+            os.replace(temp_path, self.config_path)
+
+            try:
+                dir_fd = os.open(os.path.dirname(self.config_path), os.O_RDONLY)
+                try:
+                    os.fsync(dir_fd)
+                finally:
+                    os.close(dir_fd)
+            except (OSError, IOError):
+                pass
+
+        except Exception:
+            try:
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+            except OSError:
+                pass
+            raise
+
+    def _clear_default_model_in_file(self) -> None:
+        """
+        Clear default_model and default_model_instance_id in configuration file
+
+        Sets both values to None (will be serialized as null in YAML).
+        """
+        if not os.path.exists(self.config_path):
+            return
+
+        yaml_obj = YAML()
+        yaml_obj.preserve_quotes = True
+
+        with open(self.config_path, 'r', encoding='utf-8') as f:
+            config = yaml_obj.load(f)
+
+        if config is None:
+            return
+
+        if 'routing' not in config:
+            return
+
+        if 'default_model' in config['routing']:
+            config['routing']['default_model'] = None
+        if 'default_model_instance_id' in config['routing']:
+            config['routing']['default_model_instance_id'] = None
+
+        temp_path = f"{self.config_path}.tmp"
+        try:
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                yaml_obj.dump(config, f)
+                f.flush()
+                os.fsync(f.fileno())
+
+            os.replace(temp_path, self.config_path)
+
+            try:
+                dir_fd = os.open(os.path.dirname(self.config_path), os.O_RDONLY)
+                try:
+                    os.fsync(dir_fd)
+                finally:
+                    os.close(dir_fd)
+            except (OSError, IOError):
+                pass
+        except Exception:
+            try:
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+            except OSError:
+                pass
+            raise
