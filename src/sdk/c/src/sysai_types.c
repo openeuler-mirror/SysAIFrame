@@ -125,18 +125,20 @@ char *extract_string_from_variant_dict(sd_bus_message *m, const char *key) {
                 r = sd_bus_message_read(m, "s", &value);
                 if (r >= 0 && value && strlen(value) > 0) {
                     char *result = strdup(value);
-                    sd_bus_message_exit_container(m);
-                    sd_bus_message_exit_container(m);
+                    sd_bus_message_exit_container(m);  /* v */
+                    sd_bus_message_exit_container(m);  /* e */
+                    sd_bus_message_exit_container(m);  /* a{sv} */
                     return result;
                 }
-                sd_bus_message_exit_container(m);
+                sd_bus_message_exit_container(m);  /* v */
             }
         }
 
         sd_bus_message_skip(m, "v");
-        sd_bus_message_exit_container(m);
+        sd_bus_message_exit_container(m);  /* e */
     }
 
+    sd_bus_message_exit_container(m);  /* a{sv} */
     return NULL;
 }
 
@@ -163,19 +165,51 @@ int extract_int_from_variant_dict(sd_bus_message *m, const char *key) {
             if (r >= 0) {
                 r = sd_bus_message_read(m, "x", &value);
                 if (r >= 0) {
-                    sd_bus_message_exit_container(m);
-                    sd_bus_message_exit_container(m);
+                    sd_bus_message_exit_container(m);  /* v */
+                    sd_bus_message_exit_container(m);  /* e */
+                    sd_bus_message_exit_container(m);  /* a{sv} */
                     return (int)value;
                 }
-                sd_bus_message_exit_container(m);
+                sd_bus_message_exit_container(m);  /* v */
             }
+        }
+
+        sd_bus_message_skip(m, "v");
+        sd_bus_message_exit_container(m);  /* e */
+    }
+
+    sd_bus_message_exit_container(m);  /* a{sv} */
+    return 0;
+}
+
+/* Extract nested array from variant dict */
+static sd_bus_message *extract_array_from_variant_dict(sd_bus_message *m, const char *key) {
+    int r;
+    const char *k;
+
+    r = sd_bus_message_rewind(m, true);
+    if (r < 0) return NULL;
+
+    r = sd_bus_message_enter_container(m, 'a', "{sv}");
+    if (r < 0) return NULL;
+
+    while (sd_bus_message_enter_container(m, 'e', "sv") > 0) {
+        r = sd_bus_message_read(m, "s", &k);
+        if (r < 0) {
+            sd_bus_message_exit_container(m);
+            continue;
+        }
+
+        if (strcmp(k, key) == 0) {
+            /* Found the key, return message positioned at variant */
+            return m;
         }
 
         sd_bus_message_skip(m, "v");
         sd_bus_message_exit_container(m);
     }
 
-    return 0;
+    return NULL;
 }
 
 /* ============================================================================
