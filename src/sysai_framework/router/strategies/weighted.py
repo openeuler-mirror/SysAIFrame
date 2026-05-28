@@ -19,31 +19,34 @@ logger = logging.getLogger(__name__)
 
 class WeightedStrategy(BaseRoutingStrategy):
     """Weighted random load balance strategy - selects based on weight"""
-
+    
     def select_deployment(
-        self,
+        self, 
         healthy_models: List[ModelConfig]
     ) -> Optional[ModelConfig]:
         """
         Select model based on weight (weighted random)
-
+        
         Args:
             healthy_models: List of healthy ModelConfig instances
-
+            
         Returns:
             Selected ModelConfig or None if no models available
         """
         if not healthy_models:
             return None
-
+        
+        # Extract weights
         weights = [model.weight for model in healthy_models]
         total_weight = sum(weights)
-
+        
         if total_weight == 0:
+            # Fallback to uniform random if all weights are 0
             selected = random.choice(healthy_models)
         else:
+            # Weighted random selection
             selected = random.choices(healthy_models, weights=weights, k=1)[0]
-
+        
         logger.debug(
             f"Weighted selected: {selected.name} "
             f"(instance_id={selected.instance_id}, weight={selected.weight})"

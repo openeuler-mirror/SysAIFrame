@@ -43,3 +43,4 @@ sysai-register = "sysai_register.cli.sysai_register:main"
 [tool.setuptools]
 packages = ["sysai_register", "sysai_register.cli"]
 package-dir = {"sysai_register" = "sysai_register"}
+

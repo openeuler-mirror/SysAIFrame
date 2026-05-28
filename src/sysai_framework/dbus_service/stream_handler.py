@@ -172,5 +172,3 @@ class StreamHandler:
         request_ids = list(self.active_streams.keys())
         for request_id in request_ids:
             self.stop_stream(request_id)
-
-

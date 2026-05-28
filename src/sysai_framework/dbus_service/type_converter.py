@@ -23,16 +23,16 @@ except ImportError:
 def python_to_dbus(value: Any) -> Any:
     """
     Convert Python value to D-Bus compatible type.
-
+    
     Args:
         value: Python value (dict, list, str, int, float, bool, None)
-
+        
     Returns:
         D-Bus compatible value
     """
     if not DBUS_AVAILABLE:
         return value
-
+    
     if value is None:
         # D-Bus doesn't have null, use empty string
         return dbus.String('')
@@ -65,23 +65,23 @@ def python_to_dbus(value: Any) -> Any:
 def dbus_to_python(value: Any) -> Any:
     """
     Convert D-Bus value to Python type.
-
+    
     Args:
         value: D-Bus value
-
+        
     Returns:
         Python value
     """
     if not DBUS_AVAILABLE:
         return value
-
+    
     if isinstance(value, dbus.Dictionary):
         return {dbus_to_python(k): dbus_to_python(v) for k, v in value.items()}
     elif isinstance(value, dbus.Array):
         return [dbus_to_python(item) for item in value]
     elif isinstance(value, dbus.Boolean):
         return bool(value)
-    elif isinstance(value, (dbus.Int16, dbus.Int32, dbus.Int64,
+    elif isinstance(value, (dbus.Int16, dbus.Int32, dbus.Int64, 
                            dbus.UInt16, dbus.UInt32, dbus.UInt64)):
         return int(value)
     elif isinstance(value, dbus.Double):
@@ -100,19 +100,19 @@ def dbus_to_python(value: Any) -> Any:
 def request_to_python(dbus_request: Dict) -> Dict:
     """
     Convert D-Bus request dict to Python dict for internal processing.
-
+    
     Args:
         dbus_request: D-Bus request dictionary
-
+        
     Returns:
         Python dictionary
     """
     if not DBUS_AVAILABLE:
         return dbus_request
-
+    
     try:
         python_req = dbus_to_python(dbus_request)
-
+        
         # Special handling for messages field
         if 'messages' in python_req and isinstance(python_req['messages'], list):
             # Ensure each message is a proper dict
@@ -123,7 +123,7 @@ def request_to_python(dbus_request: Dict) -> Dict:
                 else:
                     logger.warning(f"Invalid message format: {msg}")
             python_req['messages'] = messages
-
+        
         return python_req
     except Exception as e:
         logger.error(f"Error converting request: {e}")
@@ -133,16 +133,16 @@ def request_to_python(dbus_request: Dict) -> Dict:
 def response_to_dbus(python_response: Dict) -> Any:
     """
     Convert Python response dict to D-Bus format.
-
+    
     Args:
         python_response: Python response dictionary
-
+        
     Returns:
         D-Bus dictionary
     """
     if not DBUS_AVAILABLE:
         return python_response
-
+    
     try:
         return python_to_dbus(python_response)
     except Exception as e:
@@ -153,16 +153,16 @@ def response_to_dbus(python_response: Dict) -> Any:
 def models_to_dbus(models: List[str]) -> Any:
     """
     Convert Python model list to D-Bus string array.
-
+    
     Args:
         models: List of model names
-
+        
     Returns:
         D-Bus array of strings
     """
     if not DBUS_AVAILABLE:
         return models
-
+    
     try:
         return dbus.Array([dbus.String(m) for m in models], signature='s')
     except Exception as e:
@@ -173,16 +173,16 @@ def models_to_dbus(models: List[str]) -> Any:
 def dict_to_variant_dict(data: Dict) -> Any:
     """
     Convert Python dict to D-Bus variant dictionary (a{sv}).
-
+    
     Args:
         data: Python dictionary
-
+        
     Returns:
         D-Bus variant dictionary
     """
     if not DBUS_AVAILABLE:
         return data
-
+    
     try:
         result = {}
         for key, value in data.items():
@@ -191,5 +191,4 @@ def dict_to_variant_dict(data: Dict) -> Any:
     except Exception as e:
         logger.error(f"Error creating variant dict: {e}")
         raise
-
 

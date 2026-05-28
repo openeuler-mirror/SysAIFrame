@@ -25,7 +25,7 @@ def list(service_type, timeout):
     """List discovered services"""
     click.echo(f"Discovering services of type: {service_type}")
     click.echo(f"Timeout: {timeout} seconds")
-
+    
     # TODO: Implement actual discovery using DiscoveryManager
     click.echo("No services found (discovery not yet implemented)")
 
@@ -62,3 +62,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

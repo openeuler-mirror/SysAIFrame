@@ -27,24 +27,24 @@ impl StreamIterator {
     pub(crate) fn new(connection: Connection, request_id: String, model: String) -> Result<Self> {
         let done = Arc::new(Mutex::new(false));
         let chunks = Arc::new(Mutex::new(Vec::new()));
-
+        
         // Build match rule for StreamChunk signal
         let _match_rule_chunk = format!(
             "type='signal',interface='{}',member='StreamChunk',arg0='{}'",
             INTERFACE, request_id
         );
-
+        
         // Build match rule for StreamDone signal
         let _match_rule_done = format!(
             "type='signal',interface='{}',member='StreamDone',arg0='{}'",
             INTERFACE, request_id
         );
-
+        
         // Subscribe to signals
         // Note: zbus blocking API doesn't have direct signal subscription like async
         // For simplicity in this implementation, we'll use a polling approach
         // In production, consider using the async client for better streaming support
-
+        
         Ok(Self {
             connection,
             request_id,
@@ -58,7 +58,7 @@ impl StreamIterator {
 
 impl Iterator for StreamIterator {
     type Item = Result<ChatChunk>;
-
+    
     fn next(&mut self) -> Option<Self::Item> {
         // Check if we have buffered chunks
         {
@@ -69,7 +69,7 @@ impl Iterator for StreamIterator {
                 return Some(Ok(chunk));
             }
         }
-
+        
         // Check if stream is done
         {
             let done = self.done.lock().unwrap();
@@ -77,12 +77,12 @@ impl Iterator for StreamIterator {
                 return None;
             }
         }
-
+        
         // Poll for new messages
         // Note: This is a simplified implementation
         // In production, use proper signal subscription
         std::thread::sleep(Duration::from_millis(100));
-
+        
         // For now, return None to end the stream
         // In a full implementation, we would:
         // 1. Subscribe to D-Bus signals
@@ -102,7 +102,7 @@ pub mod async_support {
     use std::task::{Context, Poll};
     use zbus::Connection as AsyncConnection;
     use zbus::MessageStream;
-
+    
     /// Async stream for chat chunks
     pub struct AsyncChatStream {
         request_id: String,
@@ -110,7 +110,7 @@ pub mod async_support {
         signal_stream: MessageStream,
         done: bool,
     }
-
+    
     impl AsyncChatStream {
         pub(crate) async fn new(
             connection: AsyncConnection,
@@ -122,9 +122,9 @@ pub mod async_support {
                 "type='signal',interface='{}',path='{}',member='StreamChunk',arg0='{}'",
                 INTERFACE, OBJECT_PATH, request_id
             );
-
+            
             let signal_stream = MessageStream::from(&connection);
-
+            
             Ok(Self {
                 request_id,
                 model,
@@ -133,15 +133,15 @@ pub mod async_support {
             })
         }
     }
-
+    
     impl Stream for AsyncChatStream {
         type Item = Result<ChatChunk>;
-
+        
         fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
             if self.done {
                 return Poll::Ready(None);
             }
-
+            
             // Poll the signal stream
             match Pin::new(&mut self.signal_stream).poll_next(cx) {
                 Poll::Ready(Some(Ok(msg))) => {

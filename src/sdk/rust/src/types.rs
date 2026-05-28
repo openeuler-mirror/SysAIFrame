@@ -41,13 +41,13 @@ impl Message {
     pub fn assistant<S: Into<String>>(content: S) -> Self {
         Self::new("assistant", content)
     }
-
+    
     /// Set the name field
     pub fn with_name<S: Into<String>>(mut self, name: S) -> Self {
         self.name = Some(name.into());
         self
     }
-
+    
     /// Convert to D-Bus variant dictionary
     pub(crate) fn to_variant_dict(&self) -> HashMap<String, OwnedValue> {
         let mut map = HashMap::new();
@@ -74,25 +74,25 @@ impl ChatOptions {
     pub fn new() -> Self {
         Self::default()
     }
-
+    
     /// Set model
     pub fn model<S: Into<String>>(mut self, model: S) -> Self {
         self.model = Some(model.into());
         self
     }
-
+    
     /// Set temperature
     pub fn temperature(mut self, temperature: f64) -> Self {
         self.temperature = Some(temperature);
         self
     }
-
+    
     /// Set max tokens
     pub fn max_tokens(mut self, max_tokens: i32) -> Self {
         self.max_tokens = Some(max_tokens);
         self
     }
-
+    
     /// Set top_p
     pub fn top_p(mut self, top_p: f64) -> Self {
         self.top_p = Some(top_p);
@@ -133,19 +133,19 @@ impl ChatResponse {
     pub fn content(&self) -> &str {
         &self.content
     }
-
+    
     /// Parse from D-Bus variant dictionary
     pub(crate) fn from_variant_dict(dict: HashMap<String, OwnedValue>) -> crate::Result<Self> {
         let id = extract_string(&dict, "id").unwrap_or_default();
         let model = extract_string(&dict, "model").unwrap_or_default();
-
+        
         // Extract content from choices[0].message.content
         let content = extract_content_from_choices(&dict).unwrap_or_default();
         let finish_reason = extract_finish_reason(&dict);
-
+        
         // Extract usage
         let usage = extract_usage(&dict);
-
+        
         Ok(Self {
             id,
             model,
@@ -170,7 +170,7 @@ impl ChatChunk {
     pub fn content(&self) -> Option<&str> {
         self.content.as_deref()
     }
-
+    
     /// Parse from D-Bus variant dictionary
     #[allow(dead_code)]
     pub(crate) fn from_variant_dict(
@@ -180,7 +180,7 @@ impl ChatChunk {
     ) -> crate::Result<Self> {
         let content = extract_delta_content(&dict);
         let finish_reason = extract_finish_reason(&dict);
-
+        
         Ok(Self {
             id,
             model,

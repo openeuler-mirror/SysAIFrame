@@ -31,11 +31,11 @@ DEFAULT_WRITE_TIMEOUT = 30.0      # Request body send timeout (seconds)
 def _convert_http_status_to_exception(status_code: int, error_msg: str) -> Exception:
     """
     Convert HTTP status code to appropriate exception type
-
+    
     Args:
         status_code: HTTP status code
         error_msg: Error message
-
+        
     Returns:
         Appropriate exception (RetriableError or NonRetriableError)
     """
@@ -67,15 +67,15 @@ def _convert_http_status_to_exception(status_code: int, error_msg: str) -> Excep
 class LLMHTTPHandler:
     """
     LLM HTTP Handler
-
+    
     Unified HTTP handler for making LLM API calls with provider-specific
     request/response transformation.
     """
-
+    
     def __init__(self):
         self.sync_client: Optional[httpx.Client] = None
         self.async_client: Optional[httpx.AsyncClient] = None
-
+    
     def _get_sync_client(self) -> httpx.Client:
         """Get or create synchronous HTTP client"""
         if self.sync_client is None:
@@ -105,7 +105,7 @@ class LLMHTTPHandler:
                 follow_redirects=True
             )
         return self.async_client
-
+    
     def completion(
         self,
         provider_config: BaseConfig,
@@ -120,14 +120,14 @@ class LLMHTTPHandler:
     ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
         """
         Unified completion call interface
-
+        
         Complete flow:
         1. validate_environment - Validate environment and set headers
         2. get_complete_url - Get complete API URL
         3. transform_request - Transform request format
         4. HTTP call - Execute HTTP request
         5. transform_response - Transform response format (if needed)
-
+        
         Args:
             provider_config: Provider configuration instance
             model: Model name
@@ -137,7 +137,7 @@ class LLMHTTPHandler:
             optional_params: Optional parameters
             stream: Whether to stream response
             timeout: Timeout in seconds
-
+            
         Returns:
             Dict for non-streaming, AsyncGenerator for streaming
         """
@@ -153,7 +153,7 @@ class LLMHTTPHandler:
                 litellm_params={},
                 api_base=api_base
             )
-
+            
             # Step 2: Get complete URL
             logger.debug("Step 2: Getting complete URL")
             complete_url = provider_config.get_complete_url(
@@ -164,13 +164,13 @@ class LLMHTTPHandler:
                 litellm_params={},
                 stream=stream
             )
-
+            
             # Step 3: Transform request data
             logger.debug("Step 3: Transforming request")
             # Ensure stream parameter is included in optional_params
             if stream:
                 optional_params["stream"] = True
-
+            
             request_data = provider_config.transform_request(
                 model=model,
                 messages=messages,
@@ -178,9 +178,9 @@ class LLMHTTPHandler:
                 litellm_params={},
                 headers=headers
             )
-
+            
             logger.debug(f"Calling {complete_url} with provider: {provider_config.__class__.__name__}")
-
+            
             # Step 4 & 5: HTTP call and response transformation
             if stream:
                 return self._stream_call(
@@ -204,11 +204,11 @@ class LLMHTTPHandler:
                     messages=messages,
                     optional_params=optional_params
                 )
-
+                
         except Exception as e:
             logger.error(f"Error in completion: {e}", exc_info=True)
             raise
-
+    
     def _sync_call(
         self,
         provider_config: BaseConfig,
@@ -222,7 +222,7 @@ class LLMHTTPHandler:
     ) -> Dict[str, Any]:
         """Synchronous non-streaming call"""
         client = self._get_sync_client()
-
+        
         try:
             # Convert float timeout to httpx.Timeout object
             # httpx.Timeout uses independent phase timing (connect/read/write/pool), not cumulative
@@ -239,12 +239,12 @@ class LLMHTTPHandler:
             else:
                 # If already a Timeout object, use it directly
                 timeout_obj = timeout
-
+            
             logger.debug(
                 f"HTTP request timeout: timeout={getattr(timeout_obj, 'timeout', 'N/A')}s, "
                 f"connect={timeout_obj.connect}s, read={timeout_obj.read}s"
             )
-
+            
             # Execute HTTP POST request
             response = client.post(
                 url=url,
@@ -252,26 +252,26 @@ class LLMHTTPHandler:
                 json=data,
                 timeout=timeout_obj
             )
-
+            
             logger.debug(f"Response received: status={response.status_code}")
-
+            
             response.raise_for_status()
-
+            
             content_length = response.headers.get('content-length')
             if content_length:
                 size_mb = int(content_length) / (1024 * 1024)
                 logger.debug(f"Response size: {size_mb:.2f} MB")
-
+            
             # Get raw response
             raw_response = response.json()
-
+            
             # Note: We directly return the raw response here
             # because Chat Completion API compatible response format is already standard
             # If provider_config has transform_response method, we can call it
             # But currently our BaseConfig doesn't have this method
-
+            
             return raw_response
-
+            
         except httpx.RemoteProtocolError as e:
             error_msg = (
                 f"Backend service at {url} disconnected unexpectedly. "
@@ -299,20 +299,20 @@ class LLMHTTPHandler:
         except httpx.HTTPStatusError as e:
             status_code = e.response.status_code
             logger.error(f"HTTP error: {status_code}")
-
+            
             # Get error message from response if available
             try:
                 error_data = e.response.json()
                 error_msg = error_data.get('error', {}).get('message', str(e))
             except:
                 error_msg = str(e)
-
+            
             # Convert to appropriate exception type
             raise _convert_http_status_to_exception(status_code, error_msg)
         except Exception as e:
             logger.error(f"Request to {url} failed: {e}")
             raise
-
+    
     async def _stream_call(
         self,
         provider_config: BaseConfig,
@@ -326,7 +326,7 @@ class LLMHTTPHandler:
     ) -> AsyncGenerator[str, None]:
         """Asynchronous streaming call"""
         client = self._get_async_client()
-
+        
         try:
             # Convert float timeout to httpx.Timeout object (same logic as sync call)
             if isinstance(timeout, (int, float)):
@@ -340,12 +340,12 @@ class LLMHTTPHandler:
                 )
             else:
                 timeout_obj = timeout
-
+            
             logger.debug(
                 f"HTTP streaming request timeout: timeout={getattr(timeout_obj, 'timeout', 'N/A')}s, "
                 f"connect={timeout_obj.connect}s, read={timeout_obj.read}s"
             )
-
+            
             # Execute streaming HTTP POST request
             async with client.stream(
                 method="POST",
@@ -355,26 +355,26 @@ class LLMHTTPHandler:
                 timeout=timeout_obj
             ) as response:
                 response.raise_for_status()
-
+                
                 logger.debug("Streaming response started")
                 chunk_count = 0
-
+                
                 # Use aiter_lines() to read SSE stream line by line
                 async for line in response.aiter_lines():
                     # Skip empty lines
                     if not line or line.strip() == "":
                         continue
-
+                    
                     # SSE format: "data: {json}"
                     if line.startswith("data: "):
                         data_str = line[6:]  # Remove "data: " prefix
-
+                        
                         # Check if it's the end marker
                         if data_str == "[DONE]":
                             yield "data: [DONE]\n\n"
                             logger.debug(f"Streaming completed with {chunk_count} chunks")
                             break
-
+                        
                         try:
                             # Validate JSON format
                             json.loads(data_str)
@@ -384,9 +384,9 @@ class LLMHTTPHandler:
                         except json.JSONDecodeError:
                             logger.warning(f"Invalid JSON in stream: {data_str[:100]}")
                             continue
-
+                
                 logger.debug(f"Streaming response completed with {chunk_count} chunks")
-
+                
         except httpx.RemoteProtocolError as e:
             error_msg = (
                 f"Backend service at {url} disconnected unexpectedly during streaming. "
@@ -416,20 +416,20 @@ class LLMHTTPHandler:
         except httpx.HTTPStatusError as e:
             status_code = e.response.status_code
             logger.error(f"HTTP error from {url}: {status_code}")
-
+            
             # Get error message from response if available
             try:
                 error_data = e.response.json()
                 error_msg = error_data.get('error', {}).get('message', str(e))
             except:
                 error_msg = str(e)
-
+            
             # Convert to appropriate exception type
             raise _convert_http_status_to_exception(status_code, error_msg)
         except Exception as e:
             logger.error(f"Streaming request to {url} failed: {e}")
             raise
-
+    
     def close(self):
         """Close HTTP clients"""
         if self.sync_client:
@@ -449,3 +449,4 @@ def get_http_handler() -> LLMHTTPHandler:
     if _http_handler is None:
         _http_handler = LLMHTTPHandler()
     return _http_handler
+

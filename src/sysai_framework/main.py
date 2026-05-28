@@ -18,15 +18,15 @@ import logging
 import os
 import atexit
 
+# Global config instance - initialized by main() after ModelConfigManager
+config = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-# Global config instance - initialized by main() after ModelConfigManager
-config = None
 
 # Reduce third-party library log verbosity
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -154,6 +154,7 @@ def main():
     )
 
     logger.info("Starting SysAIFrame AI Gateway...")
+    logger.info(f"Gateway: remote_access={config.remote_access}, binding to {config.gateway_host}:{config.gateway_port}")
     logger.info(f"CORS Policy: {'TEST MODE - Remote access enabled' if config.test_mode else 'PRODUCTION - Local access only'}")
     if config.test_mode:
         logger.warning("TEST_MODE is enabled - Remote access is allowed")
@@ -162,8 +163,6 @@ def main():
         else:
             logger.info("Allowed remote hosts: ANY (CORS_ALLOWED_HOSTS not set)")
 
-    logger.info(f"Gateway: remote_access={config.remote_access}, binding to {config.gateway_host}:{config.gateway_port}")
-    
     # Initialize D-Bus service if enabled and available
     dbus_service = None
     enable_dbus = os.getenv('ENABLE_DBUS', 'true').lower() == 'true'
@@ -209,3 +208,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -17,22 +17,22 @@ logger = logging.getLogger(__name__)
 
 class BaseHook(ABC):
     """Base hook class - all hooks must inherit from this"""
-
+    
     def __init__(self, name: Optional[str] = None):
         """
         Initialize hook
-
+        
         Args:
             name: Optional name for the hook (for logging)
         """
         self.name = name or self.__class__.__name__
         self.enabled = True
-
+    
     @abstractmethod
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute hook logic
-
+        
         Args:
             context: Request context dictionary containing:
                 - data: Request data
@@ -40,16 +40,16 @@ class BaseHook(ABC):
                 - fastapi_request: Original FastAPI request object
                 - response: Response data (for post-call hooks)
                 - etc.
-
+        
         Returns:
             Modified context dictionary
         """
         pass
-
+    
     def disable(self):
         """Disable this hook"""
         self.enabled = False
-
+    
     def enable(self):
         """Enable this hook"""
         self.enabled = True
@@ -58,7 +58,7 @@ class BaseHook(ABC):
 class PreCallHook(BaseHook):
     """
     Pre-call hook - executed before request is sent to backend
-
+    
     Use cases:
     - Request parameter validation
     - Add metadata to request
@@ -66,11 +66,11 @@ class PreCallHook(BaseHook):
     - Permission checking
     - Model alias resolution
     """
-
+    
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute pre-call hook
-
+        
         Available context:
         - data: Request data (model, messages, etc.)
         - request_id: Unique request ID
@@ -78,14 +78,23 @@ class PreCallHook(BaseHook):
         - user_id: User ID (if authenticated)
         """
         logger.debug(f"[{context.get('request_id')}] Executing pre-call hook: {self.name}")
-
+        
+        # Example: Add system prompt (placeholder)
+        # request_data = context['data']
+        # messages = request_data.get('messages', [])
+        # if not any(msg['role'] == 'system' for msg in messages):
+        #     messages.insert(0, {
+        #         'role': 'system',
+        #         'content': 'You are a helpful assistant.'
+        #     })
+        
         return context
 
 
 class DuringCallHook(BaseHook):
     """
     During-call hook - executed in parallel with actual backend call
-
+    
     Use cases:
     - Content moderation
     - Real-time monitoring
@@ -93,11 +102,11 @@ class DuringCallHook(BaseHook):
     - Analytics logging
     - Async notifications
     """
-
+    
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute during-call hook (runs in parallel with main request)
-
+        
         Available context:
         - data: Request data
         - request_id: Unique request ID
@@ -105,16 +114,23 @@ class DuringCallHook(BaseHook):
         - user_id: User ID
         """
         logger.debug(f"[{context.get('request_id')}] Executing during-call hook: {self.name}")
-
+        
+        # Example: Content safety check (placeholder)
+        # messages = context['data'].get('messages', [])
+        # for msg in messages:
+        #     content = msg.get('content', '')
+        #     if await self._check_content_safety(content):
+        #         logger.warning(f"[{context['request_id']}] Content safety check triggered")
+        
         return context
-
+    
     async def _check_content_safety(self, content: str) -> bool:
         """
         Check content safety (placeholder)
-
+        
         Args:
             content: Text content to check
-
+            
         Returns:
             True if content passes safety check, False otherwise
         """
@@ -124,7 +140,7 @@ class DuringCallHook(BaseHook):
 class PostCallHook(BaseHook):
     """
     Post-call hook - executed after receiving response from backend
-
+    
     Use cases:
     - Response filtering/modification
     - Logging and auditing
@@ -133,11 +149,11 @@ class PostCallHook(BaseHook):
     - Metrics collection
     - Success notifications
     """
-
+    
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute post-call hook
-
+        
         Available context:
         - data: Original request data
         - response: Backend response
@@ -147,13 +163,21 @@ class PostCallHook(BaseHook):
         - user_id: User ID
         """
         logger.debug(f"[{context.get('request_id')}] Executing post-call hook: {self.name}")
-
+        
+        # Example: Log token usage (placeholder)
+        # response = context.get('response', {})
+        # if isinstance(response, dict) and 'usage' in response:
+        #     await self._log_token_usage(
+        #         request_id=context['request_id'],
+        #         usage=response['usage']
+        #     )
+        
         return context
-
+    
     async def _log_token_usage(self, request_id: str, usage: dict):
         """
         Log token usage (placeholder)
-
+        
         Args:
             request_id: Request ID
             usage: Token usage dictionary
@@ -169,18 +193,18 @@ class PostCallHook(BaseHook):
 class FailureHook(BaseHook):
     """
     Failure hook - executed when request fails
-
+    
     Use cases:
     - Error logging
     - Alert notifications
     - Fallback logic
     - Error metrics
     """
-
+    
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute failure hook
-
+        
         Available context:
         - data: Original request data
         - error: Exception object
@@ -188,74 +212,81 @@ class FailureHook(BaseHook):
         - model: Model name
         """
         logger.debug(f"[{context.get('request_id')}] Executing failure hook: {self.name}")
-
+        
+        # Example: Log failure (placeholder)
+        # error = context.get('error')
+        # logger.error(
+        #     f"[{context['request_id']}] Request failed: {error}",
+        #     exc_info=True
+        # )
+        
         return context
 
 
 class HookManager:
     """
     Hook manager - manages and executes all hooks
-
+    
     This is the central component for the hook system, allowing
     registration and execution of hooks at different lifecycle stages.
     """
-
+    
     def __init__(self):
         """Initialize hook manager with empty hook lists"""
         self.pre_call_hooks: List[PreCallHook] = []
         self.during_call_hooks: List[DuringCallHook] = []
         self.post_call_hooks: List[PostCallHook] = []
         self.failure_hooks: List[FailureHook] = []
-
+        
         logger.debug("HookManager initialized")
-
+    
     def register_pre_call_hook(self, hook: PreCallHook):
         """
         Register a pre-call hook
-
+        
         Args:
             hook: PreCallHook instance
         """
         self.pre_call_hooks.append(hook)
         logger.debug(f"Registered pre-call hook: {hook.name}")
-
+    
     def register_during_call_hook(self, hook: DuringCallHook):
         """
         Register a during-call hook
-
+        
         Args:
             hook: DuringCallHook instance
         """
         self.during_call_hooks.append(hook)
         logger.debug(f"Registered during-call hook: {hook.name}")
-
+    
     def register_post_call_hook(self, hook: PostCallHook):
         """
         Register a post-call hook
-
+        
         Args:
             hook: PostCallHook instance
         """
         self.post_call_hooks.append(hook)
         logger.debug(f"Registered post-call hook: {hook.name}")
-
+    
     def register_failure_hook(self, hook: FailureHook):
         """
         Register a failure hook
-
+        
         Args:
             hook: FailureHook instance
         """
         self.failure_hooks.append(hook)
         logger.debug(f"Registered failure hook: {hook.name}")
-
+    
     async def execute_pre_call_hooks(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute all pre-call hooks sequentially
-
+        
         Args:
             context: Request context
-
+            
         Returns:
             Modified context after all hooks
         """
@@ -268,30 +299,34 @@ class HookManager:
                         f"[{context.get('request_id')}] Pre-call hook {hook.name} failed: {e}",
                         exc_info=True
                     )
+                    # Continue with other hooks even if one fails
+        
         return context
-
+    
     async def execute_during_call_hooks(self, context: Dict[str, Any]):
         """
         Execute all during-call hooks in parallel
-
+        
         These hooks run alongside the main request and should not
         block the main request flow.
-
+        
         Args:
             context: Request context (copied to avoid modifications)
         """
         tasks = []
         for hook in self.during_call_hooks:
             if hook.enabled:
+                # Create a copy of context for each hook
                 tasks.append(self._execute_during_hook_safe(hook, context.copy()))
-
+        
         if tasks:
+            # Execute all hooks in parallel and ignore failures
             await asyncio.gather(*tasks, return_exceptions=True)
-
+    
     async def _execute_during_hook_safe(self, hook: DuringCallHook, context: Dict[str, Any]):
         """
         Safely execute a during-call hook with error handling
-
+        
         Args:
             hook: Hook to execute
             context: Request context
@@ -303,14 +338,14 @@ class HookManager:
                 f"[{context.get('request_id')}] During-call hook {hook.name} failed: {e}",
                 exc_info=True
             )
-
+    
     async def execute_post_call_hooks(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute all post-call hooks sequentially
-
+        
         Args:
             context: Request context with response
-
+            
         Returns:
             Modified context after all hooks
         """
@@ -323,15 +358,17 @@ class HookManager:
                         f"[{context.get('request_id')}] Post-call hook {hook.name} failed: {e}",
                         exc_info=True
                     )
+                    # Continue with other hooks even if one fails
+        
         return context
-
+    
     async def execute_failure_hooks(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute all failure hooks sequentially
-
+        
         Args:
             context: Request context with error information
-
+            
         Returns:
             Modified context after all hooks
         """
@@ -344,8 +381,9 @@ class HookManager:
                         f"[{context.get('request_id')}] Failure hook {hook.name} failed: {e}",
                         exc_info=True
                     )
+        
         return context
-
+    
     def clear_hooks(self):
         """Clear all registered hooks"""
         self.pre_call_hooks.clear()
@@ -353,11 +391,11 @@ class HookManager:
         self.post_call_hooks.clear()
         self.failure_hooks.clear()
         logger.debug("All hooks cleared")
-
+    
     def get_hook_summary(self) -> Dict[str, int]:
         """
         Get summary of registered hooks
-
+        
         Returns:
             Dictionary with hook counts
         """
@@ -368,6 +406,7 @@ class HookManager:
             "failure": len([h for h in self.failure_hooks if h.enabled]),
         }
 
+
 # Singleton instance for global hook manager
 _global_hook_manager: Optional[HookManager] = None
 
@@ -375,7 +414,7 @@ _global_hook_manager: Optional[HookManager] = None
 def get_hook_manager() -> HookManager:
     """
     Get the global hook manager instance
-
+    
     Returns:
         Global HookManager singleton
     """
@@ -383,3 +422,4 @@ def get_hook_manager() -> HookManager:
     if _global_hook_manager is None:
         _global_hook_manager = HookManager()
     return _global_hook_manager
+

@@ -19,28 +19,28 @@ logger = logging.getLogger(__name__)
 
 class RoundRobinStrategy(BaseRoutingStrategy):
     """Round-robin load balance strategy - cycles through models in order"""
-
+    
     def __init__(self, config_manager=None):
         super().__init__(config_manager)
         self._index = 0
         self._lock = threading.Lock()
-
+    
     def select_deployment(
-        self,
+        self, 
         healthy_models: List[ModelConfig]
     ) -> Optional[ModelConfig]:
         """
         Select next model in round-robin fashion
-
+        
         Args:
             healthy_models: List of healthy ModelConfig instances
-
+            
         Returns:
             Selected ModelConfig or None if no models available
         """
         if not healthy_models:
             return None
-
+        
         with self._lock:
             selected = healthy_models[self._index % len(healthy_models)]
             self._index = (self._index + 1) % len(healthy_models)

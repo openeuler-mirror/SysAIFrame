@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class ResponseHeaderManager:
     """Response header manager - unified custom header management"""
-
+    
     @staticmethod
     def get_custom_headers(
         request_id: Optional[str] = None,
@@ -40,11 +40,11 @@ class ResponseHeaderManager:
     ) -> Dict[str, str]:
         """
         Generate custom response headers
-
+        
         Args:
             request_id: Unique request identifier
             model_name: Name of the model used
-            provider: Model provider (e.g., openai, deepseek)
+            provider: Model provider (e.g., openai, deepseek, dashscope, moonshot, volcengine, zai, minimax)
             duration_ms: Total response duration in milliseconds
             token_usage: Token usage information
             cache_hit: Whether response was from cache
@@ -53,15 +53,24 @@ class ResponseHeaderManager:
             response_cost: Total cost of the response
             original_cost: Original cost before discounts
             discount_amount: Discount amount applied
-            rate_limit_info: Rate limit information dict
+            rate_limit_info: Rate limit information dict with:
+                - limit_requests: Request limit
+                - limit_tokens: Token limit
+                - remaining_requests: Remaining requests
+                - remaining_tokens: Remaining tokens
+                - reset_time: Limit reset time
             overhead_ms: Gateway overhead duration
             backend_duration_ms: Backend processing duration
             model_id: Internal model ID
             deployment_id: Deployment identifier
             cache_key: Cache key used
-            user_limits: User-specific limits dict
+            user_limits: User-specific limits dict with:
+                - tpm_limit: Tokens per minute limit
+                - rpm_limit: Requests per minute limit
+                - max_budget: Maximum budget
+                - current_spend: Current spend
             **kwargs: Additional custom headers
-
+            
         Returns:
             Dictionary of custom headers
         """
@@ -75,22 +84,22 @@ class ResponseHeaderManager:
             "X-Deployment-ID": deployment_id,
             "X-API-Version": api_version,
             "X-Gateway": "SysAIFrame",
-
+            
             # Performance metrics
             "X-Response-Duration-MS": str(int(duration_ms)) if duration_ms else None,
             "X-Backend-Duration-MS": str(int(backend_duration_ms)) if backend_duration_ms else None,
             "X-Overhead-Duration-MS": str(int(overhead_ms)) if overhead_ms else None,
-
+            
             # Cache information
             "X-Cache-Hit": str(cache_hit).lower(),
             "X-Cache-Key": cache_key,
-
+            
             # Cost information
             "X-Response-Cost": f"{response_cost:.6f}" if response_cost is not None else None,
             "X-Response-Cost-Original": f"{original_cost:.6f}" if original_cost is not None else None,
             "X-Response-Cost-Discount": f"{discount_amount:.6f}" if discount_amount is not None else None,
         }
-
+        
         # Token usage information
         if token_usage:
             headers.update({
@@ -98,7 +107,7 @@ class ResponseHeaderManager:
                 "X-Completion-Tokens": str(token_usage.get("completion_tokens", 0)),
                 "X-Total-Tokens": str(token_usage.get("total_tokens", 0)),
             })
-
+        
         # Rate limiting information
         if rate_limit_info:
             headers.update({
@@ -108,7 +117,7 @@ class ResponseHeaderManager:
                 "X-RateLimit-Remaining-Tokens": str(rate_limit_info.get("remaining_tokens", "")),
                 "X-RateLimit-Reset": str(rate_limit_info.get("reset_time", "")),
             })
-
+        
         # User limits information
         if user_limits:
             headers.update({
@@ -117,15 +126,15 @@ class ResponseHeaderManager:
                 "X-User-Max-Budget": str(user_limits.get("max_budget", "")),
                 "X-User-Current-Spend": f"{user_limits.get('current_spend', 0):.6f}" if user_limits.get('current_spend') is not None else "",
             })
-
+        
         # Additional custom headers
         for key, value in kwargs.items():
             if key.startswith("X-") or key.startswith("x-"):
                 headers[key] = str(value) if value is not None else None
-
+        
         # Filter out None and empty values
         return {k: v for k, v in headers.items() if v not in [None, "", "None"]}
-
+    
     @staticmethod
     def get_streaming_headers(
         request_id: Optional[str] = None,
@@ -134,12 +143,12 @@ class ResponseHeaderManager:
     ) -> Dict[str, str]:
         """
         Get headers specific for streaming responses
-
+        
         Args:
             request_id: Unique request identifier
             model_name: Name of the model used
             **kwargs: Additional headers
-
+            
         Returns:
             Dictionary of streaming-specific headers
         """
@@ -149,18 +158,18 @@ class ResponseHeaderManager:
             "X-Accel-Buffering": "no",  # Disable nginx buffering
             "Content-Type": "text/event-stream",
         }
-
+        
         # Add custom headers
         custom_headers = ResponseHeaderManager.get_custom_headers(
             request_id=request_id,
             model_name=model_name,
             **kwargs
         )
-
+        
         # Merge headers
         base_headers.update(custom_headers)
         return base_headers
-
+    
     @staticmethod
     def add_cors_headers(
         headers: Dict[str, str],
@@ -170,13 +179,13 @@ class ResponseHeaderManager:
     ) -> Dict[str, str]:
         """
         Add CORS headers to response
-
+        
         Args:
             headers: Existing headers dictionary
             allow_origin: Allowed origins
             allow_methods: Allowed HTTP methods
             allow_headers: Allowed headers
-
+            
         Returns:
             Headers with CORS added
         """
@@ -188,10 +197,10 @@ class ResponseHeaderManager:
                 k for k in headers.keys() if k.startswith("X-")
             ])
         }
-
+        
         headers.update(cors_headers)
         return headers
-
+    
     @staticmethod
     def get_error_headers(
         request_id: Optional[str] = None,
@@ -200,12 +209,12 @@ class ResponseHeaderManager:
     ) -> Dict[str, str]:
         """
         Get headers for error responses
-
+        
         Args:
             request_id: Request identifier
             error_code: Error code
             retry_after: Seconds to wait before retry (for rate limiting)
-
+            
         Returns:
             Error-specific headers
         """
@@ -213,8 +222,9 @@ class ResponseHeaderManager:
             "X-Request-ID": request_id,
             "X-Error-Code": error_code,
         }
-
+        
         if retry_after is not None:
             headers["Retry-After"] = str(retry_after)
-
+        
         return {k: v for k, v in headers.items() if v is not None}
+
