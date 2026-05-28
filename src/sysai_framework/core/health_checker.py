@@ -43,6 +43,10 @@ logger = logging.getLogger(__name__)
 # Lightweight check failure threshold (consecutive failures before marking unhealthy)
 LIGHTWEIGHT_FAILURE_THRESHOLD = 2
 
+# Manual trigger retry delay (seconds) — retry once after short delay on failure
+# so that trigger can reach LIGHTWEIGHT_FAILURE_THRESHOLD without waiting for next cycle
+TRIGGER_RETRY_DELAY = 3
+
 # Health stats lock acquisition timeout (avoid API blocking on stuck locks)
 HEALTH_STATS_LOCK_TIMEOUT_SECONDS = 0.2
 
@@ -132,6 +136,8 @@ class HealthChecker:
             if check_type == "lightweight":
                 previous_connection_health = model_config.connection_health
                 model_config.connection_health = True
+                # If connection_health was False, we need to check if we can recover is_healthy
+                # But is_healthy recovery depends on the reason
             else:
                 previous_connection_health = model_config.connection_health
 
@@ -140,14 +146,17 @@ class HealthChecker:
                 can_recover = False
 
                 # If connection_health is False, only lightweight success can recover connection_health
+                # But connection_health=False always implies is_healthy=False
                 if not previous_connection_health:
+                    # Connection health was failed: lightweight success can recover
                     if check_type == "lightweight":
                         can_recover = True
                 elif model_config.connection_health and check_type == "actual_request":
+                    # Connection is healthy but overall health failed: actual request success can recover
                     can_recover = True
 
                 if can_recover:
-                    was_unhealthy_reason = model_config.unhealthy_reason.value
+                    was_unhealthy_reason = model_config.unhealthy_reason.value  # Save before marking healthy
                     should_recover = True
                 else:
                     logger.debug(
@@ -164,6 +173,9 @@ class HealthChecker:
                 f"(check_type={check_type}, was {was_unhealthy_reason})"
             )
             self._enqueue_health_changed_signal(model_name, instance_id, True, "")
+            # Re-evaluate default_model after health recovery
+            if self.config_manager:
+                self.config_manager._update_default_model_if_needed()
 
     def record_failure(self, model_config: 'ModelConfig', error_msg: Optional[str] = None,
                       check_type: str = "lightweight"):
@@ -202,6 +214,8 @@ class HealthChecker:
             # Handle failure based on check type
             if check_type == "lightweight":
                 # If lightweight check is disabled, don't update connection_health
+                # This prevents race condition where a check in progress might update
+                # connection_health after it was reset by update_config
                 if not self._is_lightweight_enabled():
                     logger.debug(
                         f"Lightweight check failed for {model_config.name}, "
@@ -234,6 +248,18 @@ class HealthChecker:
                     )
             else:
                 # Actual request failure: mark unhealthy immediately (if was healthy)
+                # Only mark unhealthy if connection_health is True (connection is OK but request failed)
+
+                # If actual request check is disabled, don't update is_healthy
+                # This prevents race condition where a check in progress might update
+                # is_healthy after models were recovered by update_config
+                if not self._is_actual_request_enabled_globally():
+                    logger.debug(
+                        f"Actual request check failed for {model_config.name}, "
+                        f"but actual request check is disabled, skipping is_healthy update"
+                    )
+                    return
+
                 if model_config.is_healthy and model_config.connection_health:
                     reason = UnhealthyReason.ACTUAL_REQUEST_FAILED
                     self._mark_unhealthy_internal(model_config, reason)
@@ -244,11 +270,17 @@ class HealthChecker:
                     emit_signal = (model_name, instance_id, False, reason.value)
                 elif not model_config.connection_health:
                     # Connection health is False, so is_healthy should already be False
-                    pass
+                    # Just update the reason if needed
+                    if model_config.unhealthy_reason != UnhealthyReason.LIGHTWEIGHT_CHECK_FAILED:
+                        # Don't change reason if it's already set correctly
+                        pass
 
         # Emit outside lock to avoid blocking health state updates / API reads
         if emit_signal:
             self._enqueue_health_changed_signal(*emit_signal)
+            # Re-evaluate default_model after health status change
+            if self.config_manager:
+                self.config_manager._update_default_model_if_needed()
 
     def mark_unhealthy(self, model_config: 'ModelConfig',
                       reason: UnhealthyReason = UnhealthyReason.ACTUAL_REQUEST_FAILED):
@@ -274,6 +306,9 @@ class HealthChecker:
                 False,
                 reason.value
             )
+            # Re-evaluate default_model after health status change
+            if self.config_manager:
+                self.config_manager._update_default_model_if_needed()
 
     def mark_healthy(self, model_config: 'ModelConfig'):
         """
@@ -285,9 +320,11 @@ class HealthChecker:
         with model_config._health_lock:
             model_config.is_healthy = True
             # Ensure connection_health is True when marking healthy
+            # This maintains consistency: is_healthy=True requires connection_health=True
             model_config.connection_health = True
             model_config.unhealthy_reason = UnhealthyReason.NONE  # Clear unhealthy reason
             model_config.consecutive_failures = 0
+            # Keep success count for monitoring
 
             # Update Prometheus metrics
             if METRICS_AVAILABLE:
@@ -393,6 +430,7 @@ class HealthChecker:
         model_config.unhealthy_reason = reason
 
         # Ensure connection_health=False when reason is LIGHTWEIGHT_CHECK_FAILED
+        # This enforces the rule: connection_health=False -> is_healthy=False
         if reason == UnhealthyReason.LIGHTWEIGHT_CHECK_FAILED:
             model_config.connection_health = False
 
@@ -486,7 +524,7 @@ class HealthChecker:
         Get provider configuration class for health check
 
         Args:
-            provider: Provider name (e.g., 'openai_like', 'dashscope', 'moonshot', 'deepseek')
+            provider: Provider name (e.g., 'openai_like', 'dashscope', 'moonshot', 'deepseek', 'volcengine', 'zai', 'minimax')
 
         Returns:
             BaseConfig instance or None if not found
@@ -501,6 +539,15 @@ class HealthChecker:
             elif provider == "deepseek":
                 from sysai_framework.llms.deepseek.chat.transformation import DeepSeekChatConfig
                 return DeepSeekChatConfig()
+            elif provider == "volcengine":
+                from sysai_framework.llms.volcengine.chat.transformation import VolcEngineChatConfig
+                return VolcEngineChatConfig()
+            elif provider == "zai":
+                from sysai_framework.llms.zai.chat.transformation import ZAIChatConfig
+                return ZAIChatConfig()
+            elif provider == "minimax":
+                from sysai_framework.llms.minimax.chat.transformation import MinimaxChatConfig
+                return MinimaxChatConfig()
             else:  # openai_like or other Chat Completion API compatible providers
                 from sysai_framework.llms.openai_like.chat.transformation import OpenAILikeChatConfig
                 return OpenAILikeChatConfig()
@@ -586,6 +633,7 @@ class HealthChecker:
                 ).observe(duration)
 
             # Check if response is valid
+            # Response is a dict with 'choices' key
             success = (
                 response and
                 isinstance(response, dict) and
@@ -624,6 +672,45 @@ class HealthChecker:
             )
             logger.warning(f"Actual request check failed for {model_config.name}: {e}")
             return False
+
+    def trigger_check_model(self, model_config: 'ModelConfig') -> bool:
+        """
+        Manual trigger health check with short-interval retry on failure.
+
+        On first failure, waits TRIGGER_RETRY_DELAY seconds then retries once.
+        Two consecutive failures within seconds reaches LIGHTWEIGHT_FAILURE_THRESHOLD
+        and marks unhealthy immediately — without waiting for the next periodic cycle.
+
+        Args:
+            model_config: Model configuration
+
+        Returns:
+            True if healthy after checks, False otherwise
+        """
+        # Lightweight check with retry
+        lightweight_ok = self.check_endpoint_lightweight(model_config)
+        if not lightweight_ok:
+            logger.debug(
+                f"Trigger: first lightweight check failed for {model_config.name}, "
+                f"retrying in {TRIGGER_RETRY_DELAY}s"
+            )
+            time.sleep(TRIGGER_RETRY_DELAY)
+            lightweight_ok = self.check_endpoint_lightweight(model_config)
+
+        # Actual request check with retry (if enabled)
+        if self._is_actual_request_enabled_globally() and model_config.connection_health:
+            actual_ok = self.check_model_actual_request(model_config)
+            if not actual_ok:
+                logger.debug(
+                    f"Trigger: first actual request check failed for {model_config.name}, "
+                    f"retrying in {TRIGGER_RETRY_DELAY}s"
+                )
+                time.sleep(TRIGGER_RETRY_DELAY)
+                actual_ok = self.check_model_actual_request(model_config)
+        else:
+            actual_ok = True  # Not checked = not failed
+
+        return lightweight_ok and actual_ok
 
     # === Background thread management ===
 
@@ -789,6 +876,46 @@ class HealthChecker:
                 f"recovered {len(recovered_models)} models from LIGHTWEIGHT_CHECK_FAILED"
             )
 
+    def _recover_actual_request_failed_models(self):
+        """
+        Recover models marked unhealthy due to ACTUAL_REQUEST_FAILED
+        when actual request validation is disabled.
+
+        This is called when actual_request_enabled is set to False via update_config(),
+        ensuring models don't remain permanently unhealthy after actual request
+        validation is turned off.
+        """
+        recovered_models = []
+
+        for model_config in self.config_manager.models.values():
+            if not model_config.health_check_enabled:
+                continue
+
+            with model_config._health_lock:
+                was_unhealthy = not model_config.is_healthy
+                was_actual_request_failure = (
+                    model_config.unhealthy_reason == UnhealthyReason.ACTUAL_REQUEST_FAILED
+                )
+
+                if was_unhealthy and was_actual_request_failure:
+                    recovered_models.append(model_config)
+
+        # Recover models outside the lock (mark_healthy acquires its own lock)
+        for model_config in recovered_models:
+            self.mark_healthy(model_config)
+            self._enqueue_health_changed_signal(
+                model_config.name,
+                str(model_config.instance_id),
+                True,
+                ""
+            )
+
+        if recovered_models:
+            logger.info(
+                f"Actual request check disabled: recovered {len(recovered_models)} "
+                f"models from ACTUAL_REQUEST_FAILED"
+            )
+
     def update_config(self, new_config: Dict[str, Any]):
         """
         Update health check configuration (hot update)
@@ -800,8 +927,15 @@ class HealthChecker:
         logger.debug(f"Health check config update requested: {new_config}")
 
         # If lightweight_enabled is being set to False, reset connection_health for all models
+        # This allows models that were marked as connection_health=False to be checked
+        # by actual request check and potentially recover
         if 'lightweight_enabled' in new_config and not new_config['lightweight_enabled']:
             self._reset_connection_health_for_all_models()
+
+        # If actual_request_enabled is being set to False, recover models
+        # that were marked unhealthy due to ACTUAL_REQUEST_FAILED
+        if 'actual_request_enabled' in new_config and not new_config['actual_request_enabled']:
+            self._recover_actual_request_failed_models()
 
         # Notify background threads
         self._lightweight_config_event.set()
@@ -935,14 +1069,5 @@ class HealthChecker:
                 stats["unhealthy_models"] += 1
 
         return stats
-
-
-
-
-
-
-
-
-
 
 
