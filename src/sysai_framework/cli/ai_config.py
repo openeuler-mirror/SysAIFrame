@@ -15,6 +15,7 @@ from pathlib import Path
 from .commands.model import model
 from .commands.routing import routing
 from .commands.service import service
+from .commands.gateway import gateway
 from .utils.output import Output
 from .utils.dbus_client import (
     get_dbus_client,
@@ -22,6 +23,7 @@ from .utils.dbus_client import (
     DBusNotAvailableError,
     DBusClientError,
 )
+from .validators.model_validator import ModelValidator
 
 
 # Default configuration path
@@ -33,9 +35,9 @@ from .constants import DEFAULT_CONFIG_PATH
 def cli():
     """
     SysAIFrame configuration management tool
-
+    
     Manage AI model configurations, routing settings, and more.
-
+    
     \b
     Examples:
       ai-config model add mymodel --api https://api.example.com/v1 --api_key sk-xxx
@@ -50,6 +52,7 @@ def cli():
 cli.add_command(model)
 cli.add_command(routing)
 cli.add_command(service)
+cli.add_command(gateway)
 
 
 @cli.command()
@@ -61,20 +64,20 @@ def show(config_path: str, as_json: bool):
     if not os.path.exists(config_path):
         Output.error(f"Configuration file not found: {config_path}")
         sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
-
+    
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
-
+    
         # Sanitize sensitive information before output
         sanitized_config = Output.sanitize_sensitive_data(config)
-
+    
         if as_json:
             import json
             click.echo(json.dumps(sanitized_config, indent=2, ensure_ascii=False))
         else:
             click.echo(yaml.dump(sanitized_config, default_flow_style=False, allow_unicode=True))
-
+            
     except yaml.YAMLError as e:
         Output.error(f"Invalid YAML: {e}")
         sys.exit(Output.EXIT_VALIDATION_ERROR)
@@ -91,14 +94,14 @@ def validate(config_path: str):
     if not os.path.exists(config_path):
         Output.error(f"Configuration file not found: {config_path}")
         sys.exit(Output.EXIT_CONFIG_NOT_FOUND)
-
+    
     errors = []
     warnings = []
-
+    
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
-
+        
         if config is None:
             errors.append("Configuration file is empty")
         elif not isinstance(config, dict):
@@ -117,17 +120,19 @@ def validate(config_path: str):
                     if not isinstance(model, dict):
                         errors.append(f"model[{i}]: Must be a dictionary")
                         continue
-
+                    
                     if not model.get('name'):
                         errors.append(f"model[{i}]: Missing required field 'name'")
-
+                    
                     if not model.get('api_key'):
-                        errors.append(f"model[{i}] ({model.get('name', 'unknown')}): Missing required field 'api_key'")
-
+                        provider = model.get('provider', '').lower()
+                        if provider not in ModelValidator.LOCAL_PROVIDERS:
+                            errors.append(f"model[{i}] ({model.get('name', 'unknown')}): Missing required field 'api_key'")
+                    
                     # Check for api_base or endpoint
                     if not model.get('api_base') and not model.get('endpoint'):
                         errors.append(f"model[{i}] ({model.get('name', 'unknown')}): Missing required field 'api_base'")
-
+            
             # Validate routing section
             if 'routing' in config:
                 if not isinstance(config['routing'], dict):
@@ -140,7 +145,7 @@ def validate(config_path: str):
                             warnings.append(
                                 f"routing.default_model '{default_model}' not found in models list"
                             )
-
+        
         # Output results
         if errors:
             Output.error("Configuration validation failed:")
@@ -155,7 +160,7 @@ def validate(config_path: str):
                     Output.warning(warning)
             Output.success("Configuration is valid")
             sys.exit(Output.EXIT_SUCCESS)
-
+            
     except yaml.YAMLError as e:
         Output.error(f"Invalid YAML syntax: {e}")
         sys.exit(Output.EXIT_VALIDATION_ERROR)
@@ -168,21 +173,21 @@ def validate(config_path: str):
 def reload():
     """
     Reload configuration in running service
-
+    
     This command notifies the running SysAIFrame service to reload
     its configuration from file. The service must be running.
     """
     try:
         client = get_dbus_client()
         result = client.reload_config()
-
+        
         if result.success:
             Output.success(result.get_message())
             sys.exit(Output.EXIT_SUCCESS)
         else:
             Output.error(result.get_message())
             sys.exit(Output.EXIT_WRITE_FAILED)
-
+            
     except ServiceNotRunningError:
         Output.error("SysAIFrame service is not running")
         Output.info("Please start the service: sudo systemctl start sysaiframe")
