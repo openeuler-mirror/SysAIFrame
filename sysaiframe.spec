@@ -4,7 +4,7 @@
 %define _find_debuginfo_opts -g
 %define debug_package %{nil}
 Name:    sysaiframe
-Version: 1.0.0
+Version: 1.1.0
 Release: 1
 Summary: CTyunOS System AI Framework Gateway
 License: MulanPSL-2.0
@@ -65,6 +65,16 @@ Summary: Rust development library for SysAIFrame AI Gateway
 Rust SDK source (sysai-sdk crate) for developing applications that
 communicate with SysAIFrame AI Gateway via D-Bus.
 
+# Register package is not ready yet, commented out for now
+#%package register
+#Summary: AI Model Registration Service for SysAIFrame
+#Requires: python3 >= 3.8
+#Requires: python3-pyyaml >= 6.0.1
+#Requires: python3-click >= 8.1.0
+#
+#%description register
+#Independent package for model registration using mDNS/DNS-SD.
+
 %prep
 %autosetup -n %{name}-%{version} -p1
 # Move src contents to top level for build
@@ -82,6 +92,12 @@ cmake .. -DCMAKE_INSTALL_PREFIX=%{_prefix} \
          -DBUILD_EXAMPLES=OFF
 make %{?_smp_mflags}
 cd ../../..
+
+# Register package is not ready yet, commented out for now
+# Build register package
+#cd sysai-register
+#%py3_build
+#cd ..
 
 %install
 # Install main package using RPM standard macro
@@ -101,6 +117,33 @@ cd ../..
 install -d -m 0755 %{buildroot}%{_datadir}/sysaiframe/rust-sdk
 cp -a sdk/rust/src %{buildroot}%{_datadir}/sysaiframe/rust-sdk/
 cp sdk/rust/Cargo.toml %{buildroot}%{_datadir}/sysaiframe/rust-sdk/
+
+# Register package is not ready yet, commented out for now
+# Install register package
+#cd sysai-register
+#%py3_install
+#cd ..
+
+# Install bundled wheel dependencies from wheels/ directory in source
+%{__python3} -m pip install --no-deps --no-index --find-links=%{_builddir}/%{name}-%{version}/wheels \
+    --target=%{buildroot}%{python3_sitelib} \
+    fastapi starlette uvicorn python-multipart annotated-doc
+
+# Install configuration files
+install -d -m 0755 %{buildroot}%{_sysconfdir}/sysaiframe
+install -m 0644 config/models.yaml.example %{buildroot}%{_sysconfdir}/sysaiframe/models.yaml.example
+
+# Install D-Bus configuration
+install -d -m 0755 %{buildroot}%{_sysconfdir}/dbus-1/system.d
+install -m 0644 dbus/sysaiframe.conf %{buildroot}%{_sysconfdir}/dbus-1/system.d/sysaiframe.conf
+
+# Install systemd service
+install -d -m 0755 %{buildroot}%{_unitdir}
+install -m 0644 systemd/sysaiframe.service %{buildroot}%{_unitdir}/sysaiframe.service
+
+# Create directories
+install -d -m 0755 %{buildroot}/var/log/sysaiframe
+install -d -m 0755 %{buildroot}/opt/sysaiframe
 
 %post
 # Create working directory
@@ -175,6 +218,8 @@ fi
 %{python3_sitelib}/multipart/
 %{python3_sitelib}/annotated_doc/
 %{python3_sitelib}/annotated_doc-*.dist-info/
+# Register package is not ready yet, commented out for now
+#%{python3_sitelib}/sysai-register/
 %{_bindir}/ai-config
 %{_bindir}/ai-discover
 %config(noreplace) %{_sysconfdir}/sysaiframe/models.yaml.example
@@ -199,6 +244,14 @@ fi
 %defattr(-,root,root,-)
 %{_datadir}/sysaiframe/rust-sdk/
 
+# Register package is not ready yet, commented out for now
+#%files register
+#%defattr(-,root,root,-)
+#%{python3_sitelib}/sysai_register/
+#%{python3_sitelib}/sysai_register-*.dist-info/
+#%{_bindir}/sysai-register
+
 %changelog
 * Sun Nov 23 2025 SysAIFrame Team <sysaiframe@ctyunos.com> - 1.0.0-1
 - Initial release of SysAIFrame Gateway
+
