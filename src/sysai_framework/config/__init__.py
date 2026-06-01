@@ -11,6 +11,7 @@ from sysai_framework.config.model_config import (
     ModelConfigManager,
     get_config_manager,
     reload_config_manager,
+    DEFAULT_ROUTING_TIMEOUT,
     CAPABILITY_GENERAL,
     CAPABILITY_CODE,
     CAPABILITY_ANALYSIS,
@@ -20,8 +21,7 @@ from sysai_framework.config.model_config import (
     SPECIAL_MODEL_MOCK
 )
 from sysai_framework.config.cors_config import (
-    Config,
-    config
+    Config
 )
 
 __all__ = [
@@ -29,6 +29,7 @@ __all__ = [
     "ModelConfigManager",
     "get_config_manager",
     "reload_config_manager",
+    "DEFAULT_ROUTING_TIMEOUT",
     "CAPABILITY_GENERAL",
     "CAPABILITY_CODE",
     "CAPABILITY_ANALYSIS",
@@ -36,6 +37,5 @@ __all__ = [
     "CAPABILITY_PREFIX",
     "SPECIAL_MODEL_DEFAULT",
     "SPECIAL_MODEL_MOCK",
-    "Config",
-    "config"
+    "Config"
 ]
