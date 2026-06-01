@@ -26,6 +26,11 @@ class ChatCompletionProcessor(RequestProcessor):
 
     This processor is specialized for handling chat completion requests,
     providing clear separation between streaming and non-streaming flows.
+
+    Key improvements over base RequestProcessor:
+    1. Clear separation of streaming vs non-streaming logic
+    2. Proper response wrapping for each mode
+    3. Chat-specific parameter extraction
     """
 
     def __init__(self, request_data: Dict[str, Any], hook_manager=None):
@@ -81,6 +86,7 @@ class ChatCompletionProcessor(RequestProcessor):
             params = self._extract_route_params()
 
             # Execute in parallel: during-call hooks + actual request
+            # Hooks run alongside the main request without blocking
             results = await asyncio.gather(
                 self.hook_manager.execute_during_call_hooks(hook_context),
                 router_instance.route_chat_acompletion(**params),
@@ -101,7 +107,8 @@ class ChatCompletionProcessor(RequestProcessor):
             if not self.is_streaming:
                 response = await self._post_call_processing(response)
 
-            # Stage 4: Wrap response based on streaming flag
+            # Stage 4: Wrap response based on streaming flag (at the end)
+            # For streaming: wrap as StreamingResponse, for non-streaming: return dict
             return await self._wrap_response(response)
 
         except Exception as e:
@@ -113,164 +120,113 @@ class ChatCompletionProcessor(RequestProcessor):
         """
         Wrap response based on streaming flag
 
+        For streaming responses, wraps the async generator as StreamingResponse
+        with appropriate headers. For non-streaming, returns the response dict directly.
+
         Args:
-            response: Response data (dict or async generator)
+            response: Response from router (AsyncGenerator for streaming, dict for non-streaming)
 
         Returns:
             StreamingResponse for streaming, dict for non-streaming
         """
         if self.is_streaming:
-            headers = ResponseHeaderManager.get_streaming_headers(
+            # Generate custom headers (before streaming starts)
+            custom_headers = ResponseHeaderManager.get_streaming_headers(
                 request_id=self.context.request_id,
                 model_name=self.context.model,
+                provider=self.context.provider,
             )
-            return StreamingResponse(
-                response,
-                media_type="text/event-stream",
-                headers=headers,
-                status_code=200
+
+            logger.debug(
+                f"[{self.context.request_id}] Wrapping response as StreamingResponse"
             )
-        return response
+
+            # Wrap with safe streaming response (handles first-chunk error detection)
+            return await create_streaming_response(
+                generator=response,
+                headers=custom_headers
+            )
+        else:
+            logger.debug(
+                f"[{self.context.request_id}] Returning response dict"
+            )
+            return response
 
     def _extract_route_params(self) -> dict:
         """
         Extract chat completion specific parameters
 
         Returns:
-            Dictionary of parameters for router call
+            Dictionary of chat completion parameters (including stream flag)
         """
-        params = {
+        return {
             'model': self.data.get('model'),
-            'stream': self.is_streaming,
+            'messages': self.data.get('messages'),
+            'stream': self.data.get('stream', False),  # Include stream flag
+            'temperature': self.data.get('temperature'),
+            'max_tokens': self.data.get('max_tokens'),
+            'top_p': self.data.get('top_p'),
+            'stop': self.data.get('stop'),
+            'presence_penalty': self.data.get('presence_penalty'),
+            'frequency_penalty': self.data.get('frequency_penalty'),
+            'user': self.data.get('user'),
+            'thinking_budget': self.data.get('thinking_budget'),
+            'reasoning': self.data.get('reasoning'),
+            'tools': self.data.get('tools'),
+            'tool_choice': self.data.get('tool_choice'),
+            'parallel_tool_calls': self.data.get('parallel_tool_calls'),
         }
-        if 'messages' in self.data:
-            params['messages'] = self.data['messages']
-        optional_params = [
-            'temperature', 'top_p', 'max_tokens', 'stop',
-            'frequency_penalty', 'presence_penalty', 'user'
-        ]
-        for param in optional_params:
-            if param in self.data:
-                params[param] = self.data[param]
-        return params
 
 
+# Example: Future processor for image generation
 class ImageGenerationProcessor(RequestProcessor):
     """
     Image generation processor (example for future extension)
 
-    This processor handles image generation requests.
+    This demonstrates how to create specialized processors for different request types.
     """
 
-    def __init__(self, request_data: Dict[str, Any], hook_manager=None):
-        """
-        Initialize image generation processor
-
-        Args:
-            request_data: Image generation request data
-            hook_manager: Optional hook manager
-        """
-        super().__init__(request_data, hook_manager)
-        self.is_streaming = request_data.get('stream', False)
-
     def _extract_route_params(self) -> dict:
-        """
-        Extract image generation parameters
-
-        Returns:
-            Dictionary of parameters for image generation
-        """
-        params = {'model': self.data.get('model')}
-        if 'prompt' in self.data:
-            params['prompt'] = self.data['prompt']
-        optional_params = ['size', 'n', 'quality', 'style', 'response_format']
-        for param in optional_params:
-            if param in self.data:
-                params[param] = self.data[param]
-        return params
+        """Extract image generation parameters"""
+        return {
+            'model': self.data.get('model'),
+            'prompt': self.data.get('prompt'),
+            'n': self.data.get('n', 1),
+            'size': self.data.get('size', '1024x1024'),
+            'quality': self.data.get('quality', 'standard'),
+        }
 
     async def _route_streaming(self, router_instance, params: dict):
-        """
-        Image generation typically doesn't support streaming
-
-        Args:
-            router_instance: Router instance
-            params: Request parameters
-
-        Returns:
-            Non-streaming response
-        """
-        return await self._route_non_streaming(router_instance, params)
+        """Image generation typically doesn't support streaming"""
+        raise NotImplementedError("Image generation does not support streaming")
 
     async def _route_non_streaming(self, router_instance, params: dict):
-        """
-        Route image generation request
-
-        Args:
-            router_instance: Router instance
-            params: Request parameters
-
-        Returns:
-            Image generation response
-        """
-        return await router_instance.route_image_generation(**params)
+        """Route image generation request"""
+        # Hypothetical method
+        return router_instance.route_image_generation(**params)
 
 
+# Example: Future processor for embeddings
 class EmbeddingProcessor(RequestProcessor):
     """
     Embedding processor (example for future extension)
 
-    This processor handles embedding requests for vector search.
+    This demonstrates how to create specialized processors for embeddings.
     """
 
-    def __init__(self, request_data: Dict[str, Any], hook_manager=None):
-        """
-        Initialize embedding processor
-
-        Args:
-            request_data: Embedding request data
-            hook_manager: Optional hook manager
-        """
-        super().__init__(request_data, hook_manager)
-
     def _extract_route_params(self) -> dict:
-        """
-        Extract embedding parameters
-
-        Returns:
-            Dictionary of parameters for embedding request
-        """
-        params = {'model': self.data.get('model')}
-        if 'input' in self.data:
-            params['input'] = self.data['input']
-        optional_params = ['encoding_format', 'user']
-        for param in optional_params:
-            if param in self.data:
-                params[param] = self.data[param]
-        return params
+        """Extract embedding parameters"""
+        return {
+            'model': self.data.get('model'),
+            'input': self.data.get('input'),
+            'encoding_format': self.data.get('encoding_format', 'float'),
+        }
 
     async def _route_streaming(self, router_instance, params: dict):
-        """
-        Embeddings don't support streaming
-
-        Args:
-            router_instance: Router instance
-            params: Request parameters
-
-        Returns:
-            Non-streaming response
-        """
-        return await self._route_non_streaming(router_instance, params)
+        """Embeddings don't support streaming"""
+        raise NotImplementedError("Embeddings do not support streaming")
 
     async def _route_non_streaming(self, router_instance, params: dict):
-        """
-        Route embedding request
-
-        Args:
-            router_instance: Router instance
-            params: Request parameters
-
-        Returns:
-            Embedding response
-        """
-        return await router_instance.route_embedding(**params)
+        """Route embedding request"""
+        # Hypothetical method
+        return router_instance.route_embedding(**params)
