@@ -1,5 +1,10 @@
 """
-Support for gpt model family
+Copyright (C) 2025 CTyunOS. All Rights Reserved.
+File: gpt_transformation.py
+Desc: OpenAI GPT model family configuration and transformation
+      Based on litellm.llms.openai.chat.gpt_transformation with stub modifications
+Date: 2025-11-17
+Author: Liu Mingran
 """
 
 from typing import (
@@ -75,6 +80,14 @@ def convert_to_model_response_object(*args, **kwargs):
 # OpenAIError can use BaseLLMException from base module
 from sysai_framework.llms.base.transformation import BaseLLMException as OpenAIError
 
+class BadRequestError(Exception):
+    """Stub for litellm.BadRequestError"""
+    def __init__(self, message: str, model: Optional[str] = None, llm_provider: Optional[str] = None):
+        self.message = message
+        self.model = model
+        self.llm_provider = llm_provider
+        super().__init__(message)
+
 if TYPE_CHECKING:
     from litellm.litellm_core_utils.litellm_logging import Logging as _LiteLLMLoggingObj
     from sysai_framework.llms.base.types import ChatCompletionToolParam
@@ -89,7 +102,27 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
     Reference: https://platform.openai.com/docs/api-reference/chat/create
     (Chat Completion API specification reference)
 
-    The class `OpenAIConfig` provides configuration for the Chat Completion API interface.
+    The class `OpenAIConfig` provides configuration for the Chat Completion API interface. Below are the parameters:
+
+    - `frequency_penalty` (number or null): Defaults to 0. Allows a value between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, thereby minimizing repetition.
+
+    - `function_call` (string or object): This optional parameter controls how the model calls functions.
+
+    - `functions` (array): An optional parameter. It is a list of functions for which the model may generate JSON inputs.
+
+    - `logit_bias` (map): This optional parameter modifies the likelihood of specified tokens appearing in the completion.
+
+    - `max_tokens` (integer or null): This optional parameter helps to set the maximum number of tokens to generate in the chat completion.
+
+    - `n` (integer or null): This optional parameter helps to set how many chat completion choices to generate for each input message.
+
+    - `presence_penalty` (number or null): Defaults to 0. It penalizes new tokens based on if they appear in the text so far, hence increasing the model's likelihood to talk about new topics.
+
+    - `stop` (string / array / null): Specifies up to 4 sequences where the API will stop generating further tokens.
+
+    - `temperature` (number or null): Defines the sampling temperature to use, varying between 0 and 2.
+
+    - `top_p` (number or null): An alternative to sampling with temperature, used for nucleus sampling.
     """
 
     # Add a class variable to track if this is the base class
@@ -161,14 +194,25 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             "web_search_options",
             "service_tier",
             "safety_identifier",
-        ]
+            "prompt_cache_key",
+            "prompt_cache_retention",
+            "store",
+        ]  # works across all models
 
         model_specific_params = []
         if (
             model != "gpt-3.5-turbo-16k" and model != "gpt-4"
-        ):
+        ):  # gpt-4 does not support 'response_format'
             model_specific_params.append("response_format")
 
+        # Note: user parameter support check disabled for SysAIFrame
+        # In SysAIFrame, we assume all models support 'user' parameter
+        # Original LiteLLM code:
+        # if (
+        #     model in litellm.open_ai_chat_completion_models
+        # ) or model in litellm.open_ai_text_completion_models:
+        #     model_specific_params.append("user")
+        # For now, always include 'user' parameter
         model_specific_params.append("user")
         return base_params + model_specific_params
 
@@ -180,7 +224,15 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
         drop_params: bool,
     ) -> dict:
         """
-        If any supported Chat Completion API params are in non_default_params, add them to optional_params
+        If any supported Chat Completion API params are in non_default_params, add them to optional_params, so they are used in API call
+
+        Args:
+            non_default_params (dict): Non-default parameters to filter.
+            optional_params (dict): Optional parameters to update.
+            model (str): Model name for parameter support check.
+
+        Returns:
+            dict: Updated optional_params with supported non-default parameters.
         """
         supported_openai_params = self.get_supported_openai_params(model)
         for param, value in non_default_params.items():
@@ -227,7 +279,7 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
         self, content_item: ChatCompletionFileObjectFile
     ) -> ChatCompletionFileObjectFile:
         file_id = content_item.get("file_id")
-        if file_id is not None:
+        if file_id is not None:  # check for file id being url done in _handle_pdf_url
             base64_data = await async_convert_url_to_base64(file_id)
             content_item["file_data"] = base64_data
             content_item["filename"] = "my_file.pdf"
@@ -256,7 +308,7 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
                 }
             elif isinstance(content_item["image_url"], dict):
                 new_image_url_obj = ChatCompletionImageUrlObject(
-                    **{
+                    **{  # type: ignore
                         k: v
                         for k, v in content_item["image_url"].items()
                         if k not in litellm_specific_params
@@ -265,9 +317,16 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
                 content_item["image_url"] = new_image_url_obj
         elif content_item.get("type") == "file":
             content_item = cast(ChatCompletionFileObject, content_item)
-            file_obj = content_item["file"]
+            file_obj = content_item.get("file")
+            if file_obj is None:
+                # Defensive: file field is required for type="file"
+                raise BadRequestError(
+                    message="file field is required for content type 'file'",
+                    model=None,
+                    llm_provider="openai",
+                )
             new_file_obj = ChatCompletionFileObjectFile(
-                **{
+                **{  # type: ignore
                     k: v
                     for k, v in file_obj.items()
                     if k not in litellm_specific_params
@@ -315,7 +374,7 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
     @overload
     def _transform_messages(
         self, messages: List[AllMessageValues], model: str, is_async: Literal[True]
-    ) -> Coroutine[Any, Any, List[AllMessageValues]]:
+    ) -> Coroutine[Any, Any, List[AllMessageValues]]: 
         ...
 
     @overload
@@ -377,7 +436,7 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
 
     def remove_cache_control_flag_from_messages_and_tools(
         self,
-        model: str,
+        model: str,  # allows overrides to selectively run this
         messages: List[AllMessageValues],
         tools: Optional[List["ChatCompletionToolParam"]] = None,
     ) -> Tuple[List[AllMessageValues], Optional[List["ChatCompletionToolParam"]]]:
@@ -388,13 +447,13 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
 
         for i, message in enumerate(messages):
             messages[i] = cast(
-                AllMessageValues, filter_value_from_dict(message, "cache_control")
+                AllMessageValues, filter_value_from_dict(message, "cache_control")  # type: ignore
             )
         if tools is not None:
             for i, tool in enumerate(tools):
                 tools[i] = cast(
                     ChatCompletionToolParam,
-                    filter_value_from_dict(tool, "cache_control"),
+                    filter_value_from_dict(tool, "cache_control"),  # type: ignore
                 )
         return messages, tools
 
@@ -408,6 +467,9 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
     ) -> dict:
         """
         Transform the overall request to be sent to the API.
+
+        Returns:
+            dict: The transformed request. Sent as the body of the API call.
         """
         messages = self._transform_messages(messages=messages, model=model)
         messages, tools = self.remove_cache_control_flag_from_messages_and_tools(
@@ -451,6 +513,7 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
                 **optional_params,
             }
         else:
+            ## allow for any object specific behaviour to be handled
             return self.transform_request(
                 model, messages, optional_params, litellm_params, headers
             )
@@ -501,13 +564,14 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
         transformed_choices = []
 
         for choice in choices:
+            ## HANDLE JSON MODE - anthropic returns single function call]
             tool_calls = choice["message"].get("tool_calls", None)
             new_tool_calls: Optional[List[ChatCompletionMessageToolCall]] = None
             message_content = choice["message"].get("content", None)
             if tool_calls is not None:
                 _openai_tool_calls = []
                 for _tc in tool_calls:
-                    _openai_tc = ChatCompletionMessageToolCall(**_tc)
+                    _openai_tc = ChatCompletionMessageToolCall(**_tc)  # type: ignore
                     _openai_tool_calls.append(_openai_tc)
                 fixed_tool_calls = _handle_invalid_parallel_tool_calls(
                     _openai_tool_calls
@@ -524,7 +588,7 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
                     message_content, optional_params
                 )
                 if new_tool_call is not None:
-                    choice["message"]["content"] = None
+                    choice["message"]["content"] = None  # remove the content
                     new_tool_calls = [new_tool_call]
 
             translated_message: Optional[Message] = None
@@ -533,6 +597,7 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
                 tool_calls=new_tool_calls,
                 convert_tool_call_to_json_mode=json_mode,
             ):
+                # to support response_format on claude models
                 json_mode_content_str: Optional[str] = (
                     str(new_tool_calls[0]["function"].get("arguments", "")) or None
                 )
@@ -541,6 +606,7 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
                     finish_reason = "stop"
 
             if translated_message is None:
+                ## get the reasoning content
                 (
                     reasoning_content,
                     content_str,
@@ -588,7 +654,12 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
     ) -> ModelResponse:
         """
         Transform the response from the API.
+
+        Returns:
+            dict: The transformed response.
         """
+
+        ## LOGGING
         logging_obj.post_call(
             input=messages,
             api_key=api_key,
@@ -596,6 +667,7 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
             additional_args={"complete_input_dict": request_data},
         )
 
+        ## RESPONSE OBJECT
         try:
             completion_response = raw_response.json()
         except Exception as e:
@@ -637,13 +709,18 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
     ) -> str:
         """
         Get the complete URL for the API call.
+
+        Returns:
+            str: The complete URL for the API call.
         """
         if api_base is None:
             api_base = "https://api.openai.com"
         endpoint = "chat/completions"
 
+        # Remove trailing slash from api_base if present
         api_base = api_base.rstrip("/")
 
+        # Check if endpoint is already in the api_base
         if endpoint in api_base:
             return api_base
 
@@ -662,6 +739,7 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
 
+        # Ensure Content-Type is set to application/json
         if "content-type" not in headers and "Content-Type" not in headers:
             headers["Content-Type"] = "application/json"
 
@@ -672,22 +750,28 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
     ) -> List[str]:
         """
         Calls the `/v1/models` endpoint and returns the list of models.
+        Uses httpx directly instead of litellm.module_level_client.
         """
-
         if api_base is None:
             api_base = "https://api.openai.com"
         if api_key is None:
             api_key = get_secret_str("OPENAI_API_KEY")
 
+        # Strip api_base to just the base URL
         parsed_url = httpx.URL(api_base)
         base_url = f"{parsed_url.scheme}://{parsed_url.host}"
         if parsed_url.port:
             base_url += f":{parsed_url.port}"
 
-        response = httpx.get(
-            url=f"{base_url}/v1/models",
-            headers={"Authorization": f"Bearer {api_key}"},
-        )
+        headers = {}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        with httpx.Client() as client:
+            response = client.get(
+                url=f"{base_url}/v1/models",
+                headers=headers,
+            )
 
         if response.status_code != 200:
             raise Exception(f"Failed to get models: {response.text}")
@@ -697,6 +781,8 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
 
     @staticmethod
     def get_api_key(api_key: Optional[str] = None) -> Optional[str]:
+        # SysAIFrame: removed litellm.api_key and litellm.openai_key references
+        # We use config file for API keys, get_secret_str returns None
         return (
             api_key
             or get_secret_str("OPENAI_API_KEY")
@@ -704,6 +790,8 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
 
     @staticmethod
     def get_api_base(api_base: Optional[str] = None) -> Optional[str]:
+        # SysAIFrame: removed litellm.api_base reference
+        # We use config file for API base, get_secret_str returns None
         return (
             api_base
             or get_secret_str("OPENAI_BASE_URL")
@@ -729,14 +817,33 @@ class OpenAIGPTConfig(BaseLLMModelInfo, BaseConfig):
 
 
 class OpenAIChatCompletionStreamingHandler(BaseModelResponseIterator):
+    def _map_reasoning_to_reasoning_content(self, chunk: dict) -> dict:
+        """
+        Some OpenAI-compatible providers (GLM-5, vllm) return `delta.reasoning`
+        instead of `delta.reasoning_content`. Map reasoning -> reasoning_content
+        for consistency.
+        """
+        choices = chunk.get("choices")
+        if choices:
+            for choice in choices:
+                delta = choice.get("delta")
+                if delta and isinstance(delta, dict):
+                    if "reasoning" in delta and "reasoning_content" not in delta:
+                        delta["reasoning_content"] = delta.pop("reasoning")
+        return chunk
+
     def chunk_parser(self, chunk: dict) -> ModelResponseStream:
         try:
+            # Map reasoning -> reasoning_content for compatibility
+            chunk = self._map_reasoning_to_reasoning_content(chunk)
+
             return ModelResponseStream(
-                id=chunk["id"],
+                id=chunk.get("id", ""),
                 object="chat.completion.chunk",
-                created=chunk["created"],
-                model=chunk["model"],
-                choices=chunk["choices"],
+                created=chunk.get("created", 0),
+                model=chunk.get("model", ""),
+                choices=chunk.get("choices", []),
             )
         except Exception as e:
             raise e
+

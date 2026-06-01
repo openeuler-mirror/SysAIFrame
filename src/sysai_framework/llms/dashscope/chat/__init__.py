@@ -9,3 +9,4 @@ Author: Liu Mingran
 from .transformation import DashScopeChatConfig
 
 __all__ = ['DashScopeChatConfig']
+
