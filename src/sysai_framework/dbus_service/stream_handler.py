@@ -13,6 +13,8 @@ import json
 import asyncio
 from typing import Dict, Any, Generator
 
+from sysai_framework.config.model_config import DEFAULT_ROUTING_TIMEOUT
+
 logger = logging.getLogger(__name__)
 
 
@@ -72,10 +74,12 @@ class StreamHandler:
             temperature = request.get("temperature", 0.7)
             max_tokens = request.get("max_tokens", 1000)
             top_p = request.get("top_p", 1.0)
+            stream_timeout = float(request.get("timeout", DEFAULT_ROUTING_TIMEOUT))
             stream_generator = model_router.route_chat_completion(
                 model=model, messages=messages,
                 temperature=temperature, max_tokens=max_tokens,
-                top_p=top_p, stream=True)
+                top_p=top_p, stream=True,
+                timeout=stream_timeout)
             total_content = ""
             chunk_index = 0
             async def consume_stream():
@@ -118,7 +122,17 @@ class StreamHandler:
                     except Exception:
                         pass
             try:
-                asyncio.run(consume_stream())
+                asyncio.run(asyncio.wait_for(consume_stream(), timeout=stream_timeout))
+            except asyncio.TimeoutError:
+                logger.error("Stream timeout for %s after %ss", request_id, stream_timeout)
+                try:
+                    from .type_converter import response_to_dbus
+                    self.service_object.StreamChunk(request_id, response_to_dbus(
+                        {"object": "chat.completion.chunk",
+                         "choices": [{"delta": {}, "finish_reason": "error"}]}))
+                    self.service_object.StreamDone(request_id, response_to_dbus({}))
+                except Exception:
+                    pass
             except Exception as e:
                 logger.error("Stream processing error for %s: %s", request_id, e)
             usage = {"prompt_tokens": 0, "completion_tokens": len(total_content.split()) if total_content else 0, "total_tokens": len(total_content.split()) if total_content else 0}
