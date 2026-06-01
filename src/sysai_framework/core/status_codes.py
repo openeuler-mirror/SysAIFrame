@@ -24,10 +24,10 @@ class StatusLevel(Enum):
 class StatusCode:
     """
     Unified status code definition
-
+    
     Uses dataclass to define status codes, providing type safety and clear semantics.
     Each status code contains: numeric code, name, message template, level, HTTP status code, and CLI exit code.
-
+    
     Attributes:
         code: Numeric status code (unique identifier)
         name: Status code name (string identifier for logging and debugging)
@@ -42,31 +42,31 @@ class StatusCode:
     level: StatusLevel
     http_status: int = 200
     cli_exit_code: int = 0
-
+    
     @property
     def is_success(self) -> bool:
         """Whether this is a success status"""
         return self.level == StatusLevel.SUCCESS
-
+    
     @property
     def is_error(self) -> bool:
         """Whether this is an error status (includes ERROR and CRITICAL)"""
         return self.level in (StatusLevel.ERROR, StatusLevel.CRITICAL)
-
+    
     @property
     def is_warning(self) -> bool:
         """Whether this is a warning status"""
         return self.level == StatusLevel.WARNING
-
+    
     @property
     def is_info(self) -> bool:
         """Whether this is an info status"""
         return self.level == StatusLevel.INFO
-
+    
     def __str__(self) -> str:
         """String representation"""
         return f"[{self.code}:{self.name}]"
-
+    
     def __repr__(self) -> str:
         """Detailed representation"""
         return f"StatusCode(code={self.code}, name={self.name}, level={self.level.value})"
@@ -74,7 +74,7 @@ class StatusCode:
 
 # ========== Success Status (0-999) ==========
 SUCCESS = StatusCode(
-    0, "SUCCESS", "Operation completed successfully",
+    0, "SUCCESS", "Operation completed successfully", 
     StatusLevel.SUCCESS, 200, 0
 )
 
@@ -214,19 +214,19 @@ DISCONNECTED = StatusCode(
 )
 
 
-# ========== D-Bus Errors (6000-6999) ==========
+# ========== DBus Errors (6000-6999) ==========
 DBUS_NOT_AVAILABLE = StatusCode(
-    6001, "DBUS_NOT_AVAILABLE", "D-Bus service not available",
-    StatusLevel.ERROR, 503, 5
+    6001, "DBUS_NOT_AVAILABLE", "DBus not available",
+    StatusLevel.ERROR, 503, 1
 )
 
 SERVICE_NOT_RUNNING = StatusCode(
-    6002, "SERVICE_NOT_RUNNING", "Service not running",
+    6002, "SERVICE_NOT_RUNNING", "Service is not running",
     StatusLevel.ERROR, 503, 1
 )
 
 DBUS_CALL_FAILED = StatusCode(
-    6003, "DBUS_CALL_FAILED", "D-Bus call failed: {details}",
+    6003, "DBUS_CALL_FAILED", "DBus call failed: {details}",
     StatusLevel.ERROR, 500, 5
 )
 
@@ -281,23 +281,23 @@ UNKNOWN_ERROR = StatusCode(
 class OperationResult:
     """
     Operation result wrapper class - unified wrapper for all operation results
-
+    
     Used to replace traditional (bool, str, data) tuple return values, providing clearer semantics and type safety.
-
+    
     Attributes:
         status: Status code object
         data: Return data (result on success, e.g., ModelConfig object)
         details: Details dictionary (parameters for message formatting)
-
+    
     Examples:
         >>> # Success result
         >>> result = OperationResult.success_result(data=model_config)
         >>> if result.success:
         ...     print(f"Success: {result.data}")
-
+        
         >>> # Error result
         >>> result = OperationResult.error_result(
-        ...     MODEL_NOT_FOUND,
+        ...     MODEL_NOT_FOUND, 
         ...     details={"model": "gpt-4"}
         ... )
         >>> print(result.get_message())  # "Model not found: gpt-4"
@@ -305,41 +305,41 @@ class OperationResult:
     status: StatusCode
     data: Optional[Any] = None
     details: Optional[Dict[str, Any]] = None
-
+    
     @property
     def success(self) -> bool:
         """Whether the operation succeeded"""
         return self.status.is_success
-
+    
     @property
     def failed(self) -> bool:
         """Whether the operation failed (error or critical error)"""
         return self.status.is_error
-
+    
     @property
     def has_warning(self) -> bool:
         """Whether there is a warning"""
         return self.status.is_warning
-
+    
     @property
     def has_info(self) -> bool:
         """Whether this is an info status"""
         return self.status.is_info
-
+    
     def get_message(self, **kwargs) -> str:
         """
         Get formatted status message
-
+        
         Args:
             **kwargs: Additional format parameters (will override same-named parameters in details)
-
+        
         Returns:
             Formatted message string
         """
         # Check if there's a pre-formatted message (used by D-Bus client)
         if self.details and "_formatted_message" in self.details:
             return self.details["_formatted_message"]
-
+        
         try:
             # Merge details and kwargs
             format_args = {**(self.details or {}), **kwargs}
@@ -347,11 +347,11 @@ class OperationResult:
         except KeyError as e:
             # If required parameters are missing, return original template
             return self.status.message_template
-
+    
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert to dictionary format (for API responses, logging, etc.)
-
+        
         Returns:
             Dictionary containing status code, message, and data
         """
@@ -364,71 +364,71 @@ class OperationResult:
         if self.data is not None:
             result["data"] = self.data
         return result
-
+    
     def to_tuple(self) -> tuple:
         """
         Convert to traditional tuple format (for backward compatibility)
-
+        
         Returns:
             Tuple of (success: bool, message: str, data: Any)
         """
         return (self.success, self.get_message(), self.data)
-
+    
     @classmethod
     def success_result(cls, data: Any = None, status: StatusCode = None, details: Dict[str, Any] = None) -> "OperationResult":
         """
         Convenience method to create a success result
-
+        
         Args:
             data: Return data
             status: Status code (defaults to SUCCESS)
             details: Additional details
-
+        
         Returns:
             OperationResult instance
         """
         return cls(status=status or SUCCESS, data=data, details=details)
-
+    
     @classmethod
     def error_result(cls, status: StatusCode, details: Dict[str, Any] = None, data: Any = None) -> "OperationResult":
         """
         Convenience method to create an error result
-
+        
         Args:
             status: Error status code
             details: Additional details (for message formatting)
             data: Optional data (some errors may need to return partial data)
-
+        
         Returns:
             OperationResult instance
         """
         return cls(status=status, details=details, data=data)
-
+    
     @classmethod
     def warning_result(cls, status: StatusCode, details: Dict[str, Any] = None, data: Any = None) -> "OperationResult":
         """
         Convenience method to create a warning result
-
+        
         Args:
             status: Warning status code
             details: Additional details
             data: Return data
-
+        
         Returns:
             OperationResult instance
         """
         return cls(status=status, details=details, data=data)
-
+    
     @classmethod
     def info_result(cls, status: StatusCode, details: Dict[str, Any] = None, data: Any = None) -> "OperationResult":
         """
         Convenience method to create an info result
-
+        
         Args:
             status: Info status code
             details: Additional details
             data: Return data
-
+        
         Returns:
             OperationResult instance
         """
@@ -440,81 +440,81 @@ class OperationResult:
 def get_status_by_code(code: int) -> Optional[StatusCode]:
     """
     Find StatusCode object by numeric code
-
+    
     Args:
         code: Numeric status code
-
+    
     Returns:
         Corresponding StatusCode object, or None if not found
     """
     # Get all status code constants
     import sys
     current_module = sys.modules[__name__]
-
+    
     for name in dir(current_module):
         obj = getattr(current_module, name)
         if isinstance(obj, StatusCode) and obj.code == code:
             return obj
-
+    
     return None
 
 
 def get_status_by_name(name: str) -> Optional[StatusCode]:
     """
     Find StatusCode object by name
-
+    
     Args:
         name: Status code name (e.g., "MODEL_NOT_FOUND")
-
+    
     Returns:
         Corresponding StatusCode object, or None if not found
     """
     import sys
     current_module = sys.modules[__name__]
-
+    
     try:
         obj = getattr(current_module, name)
         if isinstance(obj, StatusCode):
             return obj
     except AttributeError:
         pass
-
+    
     return None
 
 
 def list_all_status_codes() -> Dict[int, StatusCode]:
     """
     List all defined status codes
-
+    
     Returns:
         Dictionary with status code numbers as keys and StatusCode objects as values
     """
     import sys
     current_module = sys.modules[__name__]
-
+    
     result = {}
     for name in dir(current_module):
         obj = getattr(current_module, name)
         if isinstance(obj, StatusCode):
             result[obj.code] = obj
-
+    
     return result
 
 
 def parse_status_from_message(message: str) -> tuple[Optional[StatusCode], str]:
     """
     Parse status code from encoded message string
-
+    
     Supports format: "[STATUS:4002] Model already exists: instance123"
-
+    
     Args:
         message: Message string that may contain status code
-
+    
     Returns:
         Tuple of (status_code_object, pure_message). Returns (None, original_message) if no status code found
     """
     import re
-
+    
     # Try to match [STATUS:number] format
     match = re.match(r'^\[STATUS:(\d+)\]\s*(.*)', message)
     if match:
@@ -522,19 +522,20 @@ def parse_status_from_message(message: str) -> tuple[Optional[StatusCode], str]:
         pure_message = match.group(2)
         status = get_status_by_code(code)
         return (status, pure_message)
-
+    
     return (None, message)
 
 
 def encode_status_in_message(status: StatusCode, message: str) -> str:
     """
     Encode status code in message string (for DBus and other scenarios requiring string passing)
-
+    
     Args:
         status: Status code object
         message: Message content
-
+    
     Returns:
         Encoded message string in format "[STATUS:code] message"
     """
     return f"[STATUS:{status.code}] {message}"
+

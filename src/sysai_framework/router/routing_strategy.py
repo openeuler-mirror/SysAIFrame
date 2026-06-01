@@ -33,61 +33,61 @@ class LoadBalanceStrategy(Enum):
 
 class BaseRoutingStrategy(ABC):
     """Base class for load balance routing strategies"""
-
+    
     def __init__(self, config_manager=None):
         """
         Initialize routing strategy
-
+        
         Args:
             config_manager: ModelConfigManager instance for accessing configuration
         """
         self.config_manager = config_manager
-
+    
     @abstractmethod
     def select_deployment(
-        self,
+        self, 
         healthy_models: List[ModelConfig]
     ) -> Optional[ModelConfig]:
         """
         Select a model deployment from healthy models list
-
+        
         Args:
             healthy_models: List of healthy ModelConfig instances
-
+            
         Returns:
             Selected ModelConfig or None if no models available
         """
         pass
-
+    
     def log_pre_call(self, model_config: ModelConfig) -> None:
         """
         Log before making a request (for least-busy strategy)
-
+        
         Args:
             model_config: Model configuration being called
         """
         pass
-
+    
     def log_success(
-        self,
-        model_config: ModelConfig,
+        self, 
+        model_config: ModelConfig, 
         response_time: float,
         tokens_used: int = 0
     ) -> None:
         """
         Log successful request completion
-
+        
         Args:
             model_config: Model configuration that handled the request
             response_time: Request response time in seconds
             tokens_used: Number of tokens used (for usage-based strategy)
         """
         pass
-
+    
     def log_failure(self, model_config: ModelConfig) -> None:
         """
         Log failed request
-
+        
         Args:
             model_config: Model configuration that failed
         """

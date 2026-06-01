@@ -1,6 +1,6 @@
 /**
  * SysAI C SDK - Client implementation
- *
+ * 
  * Copyright (C) 2025 CTyunOS. All Rights Reserved.
  */
 
@@ -23,23 +23,23 @@
 
 static void set_error(sysai_client_t *client, int code, const char *fmt, ...) {
     if (!client) return;
-
+    
     free(client->last_error);
     client->last_error_code = code;
-
+    
     va_list args;
     va_start(args, fmt);
     int size = vsnprintf(NULL, 0, fmt, args);
     va_end(args);
-
+    
     if (size < 0) {
         client->last_error = NULL;
         return;
     }
-
+    
     client->last_error = malloc(size + 1);
     if (!client->last_error) return;
-
+    
     va_start(args, fmt);
     vsnprintf(client->last_error, size + 1, fmt, args);
     va_end(args);
@@ -60,27 +60,27 @@ sysai_client_t *sysai_client_new_session(void) {
 sysai_client_t *sysai_client_new_internal(bool use_session) {
     sysai_client_t *client = calloc(1, sizeof(sysai_client_t));
     if (!client) return NULL;
-
+    
     int r;
     if (use_session) {
         r = sd_bus_open_user(&client->bus);
     } else {
         r = sd_bus_open_system(&client->bus);
     }
-
+    
     if (r < 0) {
-        set_error(client, SYSAI_ERR_CONNECTION,
+        set_error(client, SYSAI_ERR_CONNECTION, 
                  "Failed to connect to D-Bus: %s", strerror(-r));
         free(client);
         return NULL;
     }
-
+    
     return client;
 }
 
 void sysai_client_free(sysai_client_t *client) {
     if (!client) return;
-
+    
     if (client->bus) {
         sd_bus_unref(client->bus);
     }
@@ -102,20 +102,20 @@ int sysai_last_error_code(sysai_client_t *client) {
 
 sysai_message_t *sysai_message_new(const char *role, const char *content) {
     if (!role || !content) return NULL;
-
+    
     sysai_message_t *msg = calloc(1, sizeof(sysai_message_t));
     if (!msg) return NULL;
-
+    
     msg->role = strdup(role);
     msg->content = strdup(content);
-
+    
     if (!msg->role || !msg->content) {
         free(msg->role);
         free(msg->content);
         free(msg);
         return NULL;
     }
-
+    
     return msg;
 }
 
@@ -205,11 +205,11 @@ sysai_response_t *sysai_chat(
         if (client) set_error(client, SYSAI_ERR_INVALID, "Invalid parameters");
         return NULL;
     }
-
+    
     sd_bus_error error = SD_BUS_ERROR_NULL;
     sd_bus_message *m = NULL, *reply = NULL;
     int r;
-
+    
     /* Create method call */
     r = sd_bus_message_new_method_call(
         client->bus,
@@ -219,19 +219,19 @@ sysai_response_t *sysai_chat(
         SYSAI_INTERFACE,
         "ChatCompletion"
     );
-
+    
     if (r < 0) {
         set_error(client, SYSAI_ERR_CONNECTION, "Failed to create method call: %s", strerror(-r));
         goto cleanup;
     }
-
+    
     /* Build request dictionary */
     r = sysai_build_request_dict(m, messages, options, false);
     if (r < 0) {
         set_error(client, SYSAI_ERR_INVALID, "Failed to build request: %s", strerror(-r));
         goto cleanup;
     }
-
+    
     /* Call method */
     r = sd_bus_call(client->bus, m, 120000000, &error, &reply);  /* 120 second timeout */
     if (r < 0) {
@@ -244,14 +244,14 @@ sysai_response_t *sysai_chat(
         }
         goto cleanup;
     }
-
+    
     /* Parse response */
     sysai_response_t *response = sysai_parse_response(reply);
     if (!response) {
         set_error(client, SYSAI_ERR_PARSE, "Failed to parse response");
         goto cleanup;
     }
-
+    
     sd_bus_error_free(&error);
     sd_bus_message_unref(m);
     sd_bus_message_unref(reply);
@@ -329,12 +329,12 @@ void sysai_response_free(sysai_response_t *resp) {
 
 char **sysai_list_models(sysai_client_t *client) {
     if (!client) return NULL;
-
+    
     sd_bus_error error = SD_BUS_ERROR_NULL;
     sd_bus_message *reply = NULL;
     char **models = NULL;
     int r;
-
+    
     r = sd_bus_call_method(
         client->bus,
         SYSAI_BUS_NAME,
@@ -345,32 +345,32 @@ char **sysai_list_models(sysai_client_t *client) {
         &reply,
         ""
     );
-
+    
     if (r < 0) {
-        set_error(client, SYSAI_ERR_SERVER, "Failed to list models: %s",
+        set_error(client, SYSAI_ERR_SERVER, "Failed to list models: %s", 
                  error.message ? error.message : strerror(-r));
         goto cleanup;
     }
-
+    
     /* Parse array of strings */
     r = sd_bus_message_enter_container(reply, 'a', "s");
     if (r < 0) goto cleanup;
-
+    
     /* Count models */
     size_t count = 0;
     const char *model;
     while (sd_bus_message_read(reply, "s", &model) > 0) {
         count++;
     }
-
+    
     /* Rewind */
     sd_bus_message_rewind(reply, true);
     sd_bus_message_enter_container(reply, 'a', "s");
-
+    
     /* Allocate array */
     models = calloc(count + 1, sizeof(char *));
     if (!models) goto cleanup;
-
+    
     /* Copy strings */
     size_t i = 0;
     while (sd_bus_message_read(reply, "s", &model) > 0 && i < count) {
@@ -382,7 +382,7 @@ char **sysai_list_models(sysai_client_t *client) {
         }
         i++;
     }
-
+    
 cleanup:
     sd_bus_error_free(&error);
     sd_bus_message_unref(reply);

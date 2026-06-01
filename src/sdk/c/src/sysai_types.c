@@ -1,6 +1,6 @@
 /**
  * SysAI C SDK - Type conversion and parsing
- *
+ * 
  * Copyright (C) 2025 CTyunOS. All Rights Reserved.
  */
 
@@ -22,55 +22,55 @@ int sysai_build_request_dict(
     bool stream
 ) {
     int r;
-
+    
     /* Open a{sv} container */
     r = sd_bus_message_open_container(m, 'a', "{sv}");
     if (r < 0) return r;
-
+    
     /* Add messages array */
     r = sd_bus_message_open_container(m, 'e', "sv");
     if (r < 0) return r;
     r = sd_bus_message_append(m, "s", "messages");
     if (r < 0) return r;
-
+    
     /* Open variant for messages array */
     r = sd_bus_message_open_container(m, 'v', "av");
     if (r < 0) return r;
     r = sd_bus_message_open_container(m, 'a', "v");
     if (r < 0) return r;
-
+    
     /* Add each message as a{sv} */
     for (size_t i = 0; messages[i]; i++) {
         r = sd_bus_message_open_container(m, 'v', "a{sv}");
         if (r < 0) return r;
         r = sd_bus_message_open_container(m, 'a', "{sv}");
         if (r < 0) return r;
-
+        
         /* role */
         r = sd_bus_message_append(m, "{sv}", "role", "s", messages[i]->role);
         if (r < 0) return r;
-
+        
         /* content */
         r = sd_bus_message_append(m, "{sv}", "content", "s", messages[i]->content);
         if (r < 0) return r;
-
+        
         r = sd_bus_message_close_container(m);  /* a{sv} */
         if (r < 0) return r;
         r = sd_bus_message_close_container(m);  /* v */
         if (r < 0) return r;
     }
-
+    
     r = sd_bus_message_close_container(m);  /* av */
     if (r < 0) return r;
     r = sd_bus_message_close_container(m);  /* v */
     if (r < 0) return r;
     r = sd_bus_message_close_container(m);  /* e */
     if (r < 0) return r;
-
+    
     /* Add stream flag */
     r = sd_bus_message_append(m, "{sv}", "stream", "b", stream);
     if (r < 0) return r;
-
+    
     /* Add optional parameters */
     if (options) {
         if (options->model) {
@@ -90,11 +90,11 @@ int sysai_build_request_dict(
             if (r < 0) return r;
         }
     }
-
+    
     /* Close a{sv} container */
     r = sd_bus_message_close_container(m);
     if (r < 0) return r;
-
+    
     return 0;
 }
 
@@ -186,29 +186,29 @@ int extract_int_from_variant_dict(sd_bus_message *m, const char *key) {
 static sd_bus_message *extract_array_from_variant_dict(sd_bus_message *m, const char *key) {
     int r;
     const char *k;
-
+    
     r = sd_bus_message_rewind(m, true);
     if (r < 0) return NULL;
-
+    
     r = sd_bus_message_enter_container(m, 'a', "{sv}");
     if (r < 0) return NULL;
-
+    
     while (sd_bus_message_enter_container(m, 'e', "sv") > 0) {
         r = sd_bus_message_read(m, "s", &k);
         if (r < 0) {
             sd_bus_message_exit_container(m);
             continue;
         }
-
+        
         if (strcmp(k, key) == 0) {
             /* Found the key, return message positioned at variant */
             return m;
         }
-
+        
         sd_bus_message_skip(m, "v");
         sd_bus_message_exit_container(m);
     }
-
+    
     return NULL;
 }
 
@@ -218,31 +218,31 @@ static sd_bus_message *extract_array_from_variant_dict(sd_bus_message *m, const 
 
 sysai_response_t *sysai_parse_response(sd_bus_message *m) {
     if (!m) return NULL;
-
+    
     sysai_response_t *resp = calloc(1, sizeof(sysai_response_t));
     if (!resp) return NULL;
-
+    
     /* Extract basic fields */
     resp->id = extract_string_from_variant_dict(m, "id");
     resp->model = extract_string_from_variant_dict(m, "model");
-
+    
     /* Extract content from choices[0].message.content */
     int r = sd_bus_message_rewind(m, true);
     if (r < 0) goto fallback;
-
+    
     r = sd_bus_message_enter_container(m, 'a', "{sv}");
     if (r < 0) goto fallback;
-
+    
     const char *key;
     bool found_choices = false;
-
+    
     while (sd_bus_message_enter_container(m, 'e', "sv") > 0) {
         r = sd_bus_message_read(m, "s", &key);
         if (r < 0) {
             sd_bus_message_exit_container(m);
             continue;
         }
-
+        
         if (strcmp(key, "choices") == 0) {
             found_choices = true;
             /* Enter variant containing array */
@@ -264,7 +264,7 @@ sysai_response_t *sysai_parse_response(sd_bus_message *m) {
                                     sd_bus_message_exit_container(m);
                                     continue;
                                 }
-
+                                
                                 if (strcmp(choice_key, "message") == 0) {
                                     /* Enter message dict */
                                     r = sd_bus_message_enter_container(m, 'v', "a{sv}");
@@ -343,15 +343,15 @@ sysai_response_t *sysai_parse_response(sd_bus_message *m) {
         } else {
             sd_bus_message_skip(m, "v");
         }
-
+        
         sd_bus_message_exit_container(m);
     }
-
+    
 fallback:
     /* Set defaults if parsing failed */
     if (!resp->id) resp->id = strdup("");
     if (!resp->model) resp->model = strdup("");
     if (!resp->content) resp->content = strdup("");
-
+    
     return resp;
 }

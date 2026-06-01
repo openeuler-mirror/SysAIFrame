@@ -24,11 +24,11 @@ logger = logging.getLogger(__name__)
 class RequestContext:
     """
     Request context - carries information throughout request lifecycle
-
+    
     This object is passed through all hooks and processing stages,
     allowing hooks to read and modify request/response data.
     """
-
+    
     def __init__(self):
         """Initialize request context with default values"""
         self.request_id: Optional[str] = None
@@ -39,11 +39,11 @@ class RequestContext:
         self.metadata: Dict[str, Any] = {}
         self.metrics: Dict[str, Any] = {}
         self.custom_headers: Dict[str, str] = {}
-
+    
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert context to dictionary
-
+        
         Returns:
             Dictionary representation of context
         """
@@ -62,15 +62,15 @@ class RequestContext:
 class RequestProcessor:
     """
     Unified request processor - manages complete request lifecycle
-
+    
     This class provides a centralized way to handle all chat completion
     requests with support for hooks, monitoring, and error handling.
     """
-
+    
     def __init__(self, request_data: Dict[str, Any], hook_manager: Optional[HookManager] = None):
         """
         Initialize request processor
-
+        
         Args:
             request_data: Request data dictionary
             hook_manager: Optional hook manager (uses global if not provided)
@@ -78,12 +78,12 @@ class RequestProcessor:
         self.data = request_data
         self.context = RequestContext()
         self.hook_manager = hook_manager or get_hook_manager()
-
+        
         # Extract basic info
         self.context.request_id = request_data.get('request_id')
         self.context.model = request_data.get('model')
         self.context.start_time = datetime.now()
-
+    
     async def process_request(
         self,
         fastapi_request: Request,
@@ -92,32 +92,41 @@ class RequestProcessor:
     ):
         """
         Main request processing entry point
-
+        
         Executes the complete request lifecycle:
         1. Pre-call processing and hooks
         2. Parallel execution: during-call hooks + actual request
         3. Post-call processing and hooks
-
+        
         Args:
             fastapi_request: Original FastAPI request object
             router_instance: Model router instance
             authorization: Authorization header (optional)
-
+            
         Returns:
             Response from backend (or error)
-
+            
         Raises:
             Various exceptions that will be handled by error middleware
         """
         try:
+            # Stage 1: Pre-call processing
             await self._pre_call_processing(fastapi_request, authorization)
+            
+            # Stage 2: Execute request with parallel hooks
             response = await self._execute_with_hooks(router_instance)
+            
+            # Stage 3: Post-call processing
             final_response = await self._post_call_processing(response)
+            
             return final_response
+            
         except Exception as e:
+            # Execute failure hooks
             await self._handle_failure(e)
+            # Re-raise for upper layer to handle
             raise
-
+    
     async def _pre_call_processing(
         self,
         fastapi_request: Request,
@@ -125,30 +134,30 @@ class RequestProcessor:
     ):
         """
         Pre-call processing stage
-
+        
         Performs:
         - User authentication
         - Request validation
         - Metadata injection
         - Pre-call hooks execution
-
+        
         Args:
             fastapi_request: Original FastAPI request
             authorization: Authorization header
         """
         logger.debug(f"[{self.context.request_id}] Starting pre-call processing")
-
+        
         # 1. Extract user information
         if authorization:
             self.context.user_id = await self._extract_user_id(authorization)
-
+        
         # 2. Add metadata to request
         self.data['metadata'] = {
             'request_id': self.context.request_id,
             'user_id': self.context.user_id,
             'timestamp': self.context.start_time.isoformat(),
         }
-
+        
         # 3. Build hook context
         hook_context = {
             'data': self.data,
@@ -157,66 +166,66 @@ class RequestProcessor:
             'user_id': self.context.user_id,
             'model': self.context.model,
         }
-
+        
         # 4. Execute pre-call hooks
         hook_context = await self.hook_manager.execute_pre_call_hooks(hook_context)
-
+        
         # 5. Update data from hooks (hooks may have modified it)
         self.data = hook_context['data']
-
+        
         logger.debug(f"[{self.context.request_id}] Pre-call processing completed")
-
+    
     async def _execute_with_hooks(self, router_instance):
         """
         Execute request with parallel during-call hooks
-
+        
         This method must be implemented by subclasses to define
         how to execute the actual request along with during-call hooks.
-
+        
         Subclasses should:
         1. Build hook context
         2. Create parallel tasks for hooks and actual request
         3. Execute with asyncio.gather()
         4. Return the response
-
+        
         Args:
             router_instance: Router instance
-
+            
         Returns:
             Response from backend (format depends on subclass)
-
+            
         Raises:
             NotImplementedError: If subclass doesn't implement this method
         """
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement _execute_with_hooks() method"
         )
-
+    
     async def _post_call_processing(self, response):
         """
         Post-call processing stage
-
+        
         Performs:
         - Response validation
         - Metrics collection
         - Custom headers generation
         - Post-call hooks execution
-
+        
         Args:
             response: Response from backend
-
+            
         Returns:
             Final processed response
         """
         logger.debug(f"[{self.context.request_id}] Starting post-call processing")
-
+        
         # 1. Calculate metrics
         duration_ms = (datetime.now() - self.context.start_time).total_seconds() * 1000
         self.context.metrics = {
             'duration_ms': duration_ms,
             'model': self.context.model,
         }
-
+        
         # 2. Extract token usage from response
         token_usage = None
         if isinstance(response, dict) and 'usage' in response:
@@ -239,8 +248,12 @@ class RequestProcessor:
                     ).inc(completion_tokens)
             except ImportError:
                 pass
-
-        # 3. Generate custom headers
+        
+        # 3. Get model config for provider info
+        # Note: This would require router_instance, so we'll skip for now
+        # In a real implementation, you'd pass this through context
+        
+        # 4. Generate custom headers
         self.context.custom_headers = ResponseHeaderManager.get_custom_headers(
             request_id=self.context.request_id,
             model_name=self.context.model,
@@ -248,8 +261,8 @@ class RequestProcessor:
             duration_ms=duration_ms,
             token_usage=token_usage,
         )
-
-        # 4. Build hook context
+        
+        # 5. Build hook context
         hook_context = {
             'data': self.data,
             'response': response,
@@ -259,29 +272,29 @@ class RequestProcessor:
             'duration_ms': duration_ms,
             'token_usage': token_usage,
         }
-
-        # 5. Execute post-call hooks
+        
+        # 6. Execute post-call hooks
         hook_context = await self.hook_manager.execute_post_call_hooks(hook_context)
-
-        # 6. Update response from hooks (hooks may have modified it)
+        
+        # 7. Update response from hooks (hooks may have modified it)
         response = hook_context['response']
-
-        # 7. Log completion
+        
+        # 8. Log completion
         logger.debug(
             f"[{self.context.request_id}] Request completed: "
             f"duration={duration_ms:.2f}ms, "
             f"tokens={token_usage.get('total_tokens', 0) if token_usage else 0}"
         )
-
+        
         logger.debug(f"[{self.context.request_id}] Post-call processing completed")
         return response
-
+    
     async def _handle_failure(self, error: Exception):
         """
         Handle request failure
-
+        
         Executes failure hooks and logs error
-
+        
         Args:
             error: Exception that occurred
         """
@@ -289,7 +302,7 @@ class RequestProcessor:
             f"[{self.context.request_id}] Request failed: {error}",
             exc_info=True
         )
-
+        
         # Build failure context
         hook_context = {
             'data': self.data,
@@ -298,7 +311,7 @@ class RequestProcessor:
             'model': self.context.model,
             'user_id': self.context.user_id,
         }
-
+        
         # Execute failure hooks
         try:
             await self.hook_manager.execute_failure_hooks(hook_context)
@@ -307,38 +320,39 @@ class RequestProcessor:
                 f"[{self.context.request_id}] Failure hook execution failed: {hook_error}",
                 exc_info=True
             )
-
+    
     async def _extract_user_id(self, authorization: str) -> Optional[str]:
         """
         Extract user ID from authorization header
-
+        
         Placeholder implementation. Should validate JWT token,
         query user database, and check permissions in production.
-
+        
         Args:
             authorization: Authorization header value
-
+            
         Returns:
             User ID or None
         """
         if authorization and authorization.startswith("Bearer "):
             return "user-123"  # Placeholder
         return None
-
+    
     def get_context(self) -> RequestContext:
         """
         Get the request context
-
+        
         Returns:
             Current request context
         """
         return self.context
-
+    
     def get_custom_headers(self) -> Dict[str, str]:
         """
         Get custom headers for response
-
+        
         Returns:
             Dictionary of custom headers
         """
         return self.context.custom_headers
+

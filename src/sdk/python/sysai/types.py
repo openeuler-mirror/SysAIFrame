@@ -57,24 +57,24 @@ class ChatMessage:
     role: str
     content: str
     name: Optional[str] = None
-
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for D-Bus"""
         result = {"role": self.role, "content": self.content}
         if self.name:
             result["name"] = self.name
         return result
-
+    
     @classmethod
     def user(cls, content: str, name: Optional[str] = None) -> "ChatMessage":
         """Create user message"""
         return cls(role="user", content=content, name=name)
-
+    
     @classmethod
     def system(cls, content: str, name: Optional[str] = None) -> "ChatMessage":
         """Create system message"""
         return cls(role="system", content=content, name=name)
-
+    
     @classmethod
     def assistant(cls, content: str, name: Optional[str] = None) -> "ChatMessage":
         """Create assistant message"""
@@ -87,7 +87,7 @@ class Usage:
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
-
+    
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Usage":
         """Create from dictionary"""
@@ -107,7 +107,7 @@ class ChatResponse:
     finish_reason: Optional[str]
     usage: Usage
     raw_response: Dict[str, Any]
-
+    
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ChatResponse":
         """
@@ -125,11 +125,11 @@ class ChatResponse:
             # Convert empty string to None
             if finish_reason == "":
                 finish_reason = None
-
+        
         # Parse usage
         usage_data = data.get("usage", {})
         usage = Usage.from_dict(usage_data)
-
+        
         return cls(
             id=data.get("id", ""),
             model=data.get("model", ""),
@@ -148,7 +148,7 @@ class ChatChunk:
     content: Optional[str]
     finish_reason: Optional[str]
     raw_chunk: Dict[str, Any]
-
+    
     @classmethod
     def from_dict(cls, request_id: str, model: str, data: Dict[str, Any]) -> "ChatChunk":
         """
@@ -157,7 +157,7 @@ class ChatChunk:
         """
         content = None
         finish_reason = None
-
+        
         if "choices" in data and data["choices"]:
             choice = data["choices"][0]
             if "delta" in choice:
@@ -169,7 +169,7 @@ class ChatChunk:
             finish_reason = choice.get("finish_reason")
             if finish_reason == "":
                 finish_reason = None
-
+        
         return cls(
             id=request_id,
             model=model,

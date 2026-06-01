@@ -27,11 +27,11 @@ class StreamIterator:
     Iterator for streaming chat responses.
     Runs GLib main loop in a separate thread to receive D-Bus signals.
     """
-
+    
     def __init__(self, bus, request_id: str, model: str, timeout: int = 120):
         """
         Initialize stream iterator.
-
+        
         Args:
             bus: D-Bus connection
             request_id: Request ID to filter signals
@@ -40,21 +40,21 @@ class StreamIterator:
         """
         if not DBUS_AVAILABLE:
             raise RuntimeError("D-Bus dependencies not available")
-
+        
         self.bus = bus
         self.request_id = request_id
         self.model = model
         self.timeout = timeout
-
+        
         self.chunk_queue: queue.Queue = queue.Queue()
         self.done = False
         self.error: Optional[Exception] = None
-
+        
         self.mainloop: Optional[GLib.MainLoop] = None
         self.thread: Optional[threading.Thread] = None
-
+        
         self._setup_signals()
-
+    
     def _setup_signals(self):
         """Setup D-Bus signal handlers with request_id filtering"""
         try:
@@ -66,7 +66,7 @@ class StreamIterator:
                 f"arg0='{self.request_id}'"
             )
             self.bus.add_match_string(match_rule)
-
+            
             match_rule_done = (
                 f"type='signal',"
                 f"interface='org.ctyunos.AIGateway.Chat',"
@@ -74,7 +74,7 @@ class StreamIterator:
                 f"arg0='{self.request_id}'"
             )
             self.bus.add_match_string(match_rule_done)
-
+            
             # Connect signal handlers
             self.bus.add_signal_receiver(
                 self._handle_chunk,
@@ -82,26 +82,26 @@ class StreamIterator:
                 dbus_interface="org.ctyunos.AIGateway.Chat",
                 path="/org/ctyunos/AIGateway/Chat"
             )
-
+            
             self.bus.add_signal_receiver(
                 self._handle_done,
                 signal_name="StreamDone",
                 dbus_interface="org.ctyunos.AIGateway.Chat",
                 path="/org/ctyunos/AIGateway/Chat"
             )
-
+            
             logger.debug(f"Signal handlers setup for request_id: {self.request_id}")
-
+            
         except Exception as e:
             logger.error(f"Failed to setup signal handlers: {e}")
             raise ServerError(f"Failed to setup streaming: {e}")
-
+    
     def _handle_chunk(self, request_id: str, chunk: Dict[str, Any]):
         """Handle StreamChunk signal"""
         # Double-check request_id (match rule should already filter)
         if request_id != self.request_id:
             return
-
+        
         try:
             # Convert D-Bus types to Python
             chunk_dict = self._dbus_to_python(chunk)
@@ -114,20 +114,20 @@ class StreamIterator:
             self.done = True
             if self.mainloop:
                 self.mainloop.quit()
-
+    
     def _handle_done(self, request_id: str, usage: Dict[str, Any]):
         """Handle StreamDone signal"""
         # Double-check request_id
         if request_id != self.request_id:
             return
-
+        
         logger.debug(f"Stream done for {request_id}")
         self.done = True
         # Signal end of stream
         self.chunk_queue.put(None)
         if self.mainloop:
             self.mainloop.quit()
-
+    
     def _dbus_to_python(self, value: Any) -> Any:
         """Convert D-Bus types to Python types"""
         if isinstance(value, dbus.Dictionary):
@@ -146,7 +146,7 @@ class StreamIterator:
         elif isinstance(value, dbus.Byte):
             return int(value)
         return value
-
+    
     def _run_mainloop(self):
         """Run GLib main loop in separate thread"""
         try:
@@ -158,50 +158,50 @@ class StreamIterator:
             logger.error(f"Main loop error: {e}")
             self.error = ServerError(f"Main loop error: {e}")
             self.done = True
-
+    
     def start(self):
         """Start the streaming thread"""
         self.thread = threading.Thread(target=self._run_mainloop, daemon=True)
         self.thread.start()
-
+    
     def stop(self):
         """Stop the streaming thread"""
         if self.mainloop and self.mainloop.is_running():
             self.mainloop.quit()
         if self.thread and self.thread.is_alive():
             self.thread.join(timeout=2)
-
+    
     def __iter__(self) -> Iterator[ChatChunk]:
         """Iterator protocol"""
         return self
-
+    
     def __next__(self) -> ChatChunk:
         """Get next chunk"""
         try:
             # Wait for chunk with timeout
             chunk = self.chunk_queue.get(timeout=self.timeout)
-
+            
             # None signals end of stream
             if chunk is None:
                 self.stop()
                 raise StopIteration
-
+            
             # Check for errors
             if self.error:
                 self.stop()
                 raise self.error
-
+            
             return chunk
-
+            
         except queue.Empty:
             self.stop()
             raise SysAITimeoutError(f"Stream timeout after {self.timeout} seconds")
-
+    
     def __enter__(self):
         """Context manager entry"""
         self.start()
         return self
-
+    
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit"""
         self.stop()

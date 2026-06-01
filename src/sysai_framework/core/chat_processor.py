@@ -23,27 +23,27 @@ logger = logging.getLogger(__name__)
 class ChatCompletionProcessor(RequestProcessor):
     """
     Chat completion specific processor
-
+    
     This processor is specialized for handling chat completion requests,
     providing clear separation between streaming and non-streaming flows.
-
+    
     Key improvements over base RequestProcessor:
     1. Clear separation of streaming vs non-streaming logic
     2. Proper response wrapping for each mode
     3. Chat-specific parameter extraction
     """
-
+    
     def __init__(self, request_data: Dict[str, Any], hook_manager=None):
         """
         Initialize chat completion processor
-
+        
         Args:
             request_data: Chat completion request data
             hook_manager: Optional hook manager
         """
         super().__init__(request_data, hook_manager)
         self.is_streaming = request_data.get('stream', False)
-
+    
     async def process_request(
         self,
         fastapi_request: Request,
@@ -52,28 +52,28 @@ class ChatCompletionProcessor(RequestProcessor):
     ):
         """
         Process chat completion request - unified flow
-
+        
         Flow:
         1. Pre-call processing
         2. Execute request with parallel during-call hooks
         3. Post-call processing (only for non-streaming)
         4. Wrap response based on streaming flag
-
+        
         Args:
             fastapi_request: Original FastAPI request
             router_instance: Model router instance
             authorization: Authorization header
-
+            
         Returns:
             StreamingResponse for streaming, dict for non-streaming
         """
         try:
             # Stage 1: Pre-call processing
             await self._pre_call_processing(fastapi_request, authorization)
-
+            
             # Stage 2: Execute request with parallel during-call hooks
             logger.debug(f"[{self.context.request_id}] Starting request execution")
-
+            
             # Build hook context
             hook_context = {
                 'data': self.data,
@@ -81,10 +81,10 @@ class ChatCompletionProcessor(RequestProcessor):
                 'model': self.context.model,
                 'user_id': self.context.user_id,
             }
-
+            
             # Extract parameters (includes stream flag)
             params = self._extract_route_params()
-
+            
             # Execute in parallel: during-call hooks + actual request
             # Hooks run alongside the main request without blocking
             results = await asyncio.gather(
@@ -92,40 +92,40 @@ class ChatCompletionProcessor(RequestProcessor):
                 router_instance.route_chat_acompletion(**params),
                 return_exceptions=True
             )
-
+            
             # Check for errors in main request (results[1])
             response = results[1]
             if isinstance(response, Exception):
                 raise response
-
+            
             logger.debug(
                 f"[{self.context.request_id}] Request execution completed, "
                 f"response type: {type(response).__name__}"
             )
-
+            
             # Stage 3: Post-call processing (only for non-streaming)
             if not self.is_streaming:
                 response = await self._post_call_processing(response)
-
+            
             # Stage 4: Wrap response based on streaming flag (at the end)
             # For streaming: wrap as StreamingResponse, for non-streaming: return dict
             return await self._wrap_response(response)
-
+                
         except Exception as e:
             # Execute failure hooks
             await self._handle_failure(e)
             raise
-
+    
     async def _wrap_response(self, response):
         """
         Wrap response based on streaming flag
-
+        
         For streaming responses, wraps the async generator as StreamingResponse
         with appropriate headers. For non-streaming, returns the response dict directly.
-
+        
         Args:
             response: Response from router (AsyncGenerator for streaming, dict for non-streaming)
-
+            
         Returns:
             StreamingResponse for streaming, dict for non-streaming
         """
@@ -136,11 +136,11 @@ class ChatCompletionProcessor(RequestProcessor):
                 model_name=self.context.model,
                 provider=self.context.provider,
             )
-
+            
             logger.debug(
                 f"[{self.context.request_id}] Wrapping response as StreamingResponse"
             )
-
+            
             # Wrap with safe streaming response (handles first-chunk error detection)
             return await create_streaming_response(
                 generator=response,
@@ -151,11 +151,11 @@ class ChatCompletionProcessor(RequestProcessor):
                 f"[{self.context.request_id}] Returning response dict"
             )
             return response
-
+    
     def _extract_route_params(self) -> dict:
         """
         Extract chat completion specific parameters
-
+        
         Returns:
             Dictionary of chat completion parameters (including stream flag)
         """
@@ -182,10 +182,10 @@ class ChatCompletionProcessor(RequestProcessor):
 class ImageGenerationProcessor(RequestProcessor):
     """
     Image generation processor (example for future extension)
-
+    
     This demonstrates how to create specialized processors for different request types.
     """
-
+    
     def _extract_route_params(self) -> dict:
         """Extract image generation parameters"""
         return {
@@ -195,11 +195,11 @@ class ImageGenerationProcessor(RequestProcessor):
             'size': self.data.get('size', '1024x1024'),
             'quality': self.data.get('quality', 'standard'),
         }
-
+    
     async def _route_streaming(self, router_instance, params: dict):
         """Image generation typically doesn't support streaming"""
         raise NotImplementedError("Image generation does not support streaming")
-
+    
     async def _route_non_streaming(self, router_instance, params: dict):
         """Route image generation request"""
         # Hypothetical method
@@ -210,10 +210,10 @@ class ImageGenerationProcessor(RequestProcessor):
 class EmbeddingProcessor(RequestProcessor):
     """
     Embedding processor (example for future extension)
-
+    
     This demonstrates how to create specialized processors for embeddings.
     """
-
+    
     def _extract_route_params(self) -> dict:
         """Extract embedding parameters"""
         return {
@@ -221,12 +221,13 @@ class EmbeddingProcessor(RequestProcessor):
             'input': self.data.get('input'),
             'encoding_format': self.data.get('encoding_format', 'float'),
         }
-
+    
     async def _route_streaming(self, router_instance, params: dict):
         """Embeddings don't support streaming"""
         raise NotImplementedError("Embeddings do not support streaming")
-
+    
     async def _route_non_streaming(self, router_instance, params: dict):
         """Route embedding request"""
         # Hypothetical method
         return router_instance.route_embedding(**params)
+

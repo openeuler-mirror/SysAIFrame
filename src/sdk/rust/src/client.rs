@@ -25,14 +25,14 @@ impl SysAIClient {
             .map_err(|e| SysAIError::connection(format!("Failed to connect to system bus: {}", e)))?;
         Ok(Self { connection })
     }
-
+    
     /// Create a new client connected to session bus
     pub fn with_session_bus() -> Result<Self> {
         let connection = Connection::session()
             .map_err(|e| SysAIError::connection(format!("Failed to connect to session bus: {}", e)))?;
         Ok(Self { connection })
     }
-
+    
     /// Send a chat completion request (non-streaming)
     pub fn chat(&self, messages: &[Message], options: Option<ChatOptions>) -> Result<ChatResponse> {
         let request = build_request_dict(messages, options, false)?;
@@ -83,9 +83,9 @@ impl SysAIClient {
 
         ChatResponse::from_variant_dict(response)
     }
-
+    
     /// Send a chat completion request with streaming
-    ///
+    /// 
     /// Returns an iterator over chat chunks
     pub fn chat_stream(
         &self,
@@ -127,7 +127,7 @@ impl SysAIClient {
 
         crate::streaming::StreamIterator::new(self.connection.clone(), request_id, model)
     }
-
+    
     /// Get list of available models
     pub fn list_models(&self) -> Result<Vec<String>> {
         let proxy = Proxy::builder(&self.connection)
@@ -147,7 +147,7 @@ impl SysAIClient {
 
         Ok(models)
     }
-
+    
     /// Get service status
     pub fn get_status(&self) -> Result<HashMap<String, OwnedValue>> {
         let proxy = Proxy::builder(&self.connection)

@@ -44,31 +44,31 @@ class DBusNotAvailableError(DBusClientError):
 class AdminDBusClient:
     """
     D-Bus client for model configuration admin operations.
-
+    
     Usage:
         client = AdminDBusClient()
         if client.is_service_running():
             success, message, instance_id = client.add_model(model_data)
     """
-
+    
     def __init__(self, use_system_bus: bool = True):
         """
         Initialize D-Bus client.
-
+        
         Args:
             use_system_bus: Use system bus (True) or session bus (False)
         """
         self.use_system_bus = use_system_bus
         self._bus = None
         self._admin_interface = None
-
+    
     def _get_bus(self):
         """Get D-Bus connection"""
         if not DBUS_AVAILABLE:
             raise DBusNotAvailableError(
                 "D-Bus is not available. Please install dbus-python."
             )
-
+        
         if self._bus is None:
             try:
                 if self.use_system_bus:
@@ -84,9 +84,9 @@ class AdminDBusClient:
                 raise DBusNotAvailableError(
                     f"D-Bus functionality is not available on this system: {e}"
                 )
-
+        
         return self._bus
-
+    
     def _get_admin_interface(self):
         """Get Admin D-Bus interface"""
         if self._admin_interface is None:
@@ -101,37 +101,37 @@ class AdminDBusClient:
                         "Please start the service first: sudo systemctl start sysaiframe"
                     )
                 raise DBusClientError(f"Failed to connect to D-Bus service: {e}")
-
+        
         return self._admin_interface
-
+    
     def is_service_running(self) -> bool:
         """Check if SysAIFrame service is running"""
         if not DBUS_AVAILABLE:
             return False
-
+        
         try:
             self._get_admin_interface()
             return True
         except (ServiceNotRunningError, DBusClientError):
             return False
-
+    
     def add_model(
-        self,
-        model_data: Dict[str, Any],
+        self, 
+        model_data: Dict[str, Any], 
         force: bool = False,
         set_as_default: bool = False
     ) -> 'OperationResult':
         """
         Add a new model configuration.
-
+        
         Args:
             model_data: Model configuration dictionary
             force: Force overwrite if instance_id exists
             set_as_default: Set this model as the default model
-
+            
         Returns:
             OperationResult with status, message, and instance_id as data
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
@@ -139,16 +139,16 @@ class AdminDBusClient:
         from sysai_framework.core.status_codes import (
             OperationResult, parse_status_from_message, SUCCESS, INTERNAL_ERROR
         )
-
+        
         admin = self._get_admin_interface()
-
+        
         try:
             model_data_json = json.dumps(model_data, ensure_ascii=False)
             success, message, instance_id = admin.AddModel(model_data_json, force, set_as_default)
-
+            
             # Parse status code from message if present
             status, pure_message = parse_status_from_message(str(message))
-
+            
             if success:
                 return OperationResult(
                     status=status or SUCCESS,
@@ -168,42 +168,42 @@ class AdminDBusClient:
                 )
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to add model: {e}")
-
+    
     def list_models(self) -> List[Dict[str, Any]]:
         """
         List all configured models.
-
+        
         Returns:
             List of model configurations
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             models_json = admin.ListModels()
             return json.loads(models_json) if models_json else []
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to list models: {e}")
-
+    
     def get_model(self, identifier: str) -> Optional[Dict[str, Any]]:
         """
         Get model configuration by identifier.
-
+        
         Args:
             identifier: Model name or instance_id
-
+            
         Returns:
             Model configuration or None if not found
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             model_json = admin.GetModel(identifier)
             if not model_json:
@@ -211,17 +211,17 @@ class AdminDBusClient:
             return json.loads(model_json)
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to get model: {e}")
-
+    
     def remove_model(self, instance_id: str) -> 'OperationResult':
         """
         Remove a model by instance_id.
-
+        
         Args:
             instance_id: Instance ID of the model to remove
-
+            
         Returns:
             OperationResult with status and message
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
@@ -229,15 +229,15 @@ class AdminDBusClient:
         from sysai_framework.core.status_codes import (
             OperationResult, parse_status_from_message, SUCCESS, INTERNAL_ERROR
         )
-
+        
         admin = self._get_admin_interface()
-
+        
         try:
             success, message = admin.RemoveModel(instance_id)
-
+            
             # Parse status code from message if present
             status, pure_message = parse_status_from_message(str(message))
-
+            
             if success:
                 return OperationResult(
                     status=status or SUCCESS,
@@ -305,10 +305,10 @@ class AdminDBusClient:
     def reload_config(self) -> 'OperationResult':
         """
         Reload configuration from file.
-
+        
         Returns:
             OperationResult with status and message
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
@@ -316,15 +316,15 @@ class AdminDBusClient:
         from sysai_framework.core.status_codes import (
             OperationResult, parse_status_from_message, SUCCESS, INTERNAL_ERROR
         )
-
+        
         admin = self._get_admin_interface()
-
+        
         try:
             success, message = admin.ReloadConfig()
-
+            
             # Parse status code from message if present
             status, pure_message = parse_status_from_message(str(message))
-
+            
             if success:
                 return OperationResult(
                     status=status or SUCCESS,
@@ -337,62 +337,62 @@ class AdminDBusClient:
                 )
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to reload config: {e}")
-
+    
     def get_service_config_path(self) -> str:
         """
         Get the configuration file path currently used by the service.
-
+        
         Returns:
             Configuration file path as string
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             config_path = admin.GetServiceConfigPath()
             return str(config_path) if config_path else ""
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to get service config path: {e}")
-
+    
     def get_routing_config(self) -> Dict[str, Any]:
         """
         Get current routing configuration including default model.
-
+        
         Returns:
             Dictionary containing:
                 - default_model: str or None
                 - default_model_instance_id: str or None
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             routing_json = admin.GetRoutingConfig()
             return json.loads(routing_json)
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to get routing config: {e}")
-
+    
     def set_default_model(
-        self,
-        model_name: str,
+        self, 
+        model_name: str, 
         instance_id: Optional[str] = None
     ) -> 'OperationResult':
         """
         Set default model for routing.
-
+        
         Args:
             model_name: Model name to set as default
             instance_id: Optional specific instance ID
-
+            
         Returns:
             OperationResult with status and message
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
@@ -400,18 +400,18 @@ class AdminDBusClient:
         from sysai_framework.core.status_codes import (
             OperationResult, parse_status_from_message, SUCCESS, INTERNAL_ERROR
         )
-
+        
         admin = self._get_admin_interface()
-
+        
         try:
             # Convert None to empty string for D-Bus
             instance_id_str = instance_id if instance_id else ""
-
+            
             success, message = admin.SetDefaultModel(model_name, instance_id_str)
-
+            
             # Parse status code from message if present
             status, pure_message = parse_status_from_message(str(message))
-
+            
             if success:
                 # Create a result with pre-formatted message
                 result = OperationResult(
@@ -436,20 +436,20 @@ class AdminDBusClient:
                 return result
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to set default model: {e}")
-
+    
     def get_service_status(self) -> Dict[str, Any]:
         """
         Get current service operational status.
-
+        
         Returns:
             Dictionary containing service status information
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             status_json = admin.GetServiceStatus()
             return json.loads(status_json)
@@ -457,20 +457,20 @@ class AdminDBusClient:
             raise DBusClientError(f"Failed to parse service status: {e}")
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to get service status: {e}")
-
+    
     def get_health_check_config(self) -> str:
         """
         Get current health check configuration.
-
+        
         Returns:
             JSON string containing health check configuration
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             return str(admin.GetHealthCheckConfig())
         except dbus.exceptions.DBusException as e:
@@ -481,45 +481,45 @@ class AdminDBusClient:
                     f"Original error: {e}"
                 )
             raise DBusClientError(f"Failed to get health check config: {e}")
-
+    
     def update_health_check_config(self, config_json: str) -> Tuple[bool, str]:
         """
         Update health check configuration (hot reload).
-
+        
         Args:
             config_json: JSON string containing health check configuration
-
+            
         Returns:
             Tuple of (success, message)
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             success, message = admin.UpdateHealthCheckConfig(config_json)
             return (bool(success), str(message))
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to update health check config: {e}")
-
+    
     def get_health_status(self, model_name: str) -> str:
         """
         Get health status for specified model or all models.
-
+        
         Args:
             model_name: Model name (empty string for all models)
-
+            
         Returns:
             JSON string containing health status information
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             return str(admin.GetHealthStatus(model_name))
         except dbus.exceptions.DBusException as e:
@@ -530,42 +530,42 @@ class AdminDBusClient:
                     f"Original error: {e}"
                 )
             raise DBusClientError(f"Failed to get health status: {e}")
-
+    
     def trigger_health_check(self, model_name: str) -> Tuple[bool, str]:
         """
         Manually trigger health check for specified model or all models.
-
+        
         Args:
             model_name: Model name (empty string for all models)
-
+            
         Returns:
             Tuple of (success, message)
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             success, message = admin.TriggerHealthCheck(model_name)
             return (bool(success), str(message))
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to trigger health check: {e}")
-
+    
     def get_retry_policy_config(self) -> str:
         """
         Get current retry policy configuration.
-
+        
         Returns:
             JSON string containing retry policy configuration
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             return str(admin.GetRetryPolicyConfig())
         except dbus.exceptions.DBusException as e:
@@ -576,23 +576,23 @@ class AdminDBusClient:
                     f"Original error: {e}"
                 )
             raise DBusClientError(f"Failed to get retry policy config: {e}")
-
+    
     def update_retry_policy_config(self, config_json: str) -> Tuple[bool, str]:
         """
         Update retry policy configuration (hot reload).
-
+        
         Args:
             config_json: JSON string containing retry policy configuration
-
+            
         Returns:
             Tuple of (success, message)
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             success, message = admin.UpdateRetryPolicyConfig(config_json)
             return (bool(success), str(message))
@@ -603,79 +603,79 @@ class AdminDBusClient:
     def get_runtime_mode(self) -> str:
         """
         Get current runtime mode.
-
+        
         Returns:
             Runtime mode string: "default" or "load-balance"
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             mode = admin.GetRuntimeMode()
             return str(mode)
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to get runtime mode: {e}")
-
+    
     def set_runtime_mode(self, mode: str) -> Tuple[bool, str]:
         """
         Set runtime mode.
-
+        
         Args:
             mode: Runtime mode ("default" or "load-balance")
-
+            
         Returns:
             Tuple of (success, message)
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             success, message = admin.SetRuntimeMode(mode)
             return (bool(success), str(message))
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to set runtime mode: {e}")
-
+    
     def get_load_balance_strategy(self) -> str:
         """
         Get current load balance strategy.
-
+        
         Returns:
             Strategy string
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             strategy = admin.GetLoadBalanceStrategy()
             return str(strategy)
         except dbus.exceptions.DBusException as e:
             raise DBusClientError(f"Failed to get load balance strategy: {e}")
-
+    
     def set_load_balance_strategy(self, strategy: str) -> Tuple[bool, str]:
         """
         Set load balance strategy.
-
+        
         Args:
             strategy: Strategy name
-
+            
         Returns:
             Tuple of (success, message)
-
+            
         Raises:
             ServiceNotRunningError: If service is not running
             DBusClientError: If D-Bus call fails
         """
         admin = self._get_admin_interface()
-
+        
         try:
             success, message = admin.SetLoadBalanceStrategy(strategy)
             return (bool(success), str(message))
@@ -789,11 +789,12 @@ class AdminDBusClient:
 def get_dbus_client(use_system_bus: bool = True) -> AdminDBusClient:
     """
     Get a D-Bus admin client instance.
-
+    
     Args:
         use_system_bus: Use system bus (True) or session bus (False)
-
+        
     Returns:
         AdminDBusClient instance
     """
     return AdminDBusClient(use_system_bus=use_system_bus)
+

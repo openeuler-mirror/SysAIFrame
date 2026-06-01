@@ -1,6 +1,6 @@
 /**
  * SysAI C SDK - Public API
- *
+ * 
  * Copyright (C) 2025 CTyunOS. All Rights Reserved.
  */
 
@@ -60,28 +60,28 @@ typedef void (*sysai_stream_cb)(const char *content, int is_done, void *user_dat
 
 /**
  * Create a new SysAI client connected to system bus
- *
+ * 
  * @return Client handle or NULL on error
  */
 SYSAI_API sysai_client_t *sysai_client_new(void);
 
 /**
  * Create a new SysAI client connected to session bus
- *
+ * 
  * @return Client handle or NULL on error
  */
 SYSAI_API sysai_client_t *sysai_client_new_session(void);
 
 /**
  * Free a SysAI client
- *
+ * 
  * @param client Client handle
  */
 SYSAI_API void sysai_client_free(sysai_client_t *client);
 
 /**
  * Get last error message
- *
+ * 
  * @param client Client handle
  * @return Error message string or NULL
  */
@@ -89,7 +89,7 @@ SYSAI_API const char *sysai_last_error(sysai_client_t *client);
 
 /**
  * Get last error code
- *
+ * 
  * @param client Client handle
  * @return Error code
  */
@@ -101,7 +101,7 @@ SYSAI_API int sysai_last_error_code(sysai_client_t *client);
 
 /**
  * Create a new message
- *
+ * 
  * @param role Message role ("user", "system", "assistant")
  * @param content Message content
  * @return Message handle or NULL on error
@@ -137,14 +137,14 @@ SYSAI_API void sysai_message_free(sysai_message_t *message);
 
 /**
  * Create new request options
- *
+ * 
  * @return Options handle or NULL on error
  */
 SYSAI_API sysai_options_t *sysai_options_new(void);
 
 /**
  * Set model name
- *
+ * 
  * @param opts Options handle
  * @param model Model name
  */
@@ -152,7 +152,7 @@ SYSAI_API void sysai_options_set_model(sysai_options_t *opts, const char *model)
 
 /**
  * Set temperature
- *
+ * 
  * @param opts Options handle
  * @param temperature Temperature value (0.0 to 2.0)
  */
@@ -160,7 +160,7 @@ SYSAI_API void sysai_options_set_temperature(sysai_options_t *opts, double tempe
 
 /**
  * Set max tokens
- *
+ * 
  * @param opts Options handle
  * @param max_tokens Maximum tokens to generate
  */
@@ -168,7 +168,7 @@ SYSAI_API void sysai_options_set_max_tokens(sysai_options_t *opts, int max_token
 
 /**
  * Set top_p
- *
+ * 
  * @param opts Options handle
  * @param top_p Top-p value (0.0 to 1.0)
  */
@@ -222,7 +222,7 @@ SYSAI_API void sysai_options_free(sysai_options_t *opts);
 
 /**
  * Send a chat completion request (non-streaming)
- *
+ * 
  * @param client Client handle
  * @param messages NULL-terminated array of messages
  * @param options Request options (can be NULL)
@@ -236,7 +236,7 @@ SYSAI_API sysai_response_t *sysai_chat(
 
 /**
  * Send a chat completion request with streaming
- *
+ * 
  * @param client Client handle
  * @param messages NULL-terminated array of messages
  * @param options Request options (can be NULL)
@@ -276,7 +276,7 @@ SYSAI_API sysai_response_t *sysai_response_new(
 
 /**
  * Get response content
- *
+ * 
  * @param resp Response handle
  * @return Content string
  */
@@ -284,7 +284,7 @@ SYSAI_API const char *sysai_response_get_content(const sysai_response_t *resp);
 
 /**
  * Get response model
- *
+ * 
  * @param resp Response handle
  * @return Model name
  */
@@ -292,7 +292,7 @@ SYSAI_API const char *sysai_response_get_model(const sysai_response_t *resp);
 
 /**
  * Get response ID
- *
+ * 
  * @param resp Response handle
  * @return Response ID
  */
@@ -300,7 +300,7 @@ SYSAI_API const char *sysai_response_get_id(const sysai_response_t *resp);
 
 /**
  * Get total tokens used
- *
+ * 
  * @param resp Response handle
  * @return Total tokens
  */
@@ -308,7 +308,7 @@ SYSAI_API int sysai_response_get_total_tokens(const sysai_response_t *resp);
 
 /**
  * Get finish reason
- *
+ * 
  * @param resp Response handle
  * @return Finish reason or NULL
  */
@@ -316,7 +316,7 @@ SYSAI_API const char *sysai_response_get_finish_reason(const sysai_response_t *r
 
 /**
  * Free response
- *
+ * 
  * @param resp Response handle
  */
 SYSAI_API void sysai_response_free(sysai_response_t *resp);
@@ -327,7 +327,7 @@ SYSAI_API void sysai_response_free(sysai_response_t *resp);
 
 /**
  * List available models
- *
+ * 
  * @param client Client handle
  * @return NULL-terminated array of model names, or NULL on error
  */
@@ -335,7 +335,7 @@ SYSAI_API char **sysai_list_models(sysai_client_t *client);
 
 /**
  * Free models array
- *
+ * 
  * @param models Models array from sysai_list_models
  */
 SYSAI_API void sysai_free_models(char **models);

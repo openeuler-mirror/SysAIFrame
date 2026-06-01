@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 class Output:
     """CLI output formatting utilities"""
-
+    
     # Exit codes (kept for backward compatibility)
     EXIT_SUCCESS = 0
     EXIT_CONFIG_NOT_FOUND = 1
@@ -25,39 +25,39 @@ class Output:
     EXIT_VERSION_CONFLICT = 7
     EXIT_SERVICE_NOT_RUNNING = 8
     EXIT_DBUS_ERROR = 9
-
+    
     @staticmethod
     def success(message: str) -> None:
         """Print success message in green"""
         click.echo(click.style(message, fg='green'))
-
+    
     @staticmethod
     def error(message: str) -> None:
         """Print error message in red"""
         click.echo(click.style(message, fg='red'), err=True)
-
+    
     @staticmethod
     def warning(message: str) -> None:
         """Print warning message in yellow"""
         click.echo(click.style(message, fg='yellow'), err=True)
-
+    
     @staticmethod
     def info(message: str) -> None:
         """Print info message"""
         click.echo(message)
-
+    
     @staticmethod
     def print_result(result: 'OperationResult') -> None:
         """
         Print OperationResult with appropriate styling
-
+        
         Args:
             result: OperationResult object from status code system
         """
         from sysai_framework.core.status_codes import StatusLevel
-
+        
         message = result.get_message()
-
+        
         if result.status.level == StatusLevel.SUCCESS:
             Output.success(message)
         elif result.status.level == StatusLevel.INFO:
@@ -69,51 +69,51 @@ class Output:
         else:
             # Default
             click.echo(message)
-
+    
     @staticmethod
     def table(headers: List[str], rows: List[List[str]]) -> None:
         """Print data as a formatted table"""
         if not rows:
             click.echo("No data to display.")
             return
-
+        
         # Calculate column widths
         col_widths = [len(h) for h in headers]
         for row in rows:
             for i, cell in enumerate(row):
                 if i < len(col_widths):
                     col_widths[i] = max(col_widths[i], len(str(cell)))
-
+        
         # Print header
         header_line = " | ".join(
             h.ljust(col_widths[i]) for i, h in enumerate(headers)
         )
         click.echo(header_line)
         click.echo("-" * len(header_line))
-
+        
         # Print rows
         for row in rows:
             row_line = " | ".join(
                 str(cell).ljust(col_widths[i]) for i, cell in enumerate(row)
             )
             click.echo(row_line)
-
+    
     @staticmethod
     def json_output(data: Any) -> None:
         """Print data as formatted JSON"""
         click.echo(json.dumps(data, indent=2, ensure_ascii=False))
-
+    
     @staticmethod
     def print_json(data: Any) -> None:
         """Print data as formatted JSON (alias for json_output)"""
         Output.json_output(data)
-
+    
     @staticmethod
     def section(title: str) -> None:
         """Print section header"""
         click.echo("")
         click.echo(click.style(title, fg='cyan', bold=True))
-
+    
     @staticmethod
     def model_info(model_data: Dict[str, Any]) -> None:
         """Print model configuration info"""
@@ -123,10 +123,21 @@ class Output:
         click.echo(f"  API: {model_data.get('api_base', 'N/A')}")
         click.echo(f"  Priority: {model_data.get('priority', 1)}")
         click.echo(f"  Capabilities: {', '.join(model_data.get('capabilities', ['general']))}")
-        click.echo(f"  Timeout: {model_data.get('timeout', 30)}s")
+        timeout_display = model_data.get('timeout')
+        if timeout_display is None or timeout_display == 'inherit (routing)':
+            timeout_str = 'inherit (routing)'
+        else:
+            timeout_str = f"{timeout_display}s"
+        click.echo(f"  Timeout: {timeout_str}")
+        stream_timeout_display = model_data.get('stream_timeout')
+        if stream_timeout_display is None or stream_timeout_display == 'inherit (timeout)':
+            stream_timeout_str = 'inherit (timeout)'
+        else:
+            stream_timeout_str = f"{stream_timeout_display}s"
+        click.echo(f"  Stream Timeout: {stream_timeout_str}")
         click.echo(f"  Max Retries: {model_data.get('max_retries', 3)}")
         click.echo(f"  Streaming: {model_data.get('supports_streaming', True)}")
-
+    
     @staticmethod
     def validation_errors(errors: List[str]) -> None:
         """Print validation errors"""
@@ -138,18 +149,18 @@ class Output:
     def sanitize_sensitive_data(data: Any) -> Any:
         """
         Recursively sanitize sensitive information in data structures.
-
+        
         Replaces sensitive fields (api_key, api-key, API_KEY, etc.) with '***'.
-
+        
         Args:
             data: Data structure (dict, list, or primitive) to sanitize
-
+            
         Returns:
             Sanitized data structure with sensitive fields replaced
         """
         # List of sensitive field names (case-insensitive matching)
         SENSITIVE_FIELDS = {'api_key', 'api-key', 'api_key', 'API_KEY', 'secret', 'password', 'token'}
-
+        
         if isinstance(data, dict):
             sanitized = {}
             for key, value in data.items():
@@ -167,3 +178,5 @@ class Output:
         else:
             # Primitive types (str, int, bool, None, etc.) - return as is
             return data
+
+
