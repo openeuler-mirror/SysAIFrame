@@ -2118,3 +2118,364 @@ class ModelConfigManager:
             except OSError:
                 pass
             raise
+
+    def persist_routing_config(self) -> None:
+        """
+        Persist routing configuration (health_check and retry_policy) to file.
+
+        Updates the routing.health_check and routing.retry_policy sections
+        in the YAML configuration file using atomic write.
+
+        Raises:
+            FileNotFoundError: If config file doesn't exist
+            Exception: If write operation fails
+        """
+        if not os.path.exists(self.config_path):
+            raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
+
+        yaml_obj = YAML()
+        yaml_obj.preserve_quotes = True
+
+        with open(self.config_path, 'r', encoding='utf-8') as f:
+            config = yaml_obj.load(f)
+
+        if config is None:
+            config = CommentedMap()
+
+        if 'routing' not in config:
+            config['routing'] = CommentedMap()
+
+        # Update health_check section
+        health_config = self.routing_config.health_check
+        health_dict = CommentedMap()
+        health_dict['lightweight_enabled'] = bool(health_config.lightweight_enabled)
+        health_dict['lightweight_interval'] = int(health_config.lightweight_interval)
+        health_dict['actual_request_enabled'] = bool(health_config.actual_request_enabled)
+        health_dict['actual_request_interval'] = int(health_config.actual_request_interval)
+        health_dict['timeout'] = int(health_config.timeout)
+        config['routing']['health_check'] = health_dict
+
+        # Update retry_policy section
+        retry_config = self.routing_config.retry_policy
+        retry_dict = CommentedMap()
+        retry_dict['max_attempts'] = int(retry_config.max_attempts)
+        retry_dict['backoff_factor'] = int(retry_config.backoff_factor)
+        retry_dict['base_delay'] = int(retry_config.base_delay)
+        retry_dict['max_delay'] = int(retry_config.max_delay)
+        config['routing']['retry_policy'] = retry_dict
+
+        # Update timeout
+        config['routing']['timeout'] = int(self.routing_config.timeout)
+
+        # Update runtime configuration
+        runtime_config = self.routing_config.runtime
+        if 'runtime' not in config['routing']:
+            config['routing']['runtime'] = CommentedMap()
+
+        config['routing']['runtime']['mode'] = str(runtime_config.mode)
+
+        if 'load_balance' not in config['routing']['runtime']:
+            config['routing']['runtime']['load_balance'] = CommentedMap()
+
+        config['routing']['runtime']['load_balance']['strategy'] = str(runtime_config.load_balance.strategy)
+
+        if 'options' not in config['routing']['runtime']['load_balance']:
+            config['routing']['runtime']['load_balance']['options'] = CommentedMap()
+
+        options = runtime_config.load_balance.options
+        config['routing']['runtime']['load_balance']['options']['latency_buffer'] = float(options.latency_buffer)
+        config['routing']['runtime']['load_balance']['options']['latency_window'] = int(options.latency_window)
+        config['routing']['runtime']['load_balance']['options']['usage_window'] = int(options.usage_window)
+
+        temp_path = f"{self.config_path}.tmp"
+        try:
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                yaml_obj.dump(config, f)
+                f.flush()
+                os.fsync(f.fileno())
+
+            os.replace(temp_path, self.config_path)
+
+            try:
+                dir_fd = os.open(os.path.dirname(self.config_path), os.O_RDONLY)
+                try:
+                    os.fsync(dir_fd)
+                finally:
+                    os.close(dir_fd)
+            except (OSError, IOError):
+                pass
+
+        except Exception:
+            try:
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+            except OSError:
+                pass
+            raise
+
+    def update_gateway_config(
+        self,
+        updates: Dict[str, Any],
+        persist: bool = False,
+        require_file_lock: bool = False
+    ) -> bool:
+        """
+        Update gateway configuration fields.
+
+        Args:
+            updates: Dict of gateway fields to update
+            persist: Whether to persist changes to YAML file
+            require_file_lock: Whether to acquire file lock before persisting
+
+        Returns:
+            True if update succeeded
+        """
+        valid_keys = {'remote_access', 'port'}
+        invalid_keys = set(updates.keys()) - valid_keys
+        if invalid_keys:
+            logger.error(f"Invalid gateway config keys: {invalid_keys}")
+            return False
+
+        if 'remote_access' in updates and not isinstance(updates['remote_access'], bool):
+            logger.error(f"'remote_access' must be a boolean, got {type(updates['remote_access']).__name__}")
+            return False
+        if 'port' in updates:
+            port = updates['port']
+            if not isinstance(port, int) or port < 1 or port > 65535:
+                logger.error(f"'port' must be an integer between 1 and 65535, got {port}")
+                return False
+
+        gateway_existed = 'gateway' in self._raw_config
+        old_gateway = dict(self._raw_config.get('gateway', {}))
+        if not gateway_existed:
+            self._raw_config['gateway'] = {}
+        self._raw_config['gateway'].update(updates)
+
+        if persist:
+            try:
+                if require_file_lock:
+                    with self._config_lock():
+                        self._persist_gateway_config()
+                else:
+                    self._persist_gateway_config()
+            except Exception as e:
+                logger.error(f"Failed to persist gateway config: {e}")
+                if gateway_existed:
+                    self._raw_config['gateway'] = old_gateway
+                else:
+                    del self._raw_config['gateway']
+                return False
+
+        return True
+
+    def _persist_gateway_config(self) -> None:
+        """
+        Persist gateway configuration to YAML file.
+
+        Updates the gateway section in the YAML configuration file using atomic write.
+        """
+        if not os.path.exists(self.config_path):
+            raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
+
+        yaml_obj = YAML()
+        yaml_obj.preserve_quotes = True
+
+        with open(self.config_path, 'r', encoding='utf-8') as f:
+            config = yaml_obj.load(f)
+
+        if config is None:
+            config = CommentedMap()
+
+        if 'gateway' not in config:
+            config['gateway'] = CommentedMap()
+
+        gateway = self._raw_config.get('gateway', {})
+
+        for key, value in gateway.items():
+            if key in ('remote_access', 'port'):
+                config['gateway'][key] = value
+
+        temp_path = f"{self.config_path}.tmp"
+        try:
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                yaml_obj.dump(config, f)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp_path, self.config_path)
+            try:
+                dir_fd = os.open(os.path.dirname(self.config_path), os.O_RDONLY)
+                try:
+                    os.fsync(dir_fd)
+                finally:
+                    os.close(dir_fd)
+            except (OSError, IOError):
+                pass
+        except Exception:
+            try:
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+            except OSError:
+                pass
+            raise
+
+    def get_all_instances(self, model_name: str) -> List[ModelConfig]:
+        """Get all instances of a specific model name"""
+        if model_name not in self.model_name_index:
+            return []
+        instance_ids = self.model_name_index[model_name]
+        return [self.models[iid] for iid in instance_ids if iid in self.models]
+
+    def get_all_healthy_models(self) -> List[ModelConfig]:
+        """Get all healthy model instances"""
+        return [m for m in self.models.values() if m.is_healthy]
+
+    def _get_highest_priority_model_name(self) -> Optional[str]:
+        """Get the name of the model with the highest priority among healthy instances"""
+        healthy_models = self.get_all_healthy_models()
+        if not healthy_models:
+            if not self.models:
+                return None
+            best = max(self.models.values(), key=lambda m: m.priority)
+            return best.name
+        best = max(healthy_models, key=lambda m: m.priority)
+        return best.name
+
+    def _update_default_model_if_needed(self):
+        """Re-evaluate and update default_model if it's not set"""
+        if not self.default_model:
+            self.default_model = self._get_highest_priority_model_name()
+            if self.default_model:
+                logger.info(f"Auto-set default_model to highest priority: {self.default_model}")
+
+    def get_model_status(self) -> Dict[str, Any]:
+        """Get status of all models"""
+        routing_dict = {
+            "default_model": self.routing_config.default_model,
+            "default_model_instance_id": self.routing_config.default_model_instance_id,
+            "timeout": self.routing_config.timeout,
+            "health_check": {
+                "lightweight_enabled": self.routing_config.health_check.lightweight_enabled,
+                "lightweight_interval": self.routing_config.health_check.lightweight_interval,
+                "actual_request_enabled": self.routing_config.health_check.actual_request_enabled,
+                "actual_request_interval": self.routing_config.health_check.actual_request_interval,
+                "timeout": self.routing_config.health_check.timeout
+            },
+            "retry_policy": {
+                "max_attempts": self.routing_config.retry_policy.max_attempts,
+                "backoff_factor": self.routing_config.retry_policy.backoff_factor,
+                "base_delay": self.routing_config.retry_policy.base_delay,
+                "max_delay": self.routing_config.retry_policy.max_delay
+            }
+        }
+
+        return {
+            "total_instances": len(self.models),
+            "unique_model_names": len(self.model_name_index),
+            "default_model": self.default_model,
+            "default_model_instance_id": self.default_model_instance_id,
+            "available_models": list(self.model_name_index.keys()),
+            "model_name_index": {
+                name: len(instance_ids)
+                for name, instance_ids in self.model_name_index.items()
+            },
+            "routing_config": routing_dict,
+            "status": "healthy"
+        }
+
+    def get_models_by_capability(self, capability: str) -> List[ModelConfig]:
+        """
+        Get all model instances that support a specific capability
+
+        Supports both predefined capabilities (general, code, analysis, creative)
+        and user-defined custom capabilities.
+
+        Returns models sorted by:
+        1. is_healthy (True first)
+        2. priority (higher first)
+        """
+        matching_models = []
+        for model_config in self.models.values():
+            if capability in model_config.capabilities and model_config.is_healthy:
+                matching_models.append(model_config)
+
+        matching_models.sort(key=lambda m: (m.is_healthy, m.priority), reverse=True)
+
+        logger.debug(
+            f"Found {len(matching_models)} model instances for capability '{capability}': "
+            f"{[f'{m.name}({m.instance_id[:8]})' for m in matching_models]}"
+        )
+
+        return matching_models
+
+    @staticmethod
+    def is_capability_request(model: str) -> bool:
+        """
+        Check if the model string is a capability request
+
+        Args:
+            model: The model string (e.g., "capability-code", "deepseek-chat")
+
+        Returns:
+            True if it's a capability request (starts with "capability-")
+        """
+        return bool(model and model.startswith(CAPABILITY_PREFIX))
+
+    @staticmethod
+    def extract_capability(model: str) -> str:
+        """
+        Extract capability name from capability request
+
+        Args:
+            model: The capability request string (e.g., "capability-code")
+
+        Returns:
+            The capability name (e.g., "code"), or empty string if invalid
+        """
+        if model and model.startswith(CAPABILITY_PREFIX):
+            return model[len(CAPABILITY_PREFIX):]
+        return ""
+
+
+# Global config manager instance
+_config_manager_instance: Optional[ModelConfigManager] = None
+
+
+def get_config_manager() -> ModelConfigManager:
+    """Get config manager instance (singleton pattern)"""
+    global _config_manager_instance
+    if _config_manager_instance is None:
+        import os
+        config_path = None
+
+        # 1. Environment variable has highest priority
+        config_path = os.getenv('SYSAIFRAME_CONFIG_PATH')
+        if config_path:
+            logger.info(f"Using config path from environment: {config_path}")
+        else:
+            # 2. Test environment: local config files fallback
+            possible_paths = [
+                'config/models.yaml',
+                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config', 'models.yaml'),
+            ]
+
+            for path in possible_paths:
+                if os.path.exists(path):
+                    config_path = path
+                    logger.info(f"Using test environment config: {config_path}")
+                    break
+
+            # 3. Production environment fallback
+            if not config_path:
+                config_path = '/etc/sysaiframe/models.yaml'
+                logger.info(f"Using default system config path: {config_path}")
+
+        _config_manager_instance = ModelConfigManager(config_path=config_path)
+    return _config_manager_instance
+
+
+def reload_config_manager() -> bool:
+    """Reload config manager configuration"""
+    global _config_manager_instance
+    if _config_manager_instance:
+        return _config_manager_instance.reload_config()
+    return False
