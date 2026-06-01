@@ -22,27 +22,27 @@ async def create_streaming_response(
 ) -> StreamingResponse:
     """
     Create a safe streaming response with first-chunk error detection
-
+    
     Inspects the first chunk for errors and sets the HTTP status code accordingly.
     The entire original generator content is streamed, but the HTTP status code
     is set based on the first chunk if it's a recognized error.
-
+    
     Args:
         generator: Async generator that yields chunks
         headers: Custom response headers
         default_status_code: Default HTTP status code
-
+        
     Returns:
         StreamingResponse with appropriate status code
     """
     first_chunk = None
     status_code = default_status_code
     headers = headers or {}
-
+    
     try:
         # Get the first chunk
         first_chunk = await generator.__anext__()
-
+        
         # Check if first chunk contains an error
         if first_chunk:
             error_status = _check_chunk_for_error(first_chunk)
@@ -52,7 +52,7 @@ async def create_streaming_response(
                     f"Error detected in first chunk: {status_code}",
                     extra={"status_code": status_code}
                 )
-
+    
     except StopAsyncIteration:
         # Generator is empty
         logger.warning("Generator exhausted before yielding any chunks")
@@ -64,16 +64,16 @@ async def create_streaming_response(
             headers=headers,
             status_code=200
         )
-
+    
     except Exception as e:
         # Error reading first chunk
         logger.error(f"Error reading first chunk: {e}", exc_info=True)
-
+        
         # Use StatusCode system instead of string matching
         from sysai_framework.core.status_codes import (
             CONNECTION_ERROR, TIMEOUT_ERROR, INTERNAL_ERROR, DISCONNECTED
         )
-
+        
         # Determine error type based on exception type (not string matching)
         if isinstance(e, (ConnectionError, ConnectionRefusedError, ConnectionResetError)):
             status = CONNECTION_ERROR
@@ -84,9 +84,9 @@ async def create_streaming_response(
             status = DISCONNECTED
         else:
             status = INTERNAL_ERROR
-
+        
         error_message = status.message_template.format(details=str(e))
-
+        
         async def error_gen():
             error_data = {
                 "error": {
@@ -98,31 +98,31 @@ async def create_streaming_response(
             }
             yield f"data: {json.dumps(error_data)}\n\n"
             yield "data: [DONE]\n\n"
-
+        
         return StreamingResponse(
             error_gen(),
             headers=headers,
             status_code=status.http_status
         )
-
+    
     # Recombine generator with first chunk
     async def combined_generator():
         """Generator that yields first chunk then continues with original"""
         if first_chunk:
             yield first_chunk
-
+        
         try:
             async for chunk in generator:
                 yield chunk
         except Exception as e:
             # Handle errors in subsequent chunks
             logger.error(f"Error in streaming: {e}", exc_info=True)
-
+            
             # Use StatusCode system instead of string matching
             from sysai_framework.core.status_codes import (
                 CONNECTION_ERROR, TIMEOUT_ERROR, STREAM_ERROR, DISCONNECTED
             )
-
+            
             # Determine error type based on exception type (not string matching)
             if isinstance(e, (ConnectionError, ConnectionRefusedError, ConnectionResetError)):
                 status = CONNECTION_ERROR
@@ -132,9 +132,9 @@ async def create_streaming_response(
                 status = DISCONNECTED
             else:
                 status = STREAM_ERROR
-
+            
             error_message = status.message_template.format(details=str(e))
-
+            
             error_data = {
                 "error": {
                     "message": error_message,
@@ -145,7 +145,7 @@ async def create_streaming_response(
             }
             yield f"data: {json.dumps(error_data)}\n\n"
             yield "data: [DONE]\n\n"
-
+    
     return StreamingResponse(
         combined_generator(),
         media_type="text/event-stream",
@@ -157,16 +157,16 @@ async def create_streaming_response(
 def _check_chunk_for_error(chunk: Union[str, dict]) -> Optional[int]:
     """
     Check if a chunk contains an error and extract status code
-
+    
     Args:
         chunk: The chunk to check (string or dict)
-
+        
     Returns:
         HTTP status code if error found, None otherwise
     """
     try:
         data = None
-
+        
         # Parse chunk if it's a string
         if isinstance(chunk, str):
             # Handle SSE format
@@ -184,38 +184,38 @@ def _check_chunk_for_error(chunk: Union[str, dict]) -> Optional[int]:
                     return None
         else:
             data = chunk
-
+        
         # Check for error field
         if isinstance(data, dict) and "error" in data:
             error = data["error"]
-
+            
             # Try to extract status code from error
             if isinstance(error, dict):
                 # Check code field
                 code = error.get("code")
                 if isinstance(code, int) and 100 <= code <= 599:
                     return code
-
+                
                 # Map error type to status code
                 error_type = error.get("type", "")
                 return _map_error_type_to_status(error_type)
-
+            
             # Default error status
             return 500
-
+    
     except Exception as e:
         logger.debug(f"Failed to parse chunk for error: {e}")
-
+    
     return None
 
 
 def _map_error_type_to_status(error_type: str) -> int:
     """
     Map error type to HTTP status code
-
+    
     Args:
         error_type: Error type string
-
+        
     Returns:
         HTTP status code
     """
@@ -229,7 +229,7 @@ def _map_error_type_to_status(error_type: str) -> int:
         "service_unavailable": 503,
         "timeout_error": 504,
     }
-
+    
     return error_map.get(error_type, 500)
 
 
@@ -239,32 +239,32 @@ async def wrap_generator_with_error_handling(
 ) -> AsyncGenerator:
     """
     Wrap an async generator with error handling
-
+    
     Catches exceptions and yields error chunks instead of crashing
-
+    
     Args:
         generator: Original generator
         request_id: Request ID for logging
-
+        
     Yields:
         Chunks from original generator, or error chunks on failure
     """
     try:
         async for chunk in generator:
             yield chunk
-
+    
     except Exception as e:
         logger.error(
             f"Error in generator: {e}",
             exc_info=True,
             extra={"request_id": request_id}
         )
-
+        
         # Use StatusCode system
         from sysai_framework.core.status_codes import STREAM_ERROR
-
+        
         error_message = STREAM_ERROR.message_template.format(details=str(e))
-
+        
         # Yield error chunk
         error_chunk = {
             "error": {
@@ -281,10 +281,10 @@ async def wrap_generator_with_error_handling(
 def format_sse_chunk(data: Dict[str, Any]) -> str:
     """
     Format data as Server-Sent Events chunk
-
+    
     Args:
         data: Data to format
-
+        
     Returns:
         Formatted SSE string
     """
@@ -292,10 +292,6 @@ def format_sse_chunk(data: Dict[str, Any]) -> str:
 
 
 def format_sse_done() -> str:
-    """
-    Format SSE done message
-
-    Returns:
-        Formatted SSE done string
-    """
+    """Format SSE done message"""
     return "data: [DONE]\n\n"
+
