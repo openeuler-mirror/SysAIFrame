@@ -28,8 +28,16 @@ class StreamIterator:
     Runs GLib main loop in a separate thread to receive D-Bus signals.
     """
 
-    def __init__(self, bus, request_id: str, model: str, timeout: int = 60):
-        """Initialize stream iterator."""
+    def __init__(self, bus, request_id: str, model: str, timeout: int = 120):
+        """
+        Initialize stream iterator.
+
+        Args:
+            bus: D-Bus connection
+            request_id: Request ID to filter signals
+            model: Model name
+            timeout: Timeout in seconds for receiving chunks
+        """
         if not DBUS_AVAILABLE:
             raise RuntimeError("D-Bus dependencies not available")
 
@@ -50,6 +58,7 @@ class StreamIterator:
     def _setup_signals(self):
         """Setup D-Bus signal handlers with request_id filtering"""
         try:
+            # Add match rule to filter signals by request_id (arg0)
             match_rule = (
                 f"type='signal',"
                 f"interface='org.ctyunos.AIGateway.Chat',"
@@ -66,6 +75,7 @@ class StreamIterator:
             )
             self.bus.add_match_string(match_rule_done)
 
+            # Connect signal handlers
             self.bus.add_signal_receiver(
                 self._handle_chunk,
                 signal_name="StreamChunk",
@@ -88,10 +98,12 @@ class StreamIterator:
 
     def _handle_chunk(self, request_id: str, chunk: Dict[str, Any]):
         """Handle StreamChunk signal"""
+        # Double-check request_id (match rule should already filter)
         if request_id != self.request_id:
             return
 
         try:
+            # Convert D-Bus types to Python
             chunk_dict = self._dbus_to_python(chunk)
             chat_chunk = ChatChunk.from_dict(self.request_id, self.model, chunk_dict)
             self.chunk_queue.put(chat_chunk)
@@ -105,11 +117,13 @@ class StreamIterator:
 
     def _handle_done(self, request_id: str, usage: Dict[str, Any]):
         """Handle StreamDone signal"""
+        # Double-check request_id
         if request_id != self.request_id:
             return
 
         logger.debug(f"Stream done for {request_id}")
         self.done = True
+        # Signal end of stream
         self.chunk_queue.put(None)
         if self.mainloop:
             self.mainloop.quit()
@@ -164,12 +178,15 @@ class StreamIterator:
     def __next__(self) -> ChatChunk:
         """Get next chunk"""
         try:
+            # Wait for chunk with timeout
             chunk = self.chunk_queue.get(timeout=self.timeout)
 
+            # None signals end of stream
             if chunk is None:
                 self.stop()
                 raise StopIteration
 
+            # Check for errors
             if self.error:
                 self.stop()
                 raise self.error

@@ -65,8 +65,10 @@ class SysAIClient:
     def _connect(self):
         """Connect to D-Bus and get interface"""
         try:
+            # Initialize GLib main loop integration
             DBusGMainLoop(set_as_default=True)
 
+            # Connect to bus
             if self.use_system_bus:
                 try:
                     self.bus = dbus.SystemBus()
@@ -79,6 +81,7 @@ class SysAIClient:
                 self.bus = dbus.SessionBus()
                 logger.debug("Connected to session D-Bus")
 
+            # Get proxy object
             proxy = self.bus.get_object(self.BUS_NAME, self.OBJECT_PATH)
             self.interface = dbus.Interface(proxy, self.INTERFACE_NAME)
 
@@ -92,6 +95,7 @@ class SysAIClient:
     def _python_to_dbus(self, value: Any) -> Any:
         """Convert Python value to D-Bus type"""
         if value is None:
+            # D-Bus doesn't have null, use empty string
             return dbus.String("")
         elif isinstance(value, bool):
             return dbus.Boolean(value)
@@ -129,6 +133,7 @@ class SysAIClient:
             return float(value)
         elif isinstance(value, (dbus.String, dbus.ObjectPath, dbus.Signature)):
             s = str(value)
+            # Empty string represents null
             return None if s == "" else s
         elif isinstance(value, dbus.Byte):
             return int(value)
@@ -146,6 +151,7 @@ class SysAIClient:
         """Build request dictionary for D-Bus call"""
         request = {}
 
+        # Convert messages
         msg_list = []
         for msg in messages:
             if isinstance(msg, ChatMessage):
@@ -158,6 +164,7 @@ class SysAIClient:
         request["messages"] = msg_list
         request["stream"] = stream
 
+        # Add optional parameters
         if model is not None:
             request["model"] = model
         if temperature is not None:
@@ -174,6 +181,7 @@ class SysAIClient:
         error_msg = error.get("message", "Unknown error")
         error_type = error.get("type", "unknown").lower()
 
+        # 1. Map by explicit type
         if "not_found" in error_type:
             return ModelNotFoundError(error_msg)
         elif "unavailable" in error_type:
@@ -181,6 +189,7 @@ class SysAIClient:
         elif "invalid" in error_type or "validation" in error_type:
             return InvalidRequestError(error_msg)
 
+        # 2. Map by status code prefix
         if "[STATUS:404]" in error_msg:
             return ModelNotFoundError(error_msg)
         elif "[STATUS:400]" in error_msg:
@@ -188,9 +197,11 @@ class SysAIClient:
         elif "[STATUS:503]" in error_msg:
             return ServiceUnavailableError(error_msg)
 
+        # 3. Handle specific timeout
         if "timeout" in error_msg.lower():
             return SysAITimeoutError(error_msg)
 
+        # 4. Fallback to generic string matching
         msg_lower = error_msg.lower()
         if "not found" in msg_lower:
             return ModelNotFoundError(error_msg)
@@ -220,11 +231,31 @@ class SysAIClient:
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
     ) -> ChatResponse:
-        """Send a chat completion request (non-streaming)."""
+        """
+        Send a chat completion request (non-streaming).
+
+        Args:
+            messages: List of messages (dict or ChatMessage objects)
+            model: Model name (optional, uses system default if not specified)
+            temperature: Sampling temperature (0.0 to 2.0)
+            max_tokens: Maximum tokens to generate
+            top_p: Nucleus sampling parameter
+
+        Returns:
+            ChatResponse object
+
+        Raises:
+            SysAIConnectionError: If D-Bus connection fails
+            ServiceUnavailableError: If service is not available
+            InvalidRequestError: If request parameters are invalid
+            ModelNotFoundError: If specified model is not found
+            ServerError: If server returns an error
+        """
         if not self.interface:
             raise SysAIConnectionError("Not connected to D-Bus")
 
         try:
+            # Build request
             request = self._build_request(
                 messages=messages,
                 model=model,
@@ -234,14 +265,18 @@ class SysAIClient:
                 stream=False
             )
 
+            # Convert to D-Bus types
             dbus_request = self._python_to_dbus(request)
 
             logger.debug(f"Sending chat request: model={model}")
 
+            # Call D-Bus method
             dbus_response = self.interface.ChatCompletion(dbus_request)
 
+            # Convert response
             response = self._dbus_to_python(dbus_response)
 
+            # Check for errors
             if "error" in response:
                 raise self._handle_api_error(response["error"])
 
@@ -262,13 +297,34 @@ class SysAIClient:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
-        timeout: int = 60,
+        timeout: int = 120,
     ) -> Iterator[ChatChunk]:
-        """Send a chat completion request with streaming."""
+        """
+        Send a chat completion request with streaming.
+
+        Args:
+            messages: List of messages (dict or ChatMessage objects)
+            model: Model name (optional, uses system default if not specified)
+            temperature: Sampling temperature (0.0 to 2.0)
+            max_tokens: Maximum tokens to generate
+            top_p: Nucleus sampling parameter
+            timeout: Timeout in seconds for receiving chunks
+
+        Returns:
+            Iterator of ChatChunk objects
+
+        Raises:
+            SysAIConnectionError: If D-Bus connection fails
+            ServiceUnavailableError: If service is not available
+            InvalidRequestError: If request parameters are invalid
+            ModelNotFoundError: If specified model is not found
+            ServerError: If server returns an error
+        """
         if not self.interface:
             raise SysAIConnectionError("Not connected to D-Bus")
 
         try:
+            # Build request
             request = self._build_request(
                 messages=messages,
                 model=model,
@@ -278,16 +334,20 @@ class SysAIClient:
                 stream=True
             )
 
+            # Convert to D-Bus types
             dbus_request = self._python_to_dbus(request)
 
             logger.debug(f"Sending streaming chat request: model={model}")
 
+            # Call D-Bus method to get initial response
             dbus_response = self.interface.ChatCompletion(dbus_request)
             response = self._dbus_to_python(dbus_response)
 
+            # Check for errors
             if "error" in response:
                 raise self._handle_api_error(response["error"])
 
+            # Extract request_id and model from initial response
             request_id = response.get("id")
             actual_model = response.get("model", model or "default")
 
@@ -296,6 +356,7 @@ class SysAIClient:
 
             logger.debug(f"Got streaming request_id: {request_id}")
 
+            # Create stream iterator
             stream_iter = StreamIterator(self.bus, request_id, actual_model, timeout)
             stream_iter.start()
 
@@ -310,7 +371,17 @@ class SysAIClient:
             raise ServerError(f"Unexpected error: {e}")
 
     def list_models(self) -> List[str]:
-        """Get list of available models."""
+        """
+        Get list of available models.
+
+        Returns:
+            List of model names
+
+        Raises:
+            SysAIConnectionError: If D-Bus connection fails
+            ServiceUnavailableError: If service is not available
+            ServerError: If server returns an error
+        """
         if not self.interface:
             raise SysAIConnectionError("Not connected to D-Bus")
 
@@ -323,7 +394,17 @@ class SysAIClient:
             raise ServerError(f"Unexpected error: {e}")
 
     def get_status(self) -> Dict[str, Any]:
-        """Get service status."""
+        """
+        Get service status.
+
+        Returns:
+            Status dictionary
+
+        Raises:
+            SysAIConnectionError: If D-Bus connection fails
+            ServiceUnavailableError: If service is not available
+            ServerError: If server returns an error
+        """
         if not self.interface:
             raise SysAIConnectionError("Not connected to D-Bus")
 
@@ -337,6 +418,7 @@ class SysAIClient:
                 status = status_str if isinstance(status_str, dict) else {}
 
             if isinstance(status, dict):
+                # Backward-compatible fields expected by older SDK tests/callers.
                 if "state" not in status:
                     models = status.get("models", [])
                     available_models = status.get("available_models", None)
@@ -366,4 +448,5 @@ class SysAIClient:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit"""
+        # Cleanup if needed
         return False

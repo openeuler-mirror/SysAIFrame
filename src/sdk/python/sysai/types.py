@@ -110,7 +110,11 @@ class ChatResponse:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ChatResponse":
-        """Create from D-Bus response dictionary"""
+        """
+        Create from D-Bus response dictionary.
+        Handles empty string -> None conversion.
+        """
+        # Extract content from first choice
         content = ""
         finish_reason = None
         if "choices" in data and data["choices"]:
@@ -118,9 +122,11 @@ class ChatResponse:
             if "message" in choice:
                 content = choice["message"].get("content", "")
             finish_reason = choice.get("finish_reason")
+            # Convert empty string to None
             if finish_reason == "":
                 finish_reason = None
 
+        # Parse usage
         usage_data = data.get("usage", {})
         usage = Usage.from_dict(usage_data)
 
@@ -145,7 +151,10 @@ class ChatChunk:
 
     @classmethod
     def from_dict(cls, request_id: str, model: str, data: Dict[str, Any]) -> "ChatChunk":
-        """Create from D-Bus chunk dictionary"""
+        """
+        Create from D-Bus chunk dictionary.
+        Handles empty string -> None conversion.
+        """
         content = None
         finish_reason = None
 
@@ -154,6 +163,7 @@ class ChatChunk:
             if "delta" in choice:
                 delta = choice["delta"]
                 content = delta.get("content")
+                # Convert empty string to None
                 if content == "":
                     content = None
             finish_reason = choice.get("finish_reason")
@@ -170,7 +180,10 @@ class ChatChunk:
 
 
 def _convert_empty_to_none(value: Any) -> Any:
-    """Convert empty strings to None recursively"""
+    """
+    Convert empty strings to None recursively.
+    This handles the D-Bus convention where None is represented as empty string.
+    """
     if isinstance(value, str) and value == "":
         return None
     elif isinstance(value, dict):
@@ -178,4 +191,3 @@ def _convert_empty_to_none(value: Any) -> Any:
     elif isinstance(value, list):
         return [_convert_empty_to_none(item) for item in value]
     return value
-
