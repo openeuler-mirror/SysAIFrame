@@ -58,3 +58,4 @@ ai-discover = "sysai_framework.cli.ai_discover:main"
 
 [tool.setuptools]
 packages = {find = {exclude = ["sysai-register*", "sdk*"]}}
+
