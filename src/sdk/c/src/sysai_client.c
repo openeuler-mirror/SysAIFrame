@@ -126,6 +126,14 @@ void sysai_message_free(sysai_message_t *message) {
     free(message);
 }
 
+const char *sysai_message_get_role(const sysai_message_t *message) {
+    return message ? message->role : NULL;
+}
+
+const char *sysai_message_get_content(const sysai_message_t *message) {
+    return message ? message->content : NULL;
+}
+
 /* ============================================================================
  * Request Options
  * ========================================================================= */
@@ -163,6 +171,25 @@ void sysai_options_free(sysai_options_t *opts) {
     if (!opts) return;
     free(opts->model);
     free(opts);
+}
+
+const char *sysai_options_get_model(const sysai_options_t *opts) {
+    return opts ? opts->model : NULL;
+}
+
+double sysai_options_get_temperature(const sysai_options_t *opts, bool *has_value) {
+    if (has_value) *has_value = opts ? opts->has_temperature : false;
+    return opts ? opts->temperature : 0.0;
+}
+
+int sysai_options_get_max_tokens(const sysai_options_t *opts, bool *has_value) {
+    if (has_value) *has_value = opts ? opts->has_max_tokens : false;
+    return opts ? opts->max_tokens : 0;
+}
+
+double sysai_options_get_top_p(const sysai_options_t *opts, bool *has_value) {
+    if (has_value) *has_value = opts ? opts->has_top_p : false;
+    return opts ? opts->top_p : 0.0;
 }
 
 /* ============================================================================
@@ -206,7 +233,7 @@ sysai_response_t *sysai_chat(
     }
 
     /* Call method */
-    r = sd_bus_call(client->bus, m, 30000000, &error, &reply);  /* 30 second timeout */
+    r = sd_bus_call(client->bus, m, 120000000, &error, &reply);  /* 120 second timeout */
     if (r < 0) {
         if (sd_bus_error_has_name(&error, SD_BUS_ERROR_SERVICE_UNKNOWN)) {
             set_error(client, SYSAI_ERR_SERVICE, "Service not available");
@@ -235,6 +262,35 @@ cleanup:
     sd_bus_message_unref(m);
     sd_bus_message_unref(reply);
     return NULL;
+}
+
+/* Response construction */
+sysai_response_t *sysai_response_new(
+    const char *id,
+    const char *model,
+    const char *content,
+    const char *finish_reason,
+    int total_tokens
+) {
+    sysai_response_t *resp = calloc(1, sizeof(sysai_response_t));
+    if (!resp) return NULL;
+
+    resp->id = strdup(id ? id : "");
+    resp->model = strdup(model ? model : "");
+    resp->content = strdup(content ? content : "");
+    resp->finish_reason = finish_reason ? strdup(finish_reason) : NULL;
+    resp->total_tokens = total_tokens;
+
+    if (!resp->id || !resp->model || !resp->content) {
+        sysai_response_free(resp);
+        return NULL;
+    }
+    if (finish_reason && !resp->finish_reason) {
+        sysai_response_free(resp);
+        return NULL;
+    }
+
+    return resp;
 }
 
 /* Response accessors */
