@@ -1,24 +1,35 @@
 # CTyunOS AI Gateway Model Configuration File Example
-#
+# 
 # INITIAL SETUP:
 # On first installation, models.yaml is created empty with no models configured.
 # The service will run in degraded state until you add at least one model.
-#
+# 
 # To add models:
 #   1. Copy the examples below to models.yaml
 #   2. OR use CLI: ai-config model add <name> --api <url> --api_key <key>
-#
+# 
 # EMPTY CONFIGURATION:
 # If you want an empty configuration (service in degraded state), use:
-#
+# 
 #   models: []
 #   routing:
 #     default_model: null
-#     timeout: 30
-#
+#     timeout: 300
+# 
 # The service will return appropriate errors until models are configured.
-#
+# 
 # EXAMPLE CONFIGURATIONS:
+
+# Gateway configuration - controls API server binding and access
+gateway:
+  # Remote access switch: false = local only (bind 127.0.0.1), true = allow cross-node (bind 0.0.0.0)
+  # Default: false (security first - only local access allowed)
+  # Changing this requires service restart: sudo systemctl restart sysaiframe
+  remote_access: false
+
+  # API server port (default: 6000)
+  # Changing this requires service restart: sudo systemctl restart sysaiframe
+  port: 6000
 
 models:
   # OpenAI-compatible service example
@@ -32,7 +43,8 @@ models:
     weight: 1  # Load balance weight (used in weighted strategy, default: 1)
     capabilities: ["chat", "completions"]
     supports_streaming: true
-    timeout: 30
+    # timeout: optional, inherits from routing.timeout if not set
+    # stream_timeout: optional, inherits from timeout if not set (inter-chunk timeout for streaming)
     max_retries: 3
 
   # DeepSeek example - first instance
@@ -44,7 +56,8 @@ models:
     priority: 2
     capabilities: ["chat"]
     supports_streaming: true
-    timeout: 30
+    timeout: 60  # Non-streaming: full response timeout (inherits routing timeout if omitted)
+    stream_timeout: 30  # Streaming: inter-chunk timeout (inherits timeout if omitted, min 3s)
     max_retries: 3
 
   # DeepSeek example - second instance (same model name, different deployment)
@@ -57,7 +70,7 @@ models:
     priority: 1  # Lower priority, used as backup
     capabilities: ["chat"]
     supports_streaming: true
-    timeout: 30
+    # timeout: optional, inherits from routing.timeout if not set
     max_retries: 3
 
   # Local Ollama example
@@ -68,7 +81,7 @@ models:
     priority: 3
     capabilities: ["chat", "completions"]
     supports_streaming: true
-    timeout: 60
+    timeout: 120  # Ollama local models may need longer timeout
     max_retries: 2
 
 routing:
@@ -77,46 +90,46 @@ routing:
   #   - model_name: automatically selects best instance (healthy + highest priority)
   #   - instance_id: uses specific instance
   default_model: "deepseek-chat"  # Model name - will auto-select best instance
-
+  
   # Optional: specify exact instance_id for default model
   # If specified, this instance will always be used as default
   # default_model_instance_id: "deepseek-instance-1"
-
-  # Request timeout (seconds)
-  timeout: 30
-
+  
+  # Request timeout (seconds) - total budget for fallback chain
+  timeout: 300
+  
   # Runtime mode configuration
   runtime:
     # Runtime mode: "default" or "load-balance"
     # - default: Uses priority-based selection (existing behavior)
     # - load-balance: Uses load balance strategy for model selection
     mode: "default"  # or "load-balance"
-
+    
     # Load balance configuration (only effective when mode is "load-balance")
     load_balance:
       # Strategy: "round-robin" | "weighted" | "least-busy" | "lowest-latency" | "usage-based"
       strategy: "weighted"
-
+      
       # Strategy-specific options
       options:
         # lowest-latency strategy options
         latency_buffer: 0.1      # Buffer ratio (0.0-1.0) for latency-based selection
         latency_window: 10       # Number of recent requests to track for latency
-
+        
         # usage-based strategy options
         usage_window: 60         # Time window in seconds for usage tracking (TPM/RPM)
-
+  
   # Health check configuration
   health_check:
     # Master switch for all health checks
     enabled: true
-
+    
     # Lightweight check (HTTP HEAD request to endpoint)
     # - Very low cost, no API charges
     # - Checks endpoint reachability only
     lightweight_enabled: true
     lightweight_interval: 60  # seconds between checks
-
+    
     # Actual request validation (sends real test message)
     # - INCURS API COSTS - disabled by default
     # - Validates model availability and functionality
@@ -124,21 +137,21 @@ routing:
     # - Can be auto-enabled per-model when needed for recovery
     actual_request_enabled: false  # WARNING: Set to true only if you accept API costs
     actual_request_interval: 300  # seconds between checks (5 minutes)
-
+    
     # Health check timeout
     timeout: 10  # seconds
-
+  
   # Retry policy for model requests
   retry_policy:
     # Maximum retry attempts for retriable errors (timeout, rate limit, 503)
     max_attempts: 3
-
+    
     # Exponential backoff factor
     backoff_factor: 2
-
+    
     # Base delay for first retry (seconds)
     base_delay: 1
-
+    
     # Maximum delay cap (seconds)
     max_delay: 30
 
@@ -185,3 +198,4 @@ routing:
 # Monitoring:
 # - Prometheus metrics available at /metrics endpoint
 # - Health status API at /v1/health, /v1/health/models, /v1/health/models/{model_name}
+
