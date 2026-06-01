@@ -11,7 +11,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sysai_framework.api.v1 import chat
 from sysai_framework.api.v1 import health
-from sysai_framework.config import config
+from sysai_framework.config.cors_config import Config
+from sysai_framework.config.model_config import get_config_manager
 import uvicorn
 import logging
 import os
@@ -23,6 +24,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Global config instance - initialized by main() after ModelConfigManager
+config = None
 
 # Reduce third-party library log verbosity
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -87,16 +91,6 @@ async def cors_middleware(request: Request, call_next):
     
     return response
 
-# Configure CORS with dynamic configuration (after our middleware)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=config.get_cors_origins(),
-    allow_credentials=config.get_cors_credentials(),
-    allow_methods=config.get_cors_methods(),
-    allow_headers=config.get_cors_headers(),
-    expose_headers=["*"],
-)
-
 # Register API routes
 app.include_router(chat.router, prefix="/v1", tags=["Chat Completions"])
 app.include_router(health.router, tags=["Health"])
@@ -142,14 +136,33 @@ async def shutdown_event():
 
 def main():
     """Main entry point"""
+    # Initialize config manager via singleton (respects SYSAIFRAME_CONFIG_PATH env var)
+    config_manager = get_config_manager()
+    gateway_config = config_manager.get_gateway_config()
+
+    global config
+    config = Config(gateway_config=gateway_config)
+
+    # Configure CORS middleware with dynamic configuration (after config is initialized)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=config.get_cors_origins(),
+        allow_credentials=config.get_cors_credentials(),
+        allow_methods=config.get_cors_methods(),
+        allow_headers=config.get_cors_headers(),
+        expose_headers=["*"],
+    )
+
     logger.info("Starting SysAIFrame AI Gateway...")
     logger.info(f"CORS Policy: {'TEST MODE - Remote access enabled' if config.test_mode else 'PRODUCTION - Local access only'}")
     if config.test_mode:
-        logger.warning("⚠️  TEST_MODE is enabled - Remote access is allowed")
+        logger.warning("TEST_MODE is enabled - Remote access is allowed")
         if config.allowed_remote_hosts:
             logger.info(f"Allowed remote hosts: {', '.join(config.allowed_remote_hosts)}")
         else:
             logger.info("Allowed remote hosts: ANY (CORS_ALLOWED_HOSTS not set)")
+
+    logger.info(f"Gateway: remote_access={config.remote_access}, binding to {config.gateway_host}:{config.gateway_port}")
     
     # Initialize D-Bus service if enabled and available
     dbus_service = None
